@@ -1,0 +1,56 @@
+rules_version = '2';
+// Regras de segurança da Central Elite & Durães.
+// Copie TUDO e cole em Firebase > Firestore Database > Regras > Publicar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // E-mail do dono. Se mudar aqui, mude também em firebase-config.js.
+    function donoEmail() { return 'duraesfotografiax@gmail.com'; }
+
+    function logado() { return request.auth != null; }
+    function ehDono() {
+      return logado()
+        && request.auth.token.email == donoEmail()
+        && request.auth.token.email_verified == true;
+    }
+    function perfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function temPerfil() { return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)); }
+    function ativo() { return ehDono() || (temPerfil() && perfil().ativo == true); }
+    function adm() { return ehDono() || (ativo() && perfil().papel == 'adm'); }
+    function financeiro() { return adm() || (ativo() && perfil().financeiro == true); }
+
+    // Contas da equipe
+    match /usuarios/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || adm());
+
+      // Quem cria conta entra bloqueado, sem caixa, até um Adm aprovar.
+      allow create: if logado() && request.auth.uid == uid && (
+        ehDono() || (
+          request.resource.data.keys().hasOnly(['nome', 'email', 'papel', 'financeiro', 'ativo', 'criado'])
+          && request.resource.data.papel == 'equipe'
+          && request.resource.data.financeiro == false
+          && request.resource.data.ativo == false
+          && request.resource.data.email == request.auth.token.email
+        )
+      );
+
+      // A própria pessoa só muda o nome e a data do último acesso. O resto, só Adm.
+      allow update: if adm() || (
+        logado() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'visto'])
+      );
+      allow delete: if adm();
+    }
+
+    // Produção, agenda e freelancers: toda a equipe aprovada
+    match /tar/{id} { allow read, write: if ativo(); }
+    match /freelas/{id} { allow read, write: if ativo(); }
+
+    // Dinheiro: só quem tem o caixa liberado
+    match /lanc/{id} { allow read, write: if financeiro(); }
+    match /valores/{id} { allow read, write: if financeiro(); }
+
+    // Qualquer outra coisa: bloqueado
+    match /{outro=**} { allow read, write: if false; }
+  }
+}
