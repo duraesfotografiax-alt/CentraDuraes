@@ -37,7 +37,7 @@ service cloud.firestore {
       // A própria pessoa só muda o nome e a data do último acesso. O resto, só Adm.
       allow update: if adm() || (
         logado() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'visto'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'visto', 'tokens', 'membro'])
       );
       allow delete: if adm();
     }
@@ -46,11 +46,18 @@ service cloud.firestore {
     match /tar/{id} { allow read, write: if ativo(); }
     match /freelas/{id} { allow read, write: if ativo(); }
 
+    // Clientes (lojas) e conteúdos para postar
+    match /lojas/{id} { allow read: if ativo(); allow write: if adm(); }
+    match /posts/{id} { allow read, write: if ativo(); }
+
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
     match /valores/{id} { allow read, write: if financeiro(); }
 
     // Qualquer outra coisa: bloqueado
+    // Controle interno do robô de notificações (só o servidor acessa)
+    match /avisos/{id} { allow read, write: if false; }
+
     match /{outro=**} { allow read, write: if false; }
   }
 }

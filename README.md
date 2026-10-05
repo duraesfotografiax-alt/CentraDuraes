@@ -103,3 +103,90 @@ No GitHub, abra o arquivo, clique no lápis (editar) ou envie o arquivo novo por
 
 **Posso trocar o e-mail do dono?**
 Pode. Troque em dois lugares: `firebase-config.js` (`ADMIN_EMAIL`) e `firestore.rules` (`donoEmail`). Depois publique as regras de novo no Firebase.
+
+---
+
+## Notificações (agenda, captação chegando e edição atrasada)
+
+O que cada pessoa recebe, nos trabalhos em que está marcada (o Adm recebe de todos):
+- **Resumo do dia, por volta das 8h:** captações de hoje e de amanhã, entregas dos próximos 2 dias e edições atrasadas.
+- **"Daqui a pouco":** cerca de 2 horas antes de cada captação que tenha horário.
+- **"Edição atrasada":** no dia em que o prazo de entrega estoura.
+
+Dentro do app, o **sino** no topo mostra a mesma lista a qualquer hora.
+
+### Configuração (uma vez só)
+
+1. **Chave de notificações (VAPID)**
+   - No Firebase, abra ⚙️ **Configurações do projeto** → aba **Cloud Messaging**.
+   - Em **Configuração da Web → Certificados push da Web**, clique em **Gerar par de chaves**.
+   - Copie a chave e cole em `firebase-config.js`, no lugar de `COLE_AQUI`, na linha `self.VAPID_KEY`.
+2. **Chave do robô** (é secreta: não mande para ninguém e não coloque no repositório)
+   - No Firebase, abra ⚙️ **Configurações do projeto** → aba **Contas de serviço**.
+   - Clique em **Gerar nova chave privada** e depois em **Gerar chave**. Um arquivo `.json` é baixado.
+   - No GitHub, abra o repositório e vá em **Settings → Secrets and variables → Actions → New repository secret**.
+   - Em "Name", escreva `FIREBASE_SERVICE_ACCOUNT`.
+   - Em "Secret", cole **todo** o conteúdo do arquivo `.json`. Abra o arquivo com o Bloco de Notas, use Ctrl+A e Ctrl+C.
+   - Clique em **Add secret**. Depois apague o `.json` do computador.
+3. **Regras atualizadas**
+   - Cole de novo o `firestore.rules` em **Firestore → Regras** e clique em **Publicar**.
+4. **Envie os arquivos novos**
+   - Copie tudo desta pasta para a pasta do repositório, substituindo os arquivos antigos. Inclua as pastas `.github` e `notificar` e o arquivo `.nojekyll`.
+   - No GitHub Desktop, faça **Commit** e depois **Push origin**.
+5. **Cada pessoa ativa no próprio aparelho**
+   - Abra o app, toque no **sino**, depois em **Ativar notificações** e em **Permitir**.
+   - Em **"Eu sou"**, escolha o seu nome.
+   - No iPhone, primeiro instale o app (Safari → Compartilhar → **Adicionar à Tela de Início**) e abra pelo ícone. É uma exigência da Apple.
+6. **Teste**
+   - No GitHub, abra **Actions → Notificações da Central → Run workflow** e escolha **teste**.
+   - Todo mundo que ativou as notificações recebe uma mensagem de teste em alguns segundos.
+
+### Observações
+- O robô roda de hora em hora no GitHub Actions, de graça. Os avisos podem chegar com alguns minutos de atraso.
+- O GitHub pausa robôs agendados em repositórios sem nenhuma alteração por 60 dias. Se isso acontecer, ele avisa por e-mail; basta entrar em **Actions** e clicar em **Enable workflow**.
+
+---
+
+## Aba Clientes (do material editado até o post no ar)
+
+Cada loja que a Elite atende vira uma abinha dentro de **Clientes**. O fluxo é:
+
+1. **Produção:** ao cadastrar um trabalho da Elite, escolha o **Cliente (loja)**. Se o nome da loja estiver no título, o app escolhe sozinho.
+2. **Entregue:** quando o editor move o cartão para **Entregue**, o app pede:
+   - o **link da pasta no Drive**;
+   - **o que foi entregue**, com um item por post (ex.: "Ford Ka SE 2016 – Reels", "Jeep Renegade – Carrossel").
+3. **Aviso:** quem programa os posts da loja (a Vanessa, por padrão) recebe a notificação "Programar post: Eduardo Motors".
+4. **Programei:** depois de programar no Meta, a Vanessa toca em **Programei** e informa o dia e a hora em que o post vai sair.
+5. **Conferência:** depois desse horário, quem toca em **Saiu ✓** marca o post como no ar. Se passar 2 horas e ninguém marcar, o app manda o aviso "Confira se saiu".
+
+A aba **Todas** mostra um resumo de cada loja: o que está em produção, para programar, programado e no ar.
+Na primeira vez, o Adm clica em **"Adicionar as lojas do Meta"** para cadastrar as lojas de uma vez, e depois ajusta o Instagram de cada uma em **Editar cliente**.
+
+**Importante:** cole de novo o `firestore.rules` no Firebase (Firestore → Regras → Publicar), porque ele ganhou as regras de lojas e posts.
+
+---
+
+## Clientes · Durães (entrega para casamentos, eventos e aniversários)
+
+Em **Clientes**, use o botão **Clientes · Durães**. As colunas são:
+- **Próximos eventos**
+- **Em edição**
+- **No Drive · enviar ao cliente**
+- **Entregue ao cliente**
+
+O fluxo:
+1. Quando o editor termina, toca em **Pronto no Drive** (ou move o cartão para **Entregue** na Produção) e cola o link da pasta.
+2. Thiago e Vanessa recebem o aviso "Pronto no Drive: Casamento Julia".
+3. Depois de mandar o link ao cliente, toque em **Enviei ao cliente**.
+
+O trabalho que fica mais de 3 dias esperando envio ganha um alerta. O campo **Contato do cliente** guarda o WhatsApp dos noivos ou do contratante.
+
+## Resumo e Caixa escondidos (cadeado)
+
+- O app sempre abre na **Produção**. O **Resumo** e o **Caixa** não aparecem no menu.
+- Para abri-los, toque no **cadeado**, ao lado do seu nome (no celular, no topo), e digite seu **PIN**.
+- Na primeira vez, você cria o PIN. Ele fica salvo só naquele aparelho.
+- Tranca sozinho depois de **5 minutos sem uso**, ou se o app ficar mais de 1 minuto em segundo plano. Para trancar na hora, toque no cadeado de novo.
+- Esqueceu o PIN? Toque em **Esqueci o PIN**, confirme a senha da conta e crie outro.
+- Os valores dos trabalhos também ficam escondidos enquanto estiver trancado.
+- Quem não tem acesso ao caixa (o Lucas) nem vê o cadeado. Para ele, essas abas não existem.

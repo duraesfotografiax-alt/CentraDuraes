@@ -48,7 +48,7 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .side::before{content:"";display:block;height:3px;margin:0 -14px 18px;background:var(--brand)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px 20px}
 .brand .txt b{display:block;font-family:var(--display);font-size:15px;letter-spacing:-.01em}
-.brand .txt small{color:var(--muted);font-size:12px}
+.brand .txt small{color:var(--muted);font-size:12px;white-space:nowrap}
 .tiles{display:flex}
 .tile{width:40px;height:40px;border-radius:11px;border:1px solid var(--line2);background:#050608 center/cover no-repeat;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:16px;flex:none}
 .tile + .tile{margin-left:-8px;box-shadow:0 0 0 2px var(--panel)}
@@ -268,6 +268,50 @@ details.panel[open] summary{margin-bottom:12px}
 .logo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
 .logo-row + .logo-row{border-top:1px solid var(--line)}
 .logo-row input{min-width:0;max-width:100%;font-size:13px}
+/* clientes */
+.storetabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;scrollbar-width:thin}
+.storetabs button{flex:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+.storetabs button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#16120A}
+.storetabs .n{background:var(--neg);color:#fff;border-radius:9px;font-size:11px;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
+.storetabs button[aria-pressed="true"] .n{background:#16120A;color:var(--gold)}
+.lojahead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.lojahead .ini{width:48px;height:48px;border-radius:14px;background:var(--elite-bg);color:var(--elite);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:20px;flex:none}
+.lojahead b{font-family:var(--display);font-size:20px;display:block}
+.lojahead a{color:var(--elite);font-weight:700;font-size:13px;text-decoration:none}
+.pipe{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+@media (max-width:1100px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.pipe{grid-template-columns:1fr}}
+.post{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.post .t{font-weight:800;overflow-wrap:break-word;min-width:0;flex:1}
+.post .meta{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.post .acts{display:flex;gap:6px;flex-wrap:wrap}
+.post a.btn{text-decoration:none}
+.ptype{display:inline-flex;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:6px;background:var(--hover);color:var(--ink)}
+.ovw{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;align-items:center;padding:12px 8px;margin:0 -8px;border-radius:10px;cursor:pointer}
+.ovw:hover{background:var(--hover)}
+.ovw + .ovw{border-top:1px solid var(--line)}
+.ovw.h{cursor:default;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:800;padding-block:4px}
+.ovw.h:hover{background:none}
+.ovw .c{text-align:center;font-weight:800}
+.ovw .c.alert{color:var(--warn)}
+@media (max-width:640px){.ovw{grid-template-columns:minmax(0,1fr) repeat(4,34px);font-size:13px}}
+.items{display:flex;flex-direction:column;gap:8px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 130px auto;gap:8px}
+@media (max-width:440px){.item{grid-template-columns:minmax(0,1fr) 110px auto}}
+.item input,.item select{background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:9px 10px;min-width:0;width:100%}
+/* avisos */
+.bell{position:relative;margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.bell:hover{background:var(--hover)}
+.bell .bd{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:var(--neg);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 0 0 2px var(--panel)}
+.bell.has svg{color:var(--gold)}
+.al{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:10px 8px;margin:0 -8px;border-radius:10px;cursor:pointer}
+.al:hover{background:var(--hover)}
+.al + .al{border-top:1px solid var(--line)}
+.al .k{width:10px;height:10px;border-radius:50%;margin-top:6px}
+.al b{display:block;overflow-wrap:anywhere}
+.al small{color:var(--muted);font-size:13px}
+.pushbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.pushbox .row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 /* login */
 .auth{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(1200px 600px at 20% -10%,rgba(76,141,255,.14),transparent 60%),radial-gradient(900px 500px at 100% 110%,rgba(255,106,31,.12),transparent 60%),var(--bg)}
 .auth-card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
@@ -300,14 +344,14 @@ details.panel[open] summary{margin-bottom:12px}
 
 <div class="app" id="app" hidden>
   <aside class="side">
-    <div class="brand"><div class="tiles" data-tiles></div><div class="txt"><b>Central</b><small>Elite &amp; Durães</small></div></div>
+    <div class="brand"><div class="tiles" data-tiles></div><div class="txt"><b>Central</b><small>Elite &amp; Durães</small></div><button class="bell" data-bell aria-label="Avisos"><svg class="i"><use href="#i-bell"/></svg></button></div>
     <nav class="nav" id="navSide" aria-label="Seções"></nav>
     <div class="grow"></div>
     <div class="me" id="meSide"></div>
   </aside>
 
   <div class="wrap">
-    <header class="topm"><div class="tiles" data-tiles></div><div class="t"><b id="topTitle">Central</b><small>Elite &amp; Durães</small></div><div id="meTop"></div></header>
+    <header class="topm"><div class="tiles" data-tiles></div><div class="t"><b id="topTitle">Central</b><small>Elite &amp; Durães</small></div><button class="bell" data-bell aria-label="Avisos" style="margin-left:0"><svg class="i"><use href="#i-bell"/></svg></button><div id="meTop"></div></header>
     <main>
       <div id="notice" class="notice" hidden></div>
       <div id="preview" class="notice" hidden><span>Você está vendo o painel <b>como a equipe vê</b> (sem caixa e sem resumo).</span><button class="btn sm" data-preview-off>Voltar ao modo Adm</button></div>
@@ -378,6 +422,19 @@ details.panel[open] summary{margin-bottom:12px}
         <div class="board" id="board"></div>
       </section>
 
+      <!-- CLIENTES -->
+      <section id="tab-clientes" hidden>
+        <div class="head">
+          <h1>Clientes<small id="cliSub">Do material editado até o post no ar, loja por loja</small></h1>
+          <div class="sp"></div>
+          <div class="seg" id="cliSeg"></div>
+          <button class="btn" data-new-post><svg class="i"><use href="#i-plus"/></svg>Conteúdo</button>
+          <button class="btn primary" data-new-loja hidden><svg class="i"><use href="#i-plus"/></svg>Cliente</button>
+        </div>
+        <div class="storetabs" id="lojaTabs" role="tablist" aria-label="Clientes"></div>
+        <div id="lojaBody"></div>
+      </section>
+
       <!-- AGENDA -->
       <section id="tab-agenda" hidden>
         <div class="head">
@@ -434,6 +491,10 @@ details.panel[open] summary{margin-bottom:12px}
   <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></symbol>
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
   <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 12v8h14v-8M10 20v-5h4v5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
@@ -444,6 +505,7 @@ details.panel[open] summary{margin-bottom:12px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 (function(){
@@ -463,14 +525,14 @@ const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DF
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
-const fin=()=>S.fin&&!S.preview;
+const fin=()=>S.fin&&!S.preview&&S.unlocked;
 
 /* ---------- utilidades ---------- */
 function pad(n){return String(n).padStart(2,'0')}
@@ -550,10 +612,11 @@ function renderShell(){
   document.getElementById('navBottom').innerHTML=ts.map(n=>item(n,true)).join('');
   document.querySelectorAll('[data-tiles]').forEach(e=>e.innerHTML=logoTile('elite')+logoTile('duraes'));
   const cur=NAV.find(n=>n[0]===S.tab);document.getElementById('topTitle').textContent=cur?cur[1]:'Central';
+  renderBell();
   const [rc,rl]=roleOf();const me=S.me;
   const nm=(me&&me.nome)||'Você';
-  document.getElementById('meSide').innerHTML='<span class="av lg" style="background:'+(TCOR[nm]||'var(--gold)')+'">'+esc(nm.charAt(0).toUpperCase())+'</span><div style="min-width:0"><b>'+esc(nm)+'</b><span class="role '+rc+'">'+rl+'</span></div><button class="btn sm ghost meout" data-logout>Sair</button>';
-  document.getElementById('meTop').innerHTML='<button class="btn sm ghost" data-logout aria-label="Sair"><span class="role '+rc+'" style="margin:0">'+rl+'</span> Sair</button>';
+  document.getElementById('meSide').innerHTML='<span class="av lg" style="background:'+(TCOR[nm]||'var(--gold)')+'">'+esc(nm.charAt(0).toUpperCase())+'</span><div style="min-width:0"><b>'+esc(nm)+'</b><span class="role '+rc+'">'+rl+'</span></div>'+(S.fin&&!S.preview?'<button class="btn sm ghost meout" data-cofre aria-label="'+(S.unlocked?'Trancar área financeira':'Abrir área financeira')+'" title="'+(S.unlocked?'Trancar':'Área financeira')+'"><svg class="i"><use href="#'+(S.unlocked?'i-unlock':'i-lock')+'"/></svg></button>':'')+'<button class="btn sm ghost'+(S.fin&&!S.preview?'':' meout')+'" data-logout>Sair</button>';
+  document.getElementById('meTop').innerHTML=(S.fin&&!S.preview?'<button class="btn sm ghost" data-cofre aria-label="Área financeira" style="padding:5px 7px"><svg class="i"><use href="#'+(S.unlocked?'i-unlock':'i-lock')+'"/></svg></button>':'')+'<button class="btn sm ghost" data-logout aria-label="Sair"><span class="role '+rc+'" style="margin:0">'+rl+'</span> Sair</button>';
   document.getElementById('preview').hidden=!S.preview;
   document.getElementById('fab').hidden=!S.canWrite||S.tab==='equipe';
   document.querySelectorAll('[data-new-tar],[data-new-lanc]').forEach(b=>b.hidden=!S.canWrite);
@@ -569,7 +632,7 @@ function render(){
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
   if(fin()){renderResumo();renderCaixa()}
-  renderBoard();renderAgenda();renderEquipe();
+  renderBoard();renderClientes();renderAgenda();renderEquipe();
 }
 
 /* ---------- resumo ---------- */
@@ -665,12 +728,12 @@ function card(t,i){
   const tipo=(TIPOS[t.tipo]||TIPOS.outro).nome,w=S.canWrite,v=fin()?valOf(t.id):null;
   return '<div class="card '+(t.empresa||'')+'" data-open="'+t.id+'"'+(w?' draggable="true"':'')+'>'+
     '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(t.titulo)+'</div>'+chipEmp(t.empresa)+'</div>'+
-    '<div class="meta"><span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
+    '<div class="meta">'+(t.loja&&lojaNome(t.loja)?'<span style="color:var(--ink);font-weight:700">'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
     '<div class="foot"><span class="teamline" title="Captação: '+esc(nomes(t.captacao))+'">'+ico('i-cam')+avs(t.captacao)+'</span><span class="teamline" title="Edição: '+esc(nomes(t.edicao))+'">'+ico('i-edit')+avs(t.edicao)+'</span></div>'+
     '<div class="foot">'+(prazoChip(t)||'<span></span>')+(v&&v.valor?'<span class="money num">'+$(v.valor)+'</span>':'')+'</div>'+
     (w?'<div class="foot"><div class="mv">'+(i>0?'<button class="btn sm" data-act="back" data-id="'+t.id+'" aria-label="Voltar etapa">←</button>':'')+'</div><div class="mv">'+(i<ETAPAS.length-1?'<button class="btn sm" data-act="fwd" data-id="'+t.id+'">'+ETAPAS[i+1][1]+' →</button>':'')+'</div></div>':'')+'</div>';
 }
-async function moveTo(id,etapa){const up={etapa};if(etapa==='entregue')up.entregueEm=hoje();try{await write(()=>store.update('tar',id,up))}catch(_){}}
+async function moveTo(id,etapa){const T0=S.tar.find(x=>x.id===id);if(etapa==='entregue'&&T0&&T0.etapa!=='entregue'){if(T0.empresa==='duraes'){formEntregaD(T0);return}if(T0.loja){formEntrega(T0);return}}const up={etapa};if(etapa==='entregue')up.entregueEm=hoje();try{await write(()=>store.update('tar',id,up))}catch(_){}}
 
 /* ---------- agenda ---------- */
 function renderAgenda(){
@@ -773,9 +836,10 @@ function formTar(t,preset){
   '<div class="fld"><label for="tTit">Cliente / trabalho</label><input id="tTit" placeholder="Ex.: Eduardo Motors, Casamento Julia" value="'+esc(t.titulo)+'"></div>'+
   '<div class="two"><div class="fld"><label for="tTipo">Tipo</label><select id="tTipo">'+opts(Object.entries(TIPOS).map(([k,x])=>[k,x.nome]),t.tipo)+'</select></div>'+
   '<div class="fld"><label for="tEmp">Empresa</label><select id="tEmp">'+opts([['elite','Elite Marketing'],['duraes','Durães Fotografia']],t.empresa)+'</select></div></div>'+
+  '<div class="fld" id="tLojaF"><label for="tLoja">Cliente (loja)</label><select id="tLoja">'+opts([['','— nenhum —']].concat(lojasOrd().map(l=>[l.id,l.nome])),t.loja||'')+'</select><span class="hint">Ao marcar como Entregue, o material vai para a aba Clientes para a Vanessa programar.</span></div>'+
   '<div class="two"><div class="fld"><label for="tData">Data da captação</label><input id="tData" type="date" value="'+esc(t.data)+'"></div>'+
   '<div class="fld"><label for="tHora">Horário</label><input id="tHora" type="time" value="'+esc(t.hora)+'"></div></div>'+
-  '<div class="fld"><label for="tLocal">Local / endereço</label><input id="tLocal" value="'+esc(t.local)+'"></div>'+
+  '<div class="two"><div class="fld"><label for="tLocal">Local / endereço</label><input id="tLocal" value="'+esc(t.local)+'"></div><div class="fld"><label for="tContato">Contato do cliente</label><input id="tContato" inputmode="tel" placeholder="WhatsApp" value="'+esc(t.contato||'')+'"></div></div>'+
   '<div class="fld"><span class="l">Quem vai captar</span><div id="pkCap">'+pickHtml('pCap',sel.captacao)+'</div></div>'+
   '<div class="fld"><span class="l">Quem vai editar</span><div id="pkEd">'+pickHtml('pEd',sel.edicao)+'</div></div>'+
   '<div class="fld"><span class="l">Freelancer novo</span><div class="addfr"><input id="tFr" placeholder="Nome do freelancer"><button type="button" class="btn sm" id="tFrAdd">'+ico('i-plus')+'Adicionar</button></div><span class="hint">Ele entra na lista da Equipe e fica marcado na captação.</span></div>'+
@@ -800,13 +864,17 @@ function formTar(t,preset){
   const autoPrazo=()=>{if(prazoManual)return;const d=q('#tData').value;if(d)q('#tPrazo').value=addDias(d,(TIPOS[q('#tTipo').value]||TIPOS.outro).dias)};
   q('#tTipo').onchange=()=>{const x=TIPOS[q('#tTipo').value];if(x.emp)q('#tEmp').value=x.emp;if(novo&&x.todos&&!sel.captacao.length){sel.captacao=TEAM.slice();q('#pkCap').innerHTML=pickHtml('pCap',sel.captacao)}autoPrazo()};
   q('#tData').onchange=autoPrazo;q('#tPrazo').oninput=()=>{prazoManual=true};
+  const lojaVis=()=>{q('#tLojaF').hidden=q('#tEmp').value!=='elite'};lojaVis();q('#tEmp').addEventListener('change',lojaVis);
+  q('#tTit').addEventListener('change',()=>{if(q('#tLoja').value)return;const v=q('#tTit').value.trim().toLowerCase();const l=S.lojas.find(x=>v.includes((x.nome||'').toLowerCase()));if(l){q('#tLoja').value=l.id}});
   q('#fT').onsubmit=async e=>{e.preventDefault();
     const titulo=q('#tTit').value.trim();if(!titulo){q('#tErr').textContent='Dê um nome ao trabalho (cliente ou evento).';return}
     let valor=0,custo=0;
     if(fin()){const a=q('#tValor').value.trim(),b=q('#tCusto').value.trim();valor=a?parseValor(a):0;custo=b?parseValor(b):0;
       if(!(valor>=0)||!(custo>=0)){q('#tErr').textContent='Valor inválido. Use por exemplo 1500,00.';return}}
     const doc={titulo:titulo.slice(0,120),tipo:q('#tTipo').value,empresa:q('#tEmp').value,data:q('#tData').value,hora:q('#tHora').value,local:q('#tLocal').value.trim().slice(0,200),
-      captacao:sel.captacao,edicao:sel.edicao,prazo:q('#tPrazo').value,etapa:q('#tEtapa').value,obs:q('#tObs').value.slice(0,1000)};
+      captacao:sel.captacao,edicao:sel.edicao,prazo:q('#tPrazo').value,etapa:q('#tEtapa').value,obs:q('#tObs').value.slice(0,1000),
+      loja:q('#tEmp').value==='elite'?q('#tLoja').value:'',drive:t.drive||'',contato:q('#tContato').value.trim().slice(0,40),
+      entregaStatus:t.entregaStatus||'',prontoEm:t.prontoEm||'',enviadoEm:t.enviadoEm||''};
     if(doc.etapa==='entregue')doc.entregueEm=t.entregueEm||hoje();
     let tid=t.id;
     try{await write(async()=>{if(novo)tid=await store.add('tar',doc);else await store.set('tar',t.id,doc)})}catch(_){return}
@@ -820,6 +888,20 @@ function formTar(t,preset){
 const armed={};
 document.addEventListener('click',async e=>{
   if(e.target.closest('[data-logout]')){auth.signOut();return}
+  if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
+  if(e.target.closest('[data-bell]')){abrirAvisos();return}
+  const lj=e.target.closest('[data-loja]');if(lj){S.loja=lj.dataset.loja;try{localStorage.setItem('loja',S.loja)}catch(_){}renderClientes();return}
+  if(e.target.closest('[data-new-loja]')){formLoja();return}
+  if(e.target.closest('[data-edit-loja]')){formLoja(S.lojas.find(x=>x.id===S.loja));return}
+  if(e.target.closest('[data-sugestoes]')){addSugestoes();return}
+  if(e.target.closest('[data-new-post]')){formPost(null,S.loja!=='todas'?S.loja:'');return}
+  const pa=e.target.closest('[data-pact]');if(pa){postAcao(pa);return}
+  const da=e.target.closest('[data-dact]');if(da){duraesAcao(da);return}
+  if(e.target.closest('[data-push-on]')){ativarPush();return}
+  if(e.target.closest('[data-push-test]')){testePush();return}
+  const ald=e.target.closest('[data-ald]');if(ald){closeSheet();S.cliSeg='duraes';setTab('clientes');render();return}
+  const alp=e.target.closest('[data-alp]');if(alp){const P=S.posts.find(x=>x.id===alp.dataset.alp);closeSheet();if(P){S.loja=P.loja;setTab('clientes');render()}return}
+  const al=e.target.closest('[data-al]');if(al){const T=S.tar.find(x=>x.id===al.dataset.al);closeSheet();if(T)formTar(T);return}
   const ua=e.target.closest('[data-uact]');if(ua){userAction(ua);return}
   const tb=e.target.closest('[data-tab]');if(tb){setTab(tb.dataset.tab);return}
   const go=e.target.closest('[data-go]');if(go){setTab(go.dataset.go);return}
@@ -834,7 +916,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-preview-on]')){S.preview=true;render();setTab('producao');toast('Modo equipe: é isto que o Lucas vê');return}
   if(e.target.closest('[data-preview-off]')){S.preview=false;render();return}
   const fp=e.target.closest('[data-filtro-pes]');if(fp){S.pes=fp.dataset.filtroPes;setTab('producao');render();return}
-  if(e.target.closest('#fab')){if(S.tab==='caixa')formLanc();else formTar();return}
+  if(e.target.closest('#fab')){if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
   if(e.target.closest('[data-new-lanc]')){formLanc();return}
   if(e.target.closest('[data-new-tar]')){formTar();return}
   if(e.target.closest('[data-close]')||e.target===sheet){closeSheet();return}
@@ -868,6 +950,267 @@ board.addEventListener('dragend',e=>{const c=e.target.closest('.card');if(c)c.cl
 board.addEventListener('dragover',e=>{const col=e.target.closest('.col');if(!col||!dragId)return;e.preventDefault();board.querySelectorAll('.over').forEach(x=>x!==col&&x.classList.remove('over'));col.classList.add('over')});
 board.addEventListener('drop',e=>{const col=e.target.closest('.col');if(!col||!dragId)return;e.preventDefault();const T=S.tar.find(x=>x.id===dragId);const et=col.dataset.etapa;dragId=null;
   col.classList.remove('over');if(T&&(T.etapa||'agendar')!==et){moveTo(T.id,et);toast('Movido para '+ETAPAS.find(x=>x[0]===et)[1])}});
+
+/* ---------- Durães: entrega ao cliente ---------- */
+function renderDuraes(){
+  const ts=S.tar.filter(t=>t.empresa==='duraes'),h=hoje(),lim=addDias(h,-60);
+  const prox=ts.filter(t=>t.etapa==='agendar'||t.etapa==='agendado'||!t.etapa).sort((a,b)=>(a.data||'z').localeCompare(b.data||'z'));
+  const edi=ts.filter(t=>t.etapa==='captado'||t.etapa==='edicao').sort((a,b)=>(a.prazo||'z').localeCompare(b.prazo||'z'));
+  const drv=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus!=='enviado').sort((a,b)=>(a.prontoEm||a.entregueEm||'').localeCompare(b.prontoEm||b.entregueEm||''));
+  const env=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus==='enviado'&&(t.enviadoEm||'')>=lim).sort((a,b)=>(b.enviadoEm||'').localeCompare(a.enviadoEm||''));
+  const tp=t=>(TIPOS[t.tipo]||TIPOS.outro).nome;
+  const ct=t=>t.contato?'<span>Contato: <span style="user-select:all">'+esc(t.contato)+'</span></span>':'';
+  const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
+  const col=(tit,cor,arr_,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+arr_.length+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
+  const w=S.canWrite;
+  document.getElementById('lojaBody').innerHTML='<div class="pipe">'+
+    col('Próximos eventos','#4C8DFF',prox,prox.map(t=>c(t,'<span>Capta: '+esc(nomes(t.captacao))+'</span>','')).join(''),'Nenhum evento marcado.')+
+    col('Em edição','#FF6A1F',edi,edi.map(t=>c(t,'<span>Edição: '+esc(nomes(t.edicao))+'</span>'+(prazoChip(t)?'<span>'+prazoChip(t)+'</span>':''),w?'<button class="btn sm primary" data-dact="drive" data-id="'+t.id+'">Pronto no Drive</button>':'')).join(''),'Nada em edição.')+
+    col('No Drive · enviar ao cliente','#E2B24C',drv,drv.map(t=>{const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;return c(t,'<span>Pronto '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · <b style="color:var(--warn)">esperando há '+d+' dias</b>':'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(w?'<button class="btn sm primary" data-dact="enviado" data-id="'+t.id+'">Enviei ao cliente</button>':''))}).join(''),'Nada esperando envio.')+
+    col('Entregue ao cliente (60 dias)','#34D399',env,env.map(t=>c(t,'<span>Enviado '+(t.enviadoEm?dCurta(t.enviadoEm.slice(0,10)):'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(w?'<button class="btn sm ghost" data-dact="desfazer" data-id="'+t.id+'">Desfazer</button>':''))).join(''),'Nenhuma entrega nos últimos 60 dias.')+'</div>';
+}
+function formEntregaD(T){
+  sheet.innerHTML='<form id="fEd" novalidate><h2>Material pronto no Drive</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(T.titulo)+'</b> · '+(TIPOS[T.tipo]||TIPOS.outro).nome+'. Thiago e Vanessa recebem o aviso para enviar ao cliente.</p>'+
+  '<div class="fld"><label for="edDrive">Link da pasta no Drive</label><input id="edDrive" type="url" inputmode="url" placeholder="https://drive.google.com/..." value="'+esc(T.drive||'')+'"></div>'+
+  '<div class="fld"><label for="edContato">Contato do cliente</label><input id="edContato" inputmode="tel" placeholder="WhatsApp" value="'+esc(T.contato||'')+'"></div>'+
+  '<div class="err" id="edErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Confirmar e avisar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#fEd').onsubmit=async e=>{e.preventDefault();const drive=q('#edDrive').value.trim();
+    if(!/^https?:\/\//i.test(drive)){q('#edErr').textContent='Cole o link da pasta do Drive (começa com https://).';return}
+    try{await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive,contato:q('#edContato').value.trim().slice(0,40),entregaStatus:'drive',prontoEm:agoraLocal(),enviadoEm:''}))}catch(_){return}
+    closeSheet();toast('Pronto no Drive · aviso enviado')};
+  q('#edDrive').focus()}
+async function duraesAcao(b){const id=b.dataset.id,k=b.dataset.dact,T=S.tar.find(x=>x.id===id);if(!T)return;
+  if(k==='drive')formEntregaD(T);
+  else if(k==='enviado'){try{await write(()=>store.update('tar',id,{entregaStatus:'enviado',enviadoEm:agoraLocal()}));toast('Marcado como entregue ao cliente')}catch(_){}}
+  else if(k==='desfazer'){try{await write(()=>store.update('tar',id,{entregaStatus:'drive',enviadoEm:''}));toast('Voltou para "enviar ao cliente"')}catch(_){}}
+}
+
+/* ---------- cofre: Resumo e Caixa só com PIN ---------- */
+let ultimoUso=Date.now(),escondidoEm=0;
+const PIN_KEY=()=>'pin_'+S.uid;
+async function hashPin(pin){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('central:'+S.uid+':'+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function lerPin(){try{return localStorage.getItem(PIN_KEY())}catch(_){return null}}
+function trancar(avisar){if(!S.unlocked)return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
+function destrancar(){S.unlocked=true;ultimoUso=Date.now();closeSheet();render();setTab('resumo');toast('Área financeira aberta')}
+function abrirCofre(modo){
+  const tem=!!lerPin();modo=modo||(tem?'entrar':'criar');
+  const pinIn=(id,l)=>'<div class="fld"><label for="'+id+'">'+l+'</label><input id="'+id+'" type="password" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]*" style="font-size:22px;letter-spacing:.4em;text-align:center"></div>';
+  let html='<form id="fPin" novalidate><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Área financeira</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>';
+  if(modo==='criar')html+='<p class="muted" style="margin:0;font-size:14px">Crie um PIN para abrir o Resumo e o Caixa neste aparelho. Eles ficam escondidos até você digitar o PIN, e trancam sozinhos depois de 5 minutos sem uso.</p>'+pinIn('pin1','Novo PIN (4 a 8 números)')+pinIn('pin2','Repita o PIN');
+  else if(modo==='entrar')html+=pinIn('pin1','Digite seu PIN')+'<button type="button" class="btn sm ghost" data-pin-esqueci style="align-self:flex-start">Esqueci o PIN</button>';
+  else html+='<p class="muted" style="margin:0;font-size:14px">Para criar um PIN novo, confirme a senha da sua conta.</p><div class="fld"><label for="pinSenha">Senha da conta</label><input id="pinSenha" type="password" autocomplete="current-password"></div>';
+  html+='<div class="err" id="pinErr"></div><div class="formacts"><button class="btn primary" type="submit">'+(modo==='entrar'?'Abrir':modo==='criar'?'Criar PIN e abrir':'Confirmar')+'</button></div></form>';
+  sheet.innerHTML=html;sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>q('#pinErr').textContent=m;
+  const esq=q('[data-pin-esqueci]');if(esq)esq.onclick=()=>abrirCofre('reset');
+  q('#fPin').onsubmit=async e=>{e.preventDefault();
+    try{
+      if(modo==='criar'){const a=q('#pin1').value,b=q('#pin2').value;if(!/^\d{4,8}$/.test(a)){err('Use de 4 a 8 números.');return}if(a!==b){err('Os dois PINs estão diferentes.');return}
+        localStorage.setItem(PIN_KEY(),await hashPin(a));destrancar()}
+      else if(modo==='entrar'){if(await hashPin(q('#pin1').value)===lerPin())destrancar();else{err('PIN incorreto.');q('#pin1').value='';q('#pin1').focus()}}
+      else{const u=auth.currentUser;await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,q('#pinSenha').value));localStorage.removeItem(PIN_KEY());abrirCofre('criar')}
+    }catch(x){err(x&&x.code?aerr(x):'Não deu certo. Tente de novo.')}
+  };
+  const f=sheet.querySelector('input');if(f)f.focus();
+}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ultimoUso=Date.now()},{passive:true}));
+setInterval(()=>{if(S.unlocked&&Date.now()-ultimoUso>5*60e3)trancar(false)},20e3);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)escondidoEm=Date.now();else if(escondidoEm&&Date.now()-escondidoEm>60e3)trancar(false)});
+
+/* ---------- clientes ---------- */
+const TPOST={reels:'Reels',feed:'Feed',carrossel:'Carrossel',stories:'Stories'};
+const SUGESTOES=['Eduardo Motors','RM Veículos','Amarílis Restobar','Pizzaria Amarílis','No Grill','Barão Express','Juliana Xavier','Tratos Cabelo'];
+function lojasOrd(){return S.lojas.filter(l=>l.ativo!==false).slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''))}
+function lojaNome(id){const l=S.lojas.find(x=>x.id===id);return l?l.nome:''}
+function agoraLocal(){const d=new Date();return iso(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
+function minDiff(a,b){return Math.round((new Date(a)-new Date(b))/6e4)}
+function fmtQuando(q){if(!q)return '—';const [d,h]=q.split('T');return dCurta(d)+(h?' às '+h:'')}
+function contaLoja(id){const ps=S.posts.filter(p=>p.loja===id),ag=agoraLocal(),lim=addDias(hoje(),-30);
+  return {prod:S.tar.filter(t=>t.loja===id&&t.etapa!=='entregue').length,pronto:ps.filter(p=>p.status==='pronto').length,
+    prog:ps.filter(p=>p.status==='programado').length,conferir:ps.filter(p=>p.status==='programado'&&p.quando&&minDiff(ag,p.quando)>=120).length,
+    pub:ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).length}}
+function renderClientes(){
+  segs('cliSeg','cliSeg',[['elite','Lojas · Elite'],['duraes','Clientes · Durães']]);
+  const dur=S.cliSeg==='duraes';
+  document.getElementById('cliSub').textContent=dur?'Dos eventos até o material entregue ao cliente':'Do material editado até o post no ar, loja por loja';
+  document.querySelectorAll('[data-new-post]').forEach(b=>b.hidden=dur||!S.canWrite);
+  document.getElementById('lojaTabs').hidden=dur;
+  if(dur){document.querySelectorAll('[data-new-loja]').forEach(b=>b.hidden=true);renderDuraes();return}
+  const L=lojasOrd();if(S.loja!=='todas'&&!L.some(l=>l.id===S.loja))S.loja='todas';
+  document.querySelectorAll('[data-new-loja]').forEach(b=>b.hidden=!S.adm);
+  document.getElementById('lojaTabs').innerHTML='<button data-loja="todas" aria-pressed="'+(S.loja==='todas')+'">Todas</button>'+L.map(l=>{const c=contaLoja(l.id),n=c.pronto+c.conferir;return '<button data-loja="'+l.id+'" aria-pressed="'+(S.loja===l.id)+'">'+esc(l.nome)+(n?'<span class="n">'+n+'</span>':'')+'</button>'}).join('');
+  const body=document.getElementById('lojaBody');
+  if(!L.length){body.innerHTML='<div class="panel">'+emptyMsg('Nenhum cliente cadastrado',S.adm?'Cadastre as lojas que a Elite atende. Cada uma vira uma aba aqui.<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap"><button class="btn primary sm" data-sugestoes>Adicionar as lojas do Meta</button><button class="btn sm" data-new-loja>Cadastrar uma por uma</button></div>':'Peça ao Thiago para cadastrar as lojas.')+'</div>';return}
+  if(S.loja==='todas'){
+    body.innerHTML='<div class="panel"><div class="ovw h"><span>Cliente</span><span class="c" title="Em produção">Prod.</span><span class="c" title="Para programar">Progr.</span><span class="c" title="Programados">Agend.</span><span class="c" title="Publicados (30 dias)">No ar</span></div>'+
+      L.map(l=>{const c=contaLoja(l.id);return '<div class="ovw" data-loja="'+l.id+'"><b style="overflow-wrap:anywhere">'+esc(l.nome)+(c.conferir?' <span class="chip soon">conferir '+c.conferir+'</span>':'')+'</b><span class="c">'+c.prod+'</span><span class="c'+(c.pronto?' alert':'')+'">'+c.pronto+'</span><span class="c">'+c.prog+'</span><span class="c">'+c.pub+'</span></div>'}).join('')+
+      '<p class="hint" style="margin:12px 0 0">Prod. = em produção · Progr. = editado, esperando programar · Agend. = programado no Meta · No ar = publicado nos últimos 30 dias.</p></div>';return}
+  const l=S.lojas.find(x=>x.id===S.loja),ps=S.posts.filter(p=>p.loja===l.id),ag=agoraLocal(),lim=addDias(hoje(),-30);
+  const prod=S.tar.filter(t=>t.loja===l.id&&t.etapa!=='entregue').sort((a,b)=>(a.data||'z').localeCompare(b.data||'z'));
+  const pronto=ps.filter(p=>p.status==='pronto').sort((a,b)=>(a.editadoEm||'').localeCompare(b.editadoEm||''));
+  const prog=ps.filter(p=>p.status==='programado').sort((a,b)=>(a.quando||'').localeCompare(b.quando||''));
+  const pub=ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
+  const ig=(l.instagram||'').replace(/^@/,'');
+  const col=(tit,cor,n,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+n+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
+  const pc=p=>{const atras=p.status==='programado'&&p.quando&&minDiff(ag,p.quando)>=120;
+    let a='';
+    if(p.status==='pronto')a='<button class="btn sm primary" data-pact="programar" data-id="'+p.id+'">Programei</button>';
+    else if(p.status==='programado')a='<button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">Saiu ✓</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
+    else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
+    return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="ptype">'+(TPOST[p.tipo]||'Post')+'</span></div>'+
+      '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
+      (p.status==='programado'?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
+      (p.status==='publicado'?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      '<div class="acts">'+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
+  body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span></div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button>':'')+'</div>'+
+    '<div class="pipe">'+
+    col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
+    col('Para programar','#E2B24C',pronto.length,pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
+    col('Programado','#4C8DFF',prog.length,prog.map(pc).join(''),'Nada programado.')+
+    col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+'</div>';
+}
+async function addSugestoes(){const tem=new Set(S.lojas.map(l=>(l.nome||'').toLowerCase()));let n=0;
+  for(const nome of SUGESTOES){if(tem.has(nome.toLowerCase()))continue;try{await write(()=>store.add('lojas',{nome,instagram:nome==='Eduardo Motors'?'eduardo.motors2018':'',postagem:'Vanessa',ativo:true}));n++}catch(_){return}}
+  toast(n+' clientes adicionados')}
+function formLoja(l){const novo=!l;l=l||{nome:'',instagram:'',postagem:'Vanessa',ativo:true};
+  sheet.innerHTML='<form id="fLj" novalidate><h2>'+(novo?'Novo cliente':'Editar cliente')+'</h2>'+
+  '<div class="fld"><label for="ljNome">Nome da loja</label><input id="ljNome" value="'+esc(l.nome)+'" placeholder="Ex.: Tratos Cabelo"></div>'+
+  '<div class="two"><div class="fld"><label for="ljIg">Instagram</label><input id="ljIg" value="'+esc(l.instagram)+'" placeholder="@usuario"></div>'+
+  '<div class="fld"><label for="ljResp">Quem programa os posts</label><select id="ljResp">'+opts(TEAM,l.postagem||'Vanessa')+'</select></div></div>'+
+  '<div class="err" id="ljErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-pact="arquivarLoja" data-id="'+l.id+'">Arquivar cliente</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#fLj').onsubmit=async e=>{e.preventDefault();const nome=q('#ljNome').value.trim();if(!nome){q('#ljErr').textContent='Escreva o nome da loja.';return}
+    const doc={nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true};
+    try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id}}catch(_){return}
+    closeSheet();toast(novo?'Cliente cadastrado':'Cliente atualizado')};
+  q('#ljNome').focus()}
+function itemRow(it){return '<div class="item"><input placeholder="Ex.: Ford Ka SE 2016" value="'+esc(it.titulo||'')+'" data-it="t"><select data-it="k">'+opts(Object.entries(TPOST),it.tipo||'reels')+'</select><button type="button" class="btn sm ghost danger" data-rm-item aria-label="Remover">✕</button></div>'}
+function formEntrega(T){
+  const eu=meuMembro()||(S.me&&S.me.nome)||'';
+  sheet.innerHTML='<form id="fEn" novalidate><h2>Entregar edição</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(T.titulo)+'</b> · '+esc(lojaNome(T.loja))+'. A Vanessa vai receber o aviso para programar.</p>'+
+  '<div class="fld"><label for="enDrive">Link da pasta no Drive</label><input id="enDrive" type="url" inputmode="url" placeholder="https://drive.google.com/..." value="'+esc(T.drive||'')+'"></div>'+
+  '<div class="fld"><span class="l">O que foi entregue</span><div class="items" id="enItems">'+itemRow({titulo:'',tipo:'reels'})+'</div><button type="button" class="btn sm" id="enAdd" style="align-self:flex-start">'+ico('i-plus')+'Mais um conteúdo</button><span class="hint">Um item para cada post: cada carro, cada reels, cada carrossel.</span></div>'+
+  '<div class="err" id="enErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Entregar e avisar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#enAdd').onclick=()=>{q('#enItems').insertAdjacentHTML('beforeend',itemRow({}));const ins=q('#enItems').querySelectorAll('input');ins[ins.length-1].focus()};
+  q('#enItems').onclick=e=>{const b=e.target.closest('[data-rm-item]');if(b&&q('#enItems').children.length>1)b.closest('.item').remove()};
+  q('#fEn').onsubmit=async e=>{e.preventDefault();const drive=q('#enDrive').value.trim();
+    if(!/^https?:\/\//i.test(drive)){q('#enErr').textContent='Cole o link da pasta do Drive (começa com https://).';return}
+    const its=[...q('#enItems').children].map(r=>({titulo:r.querySelector('[data-it="t"]').value.trim(),tipo:r.querySelector('[data-it="k"]').value})).filter(x=>x.titulo);
+    if(!its.length){q('#enErr').textContent='Escreva pelo menos um conteúdo (ex.: o nome do carro).';return}
+    const agora=agoraLocal();
+    try{
+      await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive}));
+      for(const it of its)await write(()=>store.add('posts',{loja:T.loja,tar:T.id,titulo:it.titulo.slice(0,100),tipo:it.tipo,drive,status:'pronto',editadoPor:eu,editadoEm:agora,quando:'',link:'',obs:''}));
+    }catch(_){return}
+    closeSheet();toast(its.length+' conteúdo(s) enviado(s) para programar')};
+  q('#enItems input').focus()}
+function formPost(pst,lojaId){const novo=!pst;pst=pst||{titulo:'',tipo:'reels',drive:'',status:'pronto',loja:lojaId||'',quando:'',link:'',obs:''};
+  const L=lojasOrd();if(!L.length){toast('Cadastre um cliente primeiro');return}
+  sheet.innerHTML='<form id="fPo" novalidate><h2>'+(novo?'Novo conteúdo':'Editar conteúdo')+'</h2>'+
+  '<div class="two"><div class="fld"><label for="poLoja">Cliente</label><select id="poLoja">'+opts(L.map(l=>[l.id,l.nome]),pst.loja||L[0].id)+'</select></div>'+
+  '<div class="fld"><label for="poTipo">Tipo</label><select id="poTipo">'+opts(Object.entries(TPOST),pst.tipo)+'</select></div></div>'+
+  '<div class="fld"><label for="poTit">Conteúdo</label><input id="poTit" value="'+esc(pst.titulo)+'" placeholder="Ex.: Jeep Renegade 2017"></div>'+
+  '<div class="fld"><label for="poDrive">Link no Drive</label><input id="poDrive" type="url" value="'+esc(pst.drive)+'" placeholder="https://drive.google.com/..."></div>'+
+  '<div class="two"><div class="fld"><label for="poSt">Situação</label><select id="poSt">'+opts([['pronto','Para programar'],['programado','Programado'],['publicado','No ar']],pst.status)+'</select></div>'+
+  '<div class="fld"><label for="poQ">Programado para</label><input id="poQ" type="datetime-local" value="'+esc(pst.quando)+'"></div></div>'+
+  '<div class="fld"><label for="poLink">Link do post (quando estiver no ar)</label><input id="poLink" type="url" value="'+esc(pst.link)+'" placeholder="https://instagram.com/p/..."></div>'+
+  '<div class="fld"><label for="poObs">Observação</label><input id="poObs" value="'+esc(pst.obs)+'"></div>'+
+  '<div class="err" id="poErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-pact="apagar" data-id="'+pst.id+'">Apagar</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#fPo').onsubmit=async e=>{e.preventDefault();const titulo=q('#poTit').value.trim();if(!titulo){q('#poErr').textContent='Escreva o nome do conteúdo.';return}
+    const st=q('#poSt').value,qd=q('#poQ').value;if(st==='programado'&&!qd){q('#poErr').textContent='Informe a data e a hora em que vai sair.';return}
+    const doc=Object.assign({},pst,{loja:q('#poLoja').value,tipo:q('#poTipo').value,titulo:titulo.slice(0,100),drive:q('#poDrive').value.trim(),status:st,quando:qd,link:q('#poLink').value.trim(),obs:q('#poObs').value.slice(0,300)});
+    delete doc.id;if(novo){doc.editadoEm=agoraLocal();doc.editadoPor=meuMembro()||''}
+    if(st==='programado'&&pst.status!=='programado'){doc.programadoPor=meuMembro()||'';doc.programadoEm=agoraLocal()}
+    if(st==='publicado'&&!doc.publicadoEm)doc.publicadoEm=qd||agoraLocal();
+    try{await write(()=>novo?store.add('posts',doc):store.set('posts',pst.id,doc))}catch(_){return}
+    closeSheet();toast('Salvo')};
+  q('#poTit').focus()}
+function formProgramar(pst){
+  sheet.innerHTML='<form id="fPg" novalidate><h2>Programado no Meta</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(pst.titulo)+'</b> · '+esc(lojaNome(pst.loja))+'</p>'+
+  '<div class="two"><div class="fld"><label for="pgTipo">Tipo</label><select id="pgTipo">'+opts(Object.entries(TPOST),pst.tipo)+'</select></div>'+
+  '<div class="fld"><label for="pgQ">Vai sair em</label><input id="pgQ" type="datetime-local" value="'+esc(pst.quando||'')+'"></div></div>'+
+  '<div class="err" id="pgErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Confirmar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#fPg').onsubmit=async e=>{e.preventDefault();const qd=q('#pgQ').value;if(!qd){q('#pgErr').textContent='Informe a data e a hora em que o post vai sair.';return}
+    try{await write(()=>store.update('posts',pst.id,{status:'programado',tipo:q('#pgTipo').value,quando:qd,programadoPor:meuMembro()||'',programadoEm:agoraLocal()}))}catch(_){return}
+    closeSheet();toast('Marcado como programado')};
+  q('#pgQ').focus()}
+function formSaiu(pst){
+  sheet.innerHTML='<form id="fSa" novalidate><h2>Post no ar</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(pst.titulo)+'</b> · '+esc(lojaNome(pst.loja))+'</p>'+
+  '<div class="fld"><label for="saLink">Link do post (opcional)</label><input id="saLink" type="url" placeholder="https://instagram.com/p/..."></div>'+
+  '<div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Confirmar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#fSa').onsubmit=async e=>{e.preventDefault();try{await write(()=>store.update('posts',pst.id,{status:'publicado',publicadoEm:pst.quando||agoraLocal(),link:q('#saLink').value.trim()}))}catch(_){return}closeSheet();toast('Marcado como no ar')}}
+async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find(x=>x.id===id);
+  if(k==='programar'&&P)formProgramar(P);
+  else if(k==='saiu'&&P)formSaiu(P);
+  else if(k==='editar'&&P)formPost(P);
+  else if(k==='apagar'||k==='arquivarLoja'){if(!armed['p'+id]){armed['p'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['p'+id]){b.textContent=armed['p'+id];delete armed['p'+id]}},3000);return}delete armed['p'+id];
+    try{if(k==='apagar')await write(()=>store.del('posts',id));else await write(()=>store.update('lojas',id,{ativo:false}))}catch(_){return}closeSheet();toast(k==='apagar'?'Apagado':'Cliente arquivado')}
+}
+
+/* ---------- avisos ---------- */
+function meuMembro(){const m=S.me&&S.me.membro;if(m&&TEAM.includes(m))return m;const n=((S.me&&S.me.nome)||'').trim().split(/\s+/)[0].toLowerCase();return TEAM.find(p=>p.toLowerCase()===n)||''}
+function alertas(){
+  const h=hoje(),am=addDias(h,1),em2=addDias(h,2),eu=meuMembro(),out=[];
+  const meu=t=>arr(t.captacao).concat(arr(t.edicao)).includes(eu);
+  const ts=S.tar.filter(t=>t.etapa!=='entregue'&&(S.adm||meu(t)));
+  for(const t of ts){
+    const ed=t.etapa==='captado'||t.etapa==='edicao';
+    if(ed&&t.prazo&&t.prazo<h)out.push({t,n:0,cor:'var(--neg)',tit:'Edição atrasada: '+t.titulo,sub:'Prazo era '+dCurta(t.prazo)+' · '+(-diff(t.prazo,h))+' dia(s) de atraso · edição: '+nomes(t.edicao)});
+    else if(ed&&t.prazo&&t.prazo<=em2)out.push({t,n:2,cor:'var(--warn)',tit:(t.prazo===h?'Entregar hoje: ':t.prazo===am?'Entregar amanhã: ':'Entregar em 2 dias: ')+t.titulo,sub:'Edição: '+nomes(t.edicao)});
+    if(t.data===h&&!ed)out.push({t,n:1,cor:'var(--'+(t.empresa||'gold')+')',tit:'Hoje'+(t.hora?' às '+t.hora:'')+': '+t.titulo,sub:[(TIPOS[t.tipo]||TIPOS.outro).nome,t.local,'capta: '+nomes(t.captacao)].filter(Boolean).join(' · ')});
+    else if(t.data===am&&!ed)out.push({t,n:3,cor:'var(--'+(t.empresa||'gold')+')',tit:'Amanhã'+(t.hora?' às '+t.hora:'')+': '+t.titulo,sub:[(TIPOS[t.tipo]||TIPOS.outro).nome,t.local,'capta: '+nomes(t.captacao)].filter(Boolean).join(' · ')});
+  }
+  const agoraL=agoraLocal();
+  if(S.fin)for(const t of S.tar.filter(x=>x.empresa==='duraes'&&x.etapa==='entregue'&&x.entregaStatus==='drive')){const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;out.push({t,n:1.6,cor:'var(--duraes)',tit:'Enviar ao cliente: '+t.titulo,sub:'Pronto no Drive '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · esperando há '+d+' dias':'')})}
+  for(const pst of S.posts){const l=S.lojas.find(x=>x.id===pst.loja);if(!l)continue;const resp=l.postagem||'Vanessa';
+    if(!(S.adm||eu===resp))continue;
+    if(pst.status==='pronto')out.push({post:pst,n:1.5,cor:'var(--gold)',tit:'Programar: '+l.nome+' — '+pst.titulo,sub:(TPOST[pst.tipo]||'Post')+' · editado '+(pst.editadoEm?dCurta(pst.editadoEm.slice(0,10)):'')+(pst.editadoPor?' por '+pst.editadoPor:'')});
+    else if(pst.status==='programado'&&pst.quando&&minDiff(agoraL,pst.quando)>=120)out.push({post:pst,n:0.5,cor:'var(--warn)',tit:'Conferir se saiu: '+l.nome+' — '+pst.titulo,sub:'Estava programado para '+fmtQuando(pst.quando)});
+  }
+  return out.sort((a,b)=>a.n-b.n);
+}
+function renderBell(){const a=alertas(),urg=a.filter(x=>x.n<=1.5).length;
+  document.querySelectorAll('[data-bell]').forEach(b=>{b.classList.toggle('has',a.length>0);b.innerHTML='<svg class="i"><use href="#i-bell"/></svg>'+(urg?'<span class="bd">'+urg+'</span>':'')})}
+function pushInfo(){
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),inst=window.navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+  if(!('Notification' in window)||!('serviceWorker' in navigator))return ios&&!inst?['ios','No iPhone, as notificações só funcionam com o app instalado: no Safari toque em Compartilhar → Adicionar à Tela de Início e abra pelo ícone.']:['nao','Este navegador não aceita notificações. Use o Chrome (Android/PC) ou o app instalado no iPhone.'];
+  if(!window.VAPID_KEY||/COLE_AQUI/.test(window.VAPID_KEY))return ['cfg','Falta a chave de notificações (VAPID) no firebase-config.js.'];
+  if(Notification.permission==='denied')return ['neg','As notificações foram bloqueadas neste aparelho. Libere nas configurações do navegador para este site.'];
+  const tk=(S.me&&S.me.tokens)||[];let meu=null;try{meu=localStorage.getItem('pushToken')}catch(_){}
+  if(Notification.permission==='granted'&&meu&&tk.includes(meu))return ['ok','Notificações ativadas neste aparelho.'];
+  return ['off','Ative para receber avisos neste aparelho, mesmo com o app fechado.'];
+}
+function abrirAvisos(){
+  const a=alertas(),[st,msg]=pushInfo(),eu=meuMembro();
+  sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Avisos</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="pushbox"><b>Notificações no celular e no PC</b><span class="muted">'+esc(msg)+'</span><div class="row2">'+
+    (st==='off'?'<button type="button" class="btn primary sm" data-push-on>Ativar notificações</button>':'')+(st==='ok'?'<button type="button" class="btn sm" data-push-test>Testar neste aparelho</button>':'')+'</div>'+
+    '<div class="fld"><label for="euSou">Eu sou</label><select id="euSou">'+opts([['','Escolha…']].concat(TEAM),eu)+'</select><span class="hint">Você recebe avisos dos trabalhos em que está marcado'+(S.adm?'; como Adm, também recebe os atrasos de todos':'')+'.</span></div></div>'+
+    '<div class="list">'+(a.length?a.map(x=>'<div class="al" '+(x.post?'data-alp="'+x.post.id+'"':x.n===1.6?'data-ald="'+x.t.id+'"':'data-al="'+x.t.id+'"')+'><span class="k" style="background:'+x.cor+'"></span><div><b>'+esc(x.tit)+'</b><small>'+esc(x.sub)+'</small></div></div>').join(''):emptyMsg('Tudo em dia','Nada atrasado e nenhuma captação hoje ou amanhã'+(S.adm?'':' para você')+'.'))+'</div></form>';
+  sheet.hidden=false;
+  const sel=sheet.querySelector('#euSou');sel.onchange=async()=>{try{await write(()=>db.collection('usuarios').doc(S.uid).update({membro:sel.value}));S.me.membro=sel.value;toast('Salvo');abrirAvisos()}catch(_){}};
+}
+let swReg=null;
+async function registrarSW(){if(!('serviceWorker' in navigator))return null;try{swReg=await navigator.serviceWorker.register('firebase-messaging-sw.js');return swReg}catch(_){return null}}
+async function ativarPush(){
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){toast('Permissão não concedida');abrirAvisos();return}
+    const reg=swReg||await registrarSW();if(!reg){toast('Este navegador não aceita notificações');return}
+    const token=await firebase.messaging().getToken({vapidKey:window.VAPID_KEY,serviceWorkerRegistration:reg});
+    if(!token){toast('Não consegui ativar. Tente de novo.');return}
+    await write(()=>db.collection('usuarios').doc(S.uid).update({tokens:firebase.firestore.FieldValue.arrayUnion(token)}));
+    try{localStorage.setItem('pushToken',token)}catch(_){}
+    S.me.tokens=(S.me.tokens||[]).concat(token);
+    if(!meuMembro()){toast('Ativado! Agora escolha quem você é.')}else toast('Notificações ativadas');
+    abrirAvisos();
+  }catch(e){toast('Não consegui ativar as notificações.');console.error(e)}
+}
+async function testePush(){try{const reg=swReg||await registrarSW();await reg.showNotification('Central Elite & Durães',{body:'Funcionando! Os avisos vão chegar assim.',icon:'icons/icon-192.png'});}catch(_){toast('Não consegui mostrar a notificação')}}
 
 /* ---------- acessos (Adm) ---------- */
 async function userAction(b){
@@ -949,11 +1292,11 @@ function iniciarApp(adm,finOk,dono){
   pararDados();
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
-  store.sub('tar');store.sub('freelas');
+  store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
   if(finOk){store.sub('lanc');store.sub('valores')}
   if(adm)store.sub('usuarios');
-  let t=null;try{t=localStorage.getItem('tab')}catch(_){}
-  setTab(t||(finOk?'resumo':'producao'));render();
+  let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
+  S.unlocked=false;setTab(t==='resumo'||t==='caixa'?'producao':(t||'producao'));render();
 }
 
 /* ---------- início ---------- */
@@ -965,6 +1308,8 @@ if(!window.firebase||!CFG.apiKey||/COLE_AQUI/.test(CFG.apiKey)){
   firebase.initializeApp(CFG);auth=firebase.auth();db=firebase.firestore();
   try{db.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(_){}
   store=fbStore();
+  registrarSW();
+  try{if(window.VAPID_KEY&&!/COLE_AQUI/.test(window.VAPID_KEY)&&firebase.messaging&&firebase.messaging.isSupported())firebase.messaging().onMessage(m=>{const n=m.notification||{};toast(n.title||'Novo aviso');if(swReg)swReg.showNotification(n.title||'Central',{body:n.body||'',icon:'icons/icon-192.png'})})}catch(_){}
   auth.onAuthStateChanged(u=>{if(meUnsub){meUnsub();meUnsub=null}pararDados();roleKey='';if(!u){S.me=null;showAuth('login');return}entrar(u)});
 }
 })();

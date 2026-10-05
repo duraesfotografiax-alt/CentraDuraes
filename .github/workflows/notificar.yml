@@ -1,0 +1,29 @@
+name: Notificações da Central
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'   # a cada 30 minutos
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'teste = manda uma notificação de teste para todos; auto = roda normal'
+        default: 'teste'
+        type: choice
+        options: [teste, auto]
+
+jobs:
+  notificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --prefix notificar --no-audit --no-fund
+      - run: node notificar/index.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          APP_URL: https://duraesfotografiax-alt.github.io/CentraDuraes/
+          ADMIN_EMAIL: duraesfotografiax@gmail.com
+          MODO: ${{ github.event.inputs.modo || 'auto' }}
