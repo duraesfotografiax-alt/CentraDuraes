@@ -14,4 +14,4 @@ self.ADMIN_EMAIL = "duraesfotografiax@gmail.com";
 
 // Chave de notificações (Firebase > Configurações do projeto > Cloud Messaging >
 // Certificados push da Web > "Par de chaves"). Cole a chave pública aqui.
-self.VAPID_KEY = "COLE_AQUI";
+self.VAPID_KEY = "BFrDvo5YEjZpTtqG_mBTZzcDaACPcpdpATFg8WdV7tu3JGvvps4LJyGqhA3XL4L4Ae61myJ34Efq-Ecn-Ty7s2w";
