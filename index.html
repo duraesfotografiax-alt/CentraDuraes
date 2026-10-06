@@ -650,7 +650,7 @@ function doMes(m){m=m||S.mes;return S.lanc.filter(l=>(l.data||'').slice(0,7)===m
 
 /* ---------- casca ---------- */
 function tabs(){return NAV.filter(n=>!n[3]||fin())}
-function setTab(t){if(!tabs().some(n=>n[0]===t))t='producao';S.tab=t;if(t==='drive')setTimeout(renderDrive,0);try{localStorage.setItem('tab',t)}catch(_){}
+function setTab(t){if(!tabs().some(n=>n[0]===t))t='producao';S.tab=t;if(t==='drive'){let jaFoi=false;try{jaFoi=localStorage.getItem('gConectou')==='1'}catch(_){}if(driveOk()&&!driveConectado()&&jaFoi&&window.google&&google.accounts){pedirToken('').then(()=>{S.dItems=null;renderDrive()}).catch(()=>{})}setTimeout(renderDrive,0)}try{localStorage.setItem('tab',t)}catch(_){}
   document.querySelectorAll('main > section').forEach(s=>s.hidden=s.id!=='tab-'+t);renderShell();window.scrollTo(0,0)}
 function logoTile(k,lg){const cls='tile '+k+(lg?' lg':'');
   if(k==='elite')return '<div class="'+cls+'" style="background-image:url(\'logos/elite.jpg\')" role="img" aria-label="Elite Marketing Digital"></div>';
@@ -938,7 +938,7 @@ function formTar(t,preset){
 /* ---------- eventos ---------- */
 const armed={};
 document.addEventListener('click',async e=>{
-  if(e.target.closest('[data-logout]')){auth.signOut();return}
+  if(e.target.closest('[data-logout]')){try{localStorage.removeItem('gtok');localStorage.removeItem('gConectou')}catch(_){}gTok=null;gExp=0;auth.signOut();return}
   const dv=e.target.closest('[data-dv]');if(dv){driveClique(dv,e);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
   if(e.target.closest('[data-bell]')){abrirAvisos();return}
@@ -1011,7 +1011,7 @@ const DAPI='https://www.googleapis.com/drive/v3';
 const FOLDER='application/vnd.google-apps.folder';
 const DF='nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,shortcutDetails)';
 let gTok=null,gExp=0,tokenClient=null;
-try{const x=JSON.parse(sessionStorage.getItem('gtok')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
+try{const x=JSON.parse(localStorage.getItem('gtok')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
 const sheet2=document.getElementById('sheet2');
 function fecharSheet2(){sheet2.hidden=true;sheet2.innerHTML=''}
 function driveOk(){return GID&&!/COLE_AQUI/.test(GID)}
@@ -1020,7 +1020,7 @@ function driveId(link){const m=String(link||'').match(/\/folders\/([\w-]+)|[?&]i
 function pedirToken(prompt){return new Promise((res,rej)=>{
   if(!(window.google&&google.accounts&&google.accounts.oauth2))return rej(new Error('O Google ainda está carregando. Tente de novo em alguns segundos.'));
   if(!tokenClient)tokenClient=google.accounts.oauth2.initTokenClient({client_id:GID,scope:DSCOPE,callback:()=>{}});
-  tokenClient.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));gTok=r.access_token;gExp=Date.now()+((r.expires_in||3600)-120)*1000;try{sessionStorage.setItem('gtok',JSON.stringify([gTok,gExp]))}catch(_){}res(gTok)};
+  tokenClient.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));gTok=r.access_token;gExp=Date.now()+((r.expires_in||3600)-120)*1000;try{localStorage.setItem('gtok',JSON.stringify([gTok,gExp]));localStorage.setItem('gConectou','1')}catch(_){}res(gTok)};
   tokenClient.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'A janela do Google foi fechada.':'Não consegui conectar ao Google.'));
   tokenClient.requestAccessToken({prompt:prompt||'',login_hint:(S.me&&S.me.email)||''});
 })}
@@ -1151,7 +1151,7 @@ async function renderDrive(){
   if(!driveOk()){acts.innerHTML='';roots.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Falta configurar o Google Drive','O Thiago precisa colocar o "ID do cliente OAuth" no arquivo firebase-config.js (passo a passo no LEIA-ME).')+'</div>';return}
   const cfg=S.driveCfg||{};
   roots.innerHTML=[['duraes','Durães Fotografia','Casamentos, eventos e aniversários',logoTile('duraes')],['clientes','Clientes · Elite','Uma pasta para cada loja',logoTile('elite')]].map(([k,n,d,tile])=>'<button data-dv="root" data-k="'+k+'" aria-pressed="'+(S.dRoot===k)+'">'+tile+'<div><b>'+n+'</b><small>'+(cfg[k]?esc(cfg[k].nome):'Pasta ainda não escolhida')+' · '+d+'</small></div></button>').join('');
-  if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">Conecte sua conta Google</p><p class="muted" style="margin:0 0 16px;font-size:14px">Use a conta que tem acesso às pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
+  if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">'+(localStorage.getItem('gConectou')==='1'?'Reconectando ao Google…':'Conecte sua conta Google')+'</p><p class="muted" style="margin:0 0 16px;font-size:14px">Use a conta que tem acesso às pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
   const raiz=dRootCur();
   if(!raiz){acts.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Escolha a pasta '+(S.dRoot==='duraes'?'da Durães Fotografia':'Clientes (Elite)'),S.adm?'<button class="btn primary sm" style="margin-top:10px" data-dv="cfg">Escolher pasta no Drive</button>':'Peça ao Thiago para escolher a pasta.')+'</div>';return}
   if(!S.dPath.length||S.dPath[0].id!==raiz.id)S.dPath=[{id:raiz.id,name:S.dRoot==='duraes'?'Durães Fotografia':'Clientes'}];
@@ -1238,9 +1238,11 @@ async function duraesAcao(b){const id=b.dataset.id,k=b.dataset.dact,T=S.tar.find
 let ultimoUso=Date.now(),escondidoEm=0;
 const PIN_KEY=()=>'pin_'+S.uid;
 async function hashPin(pin){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('central:'+S.uid+':'+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const LEMB_KEY=()=>'cofreAberto_'+S.uid;
+function lembrado(){try{return localStorage.getItem(LEMB_KEY())==='1'}catch(_){return false}}
 function lerPin(){try{return localStorage.getItem(PIN_KEY())}catch(_){return null}}
-function trancar(avisar){if(!S.unlocked)return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
-function destrancar(){S.unlocked=true;ultimoUso=Date.now();closeSheet();render();setTab('resumo');toast('Área financeira aberta')}
+function trancar(avisar){if(!S.unlocked)return;if(avisar){try{localStorage.removeItem(LEMB_KEY())}catch(_){}}else if(lembrado())return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
+function destrancar(lembrar){S.unlocked=true;try{if(lembrar)localStorage.setItem(LEMB_KEY(),'1');else localStorage.removeItem(LEMB_KEY())}catch(_){}ultimoUso=Date.now();closeSheet();render();setTab('resumo');toast('Área financeira aberta')}
 function abrirCofre(modo){
   const tem=!!lerPin();modo=modo||(tem?'entrar':'criar');
   const pinIn=(id,l)=>'<div class="fld"><label for="'+id+'">'+l+'</label><input id="'+id+'" type="password" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]*" style="font-size:22px;letter-spacing:.4em;text-align:center"></div>';
@@ -1248,14 +1250,15 @@ function abrirCofre(modo){
   if(modo==='criar')html+='<p class="muted" style="margin:0;font-size:14px">Crie um PIN para abrir o Resumo e o Caixa neste aparelho. Eles ficam escondidos até você digitar o PIN, e trancam sozinhos depois de 5 minutos sem uso.</p>'+pinIn('pin1','Novo PIN (4 a 8 números)')+pinIn('pin2','Repita o PIN');
   else if(modo==='entrar')html+=pinIn('pin1','Digite seu PIN')+'<button type="button" class="btn sm ghost" data-pin-esqueci style="align-self:flex-start">Esqueci o PIN</button>';
   else html+='<p class="muted" style="margin:0;font-size:14px">Para criar um PIN novo, confirme a senha da sua conta.</p><div class="fld"><label for="pinSenha">Senha da conta</label><input id="pinSenha" type="password" autocomplete="current-password"></div>';
+  if(modo!=='reset')html+='<label style="display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer"><input type="checkbox" id="pinLembrar" checked style="width:18px;height:18px"> Manter aberto neste aparelho (não pedir o PIN de novo)</label><span class="hint">Para esconder de novo, toque no cadeado. Desmarque se outras pessoas usam este aparelho.</span>';
   html+='<div class="err" id="pinErr"></div><div class="formacts"><button class="btn primary" type="submit">'+(modo==='entrar'?'Abrir':modo==='criar'?'Criar PIN e abrir':'Confirmar')+'</button></div></form>';
   sheet.innerHTML=html;sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>q('#pinErr').textContent=m;
   const esq=q('[data-pin-esqueci]');if(esq)esq.onclick=()=>abrirCofre('reset');
   q('#fPin').onsubmit=async e=>{e.preventDefault();
     try{
       if(modo==='criar'){const a=q('#pin1').value,b=q('#pin2').value;if(!/^\d{4,8}$/.test(a)){err('Use de 4 a 8 números.');return}if(a!==b){err('Os dois PINs estão diferentes.');return}
-        localStorage.setItem(PIN_KEY(),await hashPin(a));destrancar()}
-      else if(modo==='entrar'){if(await hashPin(q('#pin1').value)===lerPin())destrancar();else{err('PIN incorreto.');q('#pin1').value='';q('#pin1').focus()}}
+        localStorage.setItem(PIN_KEY(),await hashPin(a));destrancar(q('#pinLembrar').checked)}
+      else if(modo==='entrar'){if(await hashPin(q('#pin1').value)===lerPin())destrancar(q('#pinLembrar').checked);else{err('PIN incorreto.');q('#pin1').value='';q('#pin1').focus()}}
       else{const u=auth.currentUser;await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,q('#pinSenha').value));localStorage.removeItem(PIN_KEY());abrirCofre('criar')}
     }catch(x){err(x&&x.code?aerr(x):'Não deu certo. Tente de novo.')}
   };
@@ -1563,7 +1566,7 @@ function iniciarApp(adm,finOk,dono){
   if(finOk){store.sub('lanc');store.sub('valores')}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
-  S.unlocked=false;setTab(t==='resumo'||t==='caixa'?'producao':(t||'producao'));render();
+  S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
 }
 
 /* ---------- início ---------- */
@@ -1572,7 +1575,7 @@ const ADMIN_EMAIL=String(window.ADMIN_EMAIL||'').toLowerCase();
 if(!window.firebase||!CFG.apiKey||/COLE_AQUI/.test(CFG.apiKey)){
   document.getElementById('authBody').innerHTML='<p style="margin:0"><b>Falta configurar o Firebase.</b></p><p class="muted" style="margin:0;font-size:14px">Abra o arquivo <b>firebase-config.js</b> e cole os dados do seu projeto, como explica o LEIA-ME.</p>';
 }else{
-  firebase.initializeApp(CFG);auth=firebase.auth();db=firebase.firestore();
+  firebase.initializeApp(CFG);auth=firebase.auth();try{auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(_){}db=firebase.firestore();
   try{db.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(_){}
   store=fbStore();
   registrarSW();

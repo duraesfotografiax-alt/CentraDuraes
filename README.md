@@ -187,7 +187,9 @@ O trabalho que fica mais de 3 dias esperando envio ganha um alerta. O campo **Co
 - O app sempre abre na **Produção**. O **Resumo** e o **Caixa** não aparecem no menu.
 - Para abri-los, toque no **cadeado**, ao lado do seu nome (no celular, no topo), e digite seu **PIN**.
 - Na primeira vez, você cria o PIN. Ele fica salvo só naquele aparelho.
-- Tranca sozinho depois de **5 minutos sem uso**, ou se o app ficar mais de 1 minuto em segundo plano. Para trancar na hora, toque no cadeado de novo.
+- Ao digitar o PIN, a opção **"Manter aberto neste aparelho"** vem marcada. Com ela marcada, o PIN não é pedido de novo naquele aparelho.
+- Para esconder de novo, toque no cadeado; depois disso o PIN volta a ser pedido.
+- Se a opção for desmarcada, tranca sozinho depois de **5 minutos sem uso**, ou se o app ficar mais de 1 minuto em segundo plano.
 - Esqueceu o PIN? Toque em **Esqueci o PIN**, confirme a senha da conta e crie outro.
 - Os valores dos trabalhos também ficam escondidos enquanto estiver trancado.
 - Quem não tem acesso ao caixa (o Lucas) nem vê o cadeado. Para ele, essas abas não existem.
