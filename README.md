@@ -191,3 +191,47 @@ O trabalho que fica mais de 3 dias esperando envio ganha um alerta. O campo **Co
 - Esqueceu o PIN? Toque em **Esqueci o PIN**, confirme a senha da conta e crie outro.
 - Os valores dos trabalhos também ficam escondidos enquanto estiver trancado.
 - Quem não tem acesso ao caixa (o Lucas) nem vê o cadeado. Para ele, essas abas não existem.
+
+---
+
+## Aba Drive (Google Drive dentro da Central)
+
+O que dá para fazer:
+- Navegar pelas pastas da **Durães Fotografia** e de **Clientes · Elite**, onde cada loja tem a sua pasta.
+- **Subir pasta**: envia uma pasta inteira do computador, com as subpastas.
+- **Subir arquivos** e **Nova pasta**.
+- **Copiar link** e **Abrir no Drive**.
+- **Usar no fluxo**: liga uma pasta a um trabalho que está em edição.
+
+Nas janelas de entrega (Produção → Entregue, ou Clientes → Pronto no Drive) há os botões **Subir pasta do computador** e **Escolher no Drive**. O material sobe para a pasta certa e o link é preenchido sozinho:
+- **Elite:** vai para `Clientes/<nome da loja>/`, e a pasta da loja é criada se ainda não existir.
+- **Durães:** vai para a pasta da Durães Fotografia.
+
+Na coluna "No Drive · enviar ao cliente" da Durães, o botão **Copiar link p/ cliente** libera a pasta para quem tiver o link e copia o link para você mandar aos noivos.
+
+### Configuração (uma vez, uns 10 minutos)
+1. Entre em **https://console.cloud.google.com** com o Gmail da Durães e selecione o projeto **Central Duraes**, no topo.
+2. Ative a API do Drive: vá em **APIs e serviços → Biblioteca**, procure **Google Drive API** e clique em **Ativar**.
+3. Configure a tela de consentimento em **APIs e serviços → Tela de permissão OAuth**. Ela também pode aparecer como "Google Auth Platform".
+   - Clique em **Começar**.
+   - Nome do app: **Central**. E-mail de suporte: o seu.
+   - Público: **Externo**.
+   - Contato: o seu e-mail.
+   - Clique em **Criar**.
+   - Em **Público → Usuários de teste**, adicione os Gmails do **Thiago**, da **Vanessa** e do **Lucas**.
+4. Crie a credencial em **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**.
+   - Tipo: **Aplicativo da Web**.
+   - Nome: **Central**.
+   - Em **Origens JavaScript autorizadas**, adicione `https://duraesfotografiax-alt.github.io`.
+   - Clique em **Criar** e copie o **ID do cliente**, que termina em `.apps.googleusercontent.com`.
+   - Cole no `firebase-config.js`, em `self.GOOGLE_CLIENT_ID`.
+5. **Compartilhe as pastas** "Durães Fotografia" e "Clientes" do Drive com os Gmails da Vanessa e do Lucas, como **Editor**.
+6. Na Central, abra **Drive → Conectar Google Drive**.
+   - Vai aparecer o aviso "O Google não verificou este app". É normal, porque o app é só de vocês: clique em **Avançado → Acessar Central**.
+   - O Adm clica em **Escolher pasta no Drive** para definir a pasta da Durães e a pasta Clientes. É uma vez só, e vale para todos.
+
+Observações:
+- Cada pessoa conecta com a própria conta Google e só vê o que essa conta já pode ver no Drive.
+- Vídeos grandes sobem em partes e retomam sozinhos se a internet oscilar. Não feche a Central enquanto aparecer "Enviando para o Drive".
+- No iPhone, o navegador não permite escolher uma pasta inteira. Use **Subir arquivos**, que cria uma pasta com a data e o nome do trabalho.
+- Cole de novo o `firestore.rules` no Firebase, porque ele ganhou a regra das configurações do Drive.

@@ -299,6 +299,37 @@ details.panel[open] summary{margin-bottom:12px}
 .item{display:grid;grid-template-columns:minmax(0,1fr) 130px auto;gap:8px}
 @media (max-width:440px){.item{grid-template-columns:minmax(0,1fr) 110px auto}}
 .item input,.item select{background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:9px 10px;min-width:0;width:100%}
+/* drive */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:14px;margin-bottom:14px}
+.crumbs button{background:none;border:0;color:var(--muted);font-weight:700;padding:4px 6px;border-radius:6px}
+.crumbs button:hover{background:var(--hover);color:var(--ink)}
+.crumbs button:last-child{color:var(--ink)}
+.crumbs span{color:var(--faint)}
+.dgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+@media (max-width:480px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ditem{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;min-width:0;position:relative;transition:border-color .15s}
+.ditem:hover{border-color:var(--line2)}
+.ditem .th{aspect-ratio:16/10;max-width:100%;background:var(--panel2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ditem .th img{width:100%;height:100%;object-fit:cover}
+.ditem .th svg{width:40px;height:40px;color:var(--faint)}
+.ditem.folder .th svg{color:var(--gold)}
+.ditem .nm{padding:8px 10px;font-size:13px;font-weight:700;overflow-wrap:anywhere;line-height:1.3}
+.ditem .mt{padding:0 10px 8px;font-size:11px;color:var(--faint)}
+.ditem .mini{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.ditem:hover .mini,.ditem:focus-within .mini{opacity:1}
+@media (hover:none){.ditem .mini{opacity:1}}
+.ditem .mini button{border:0;background:rgba(8,9,13,.8);color:var(--ink);border-radius:8px;padding:4px 7px;font-size:11px;font-weight:800}
+.dhero{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin-bottom:16px}
+.dhero button{display:flex;align-items:center;gap:14px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;color:var(--ink)}
+.dhero button[aria-pressed="true"]{border-color:var(--gold);background:var(--panel2)}
+.dhero b{display:block;font-family:var(--display);font-size:16px}
+.dhero small{color:var(--muted);font-size:12px}
+.uppanel{position:fixed;right:16px;bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:15;width:min(360px,calc(100% - 32px));background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;font-size:13px}
+@media (min-width:901px){.uppanel{bottom:24px}}
+.upbar{height:8px;border-radius:99px;background:var(--hover);overflow:hidden}
+.upbar i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
+.drvbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.sheet2{z-index:25}
 /* avisos */
 .bell{position:relative;margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .bell:hover{background:var(--hover)}
@@ -435,6 +466,19 @@ details.panel[open] summary{margin-bottom:12px}
         <div id="lojaBody"></div>
       </section>
 
+      <!-- DRIVE -->
+      <section id="tab-drive" hidden>
+        <div class="head">
+          <h1>Drive<small>Pastas da Durães e dos clientes da Elite, direto do Google Drive</small></h1>
+          <div class="sp"></div>
+          <div id="dActs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="dhero" id="dRoots"></div>
+        <div id="dBody"></div>
+        <input type="file" id="dUpPasta" webkitdirectory directory multiple hidden>
+        <input type="file" id="dUpArq" multiple hidden>
+      </section>
+
       <!-- AGENDA -->
       <section id="tab-agenda" hidden>
         <div class="head">
@@ -483,6 +527,8 @@ details.panel[open] summary{margin-bottom:12px}
 <nav class="bottom" id="navBottom" aria-label="Seções"></nav>
 <button class="fab" id="fab" aria-label="Adicionar"><svg class="i"><use href="#i-plus"/></svg></button>
 <div class="sheet" id="sheet" hidden></div>
+<div class="sheet sheet2" id="sheet2" hidden></div>
+<div class="uppanel" id="upPanel" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -495,6 +541,10 @@ details.panel[open] summary{margin-bottom:12px}
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5 12v8h14v-8M10 20v-5h4v5"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24"><path d="M8.5 3.5h7l6 10.5-3.5 6h-12L2.5 14z"/><path d="M8.5 3.5 15 14.5h6.5M2.5 14 9 3.5M6 20l6.2-10.6"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
@@ -506,6 +556,7 @@ details.panel[open] summary{margin-bottom:12px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="firebase-config.js"></script>
 <script>
 (function(){
@@ -525,10 +576,10 @@ const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DF
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
@@ -599,7 +650,7 @@ function doMes(m){m=m||S.mes;return S.lanc.filter(l=>(l.data||'').slice(0,7)===m
 
 /* ---------- casca ---------- */
 function tabs(){return NAV.filter(n=>!n[3]||fin())}
-function setTab(t){if(!tabs().some(n=>n[0]===t))t='producao';S.tab=t;try{localStorage.setItem('tab',t)}catch(_){}
+function setTab(t){if(!tabs().some(n=>n[0]===t))t='producao';S.tab=t;if(t==='drive')setTimeout(renderDrive,0);try{localStorage.setItem('tab',t)}catch(_){}
   document.querySelectorAll('main > section').forEach(s=>s.hidden=s.id!=='tab-'+t);renderShell();window.scrollTo(0,0)}
 function logoTile(k,lg){const cls='tile '+k+(lg?' lg':'');
   if(k==='elite')return '<div class="'+cls+'" style="background-image:url(\'logos/elite.jpg\')" role="img" aria-label="Elite Marketing Digital"></div>';
@@ -632,7 +683,7 @@ function render(){
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
   if(fin()){renderResumo();renderCaixa()}
-  renderBoard();renderClientes();renderAgenda();renderEquipe();
+  renderBoard();renderClientes();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
 }
 
 /* ---------- resumo ---------- */
@@ -888,6 +939,7 @@ function formTar(t,preset){
 const armed={};
 document.addEventListener('click',async e=>{
   if(e.target.closest('[data-logout]')){auth.signOut();return}
+  const dv=e.target.closest('[data-dv]');if(dv){driveClique(dv,e);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
   if(e.target.closest('[data-bell]')){abrirAvisos();return}
   const lj=e.target.closest('[data-loja]');if(lj){S.loja=lj.dataset.loja;try{localStorage.setItem('loja',S.loja)}catch(_){}renderClientes();return}
@@ -916,9 +968,10 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-preview-on]')){S.preview=true;render();setTab('producao');toast('Modo equipe: é isto que o Lucas vê');return}
   if(e.target.closest('[data-preview-off]')){S.preview=false;render();return}
   const fp=e.target.closest('[data-filtro-pes]');if(fp){S.pes=fp.dataset.filtroPes;setTab('producao');render();return}
-  if(e.target.closest('#fab')){if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
+  if(e.target.closest('#fab')){if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
   if(e.target.closest('[data-new-lanc]')){formLanc();return}
   if(e.target.closest('[data-new-tar]')){formTar();return}
+  if(e.target.closest('[data-close2]')||e.target===sheet2){fecharSheet2();return}
   if(e.target.closest('[data-close]')||e.target===sheet){closeSheet();return}
   const a=e.target.closest('[data-act]');
   if(!a){const op=e.target.closest('[data-open]');if(op){const T=S.tar.find(x=>x.id===op.dataset.open);if(T&&S.canWrite)formTar(T)}return}
@@ -951,6 +1004,200 @@ board.addEventListener('dragover',e=>{const col=e.target.closest('.col');if(!col
 board.addEventListener('drop',e=>{const col=e.target.closest('.col');if(!col||!dragId)return;e.preventDefault();const T=S.tar.find(x=>x.id===dragId);const et=col.dataset.etapa;dragId=null;
   col.classList.remove('over');if(T&&(T.etapa||'agendar')!==et){moveTo(T.id,et);toast('Movido para '+ETAPAS.find(x=>x[0]===et)[1])}});
 
+/* ---------- Google Drive ---------- */
+const GID=String(self.GOOGLE_CLIENT_ID||'');
+const DSCOPE='https://www.googleapis.com/auth/drive';
+const DAPI='https://www.googleapis.com/drive/v3';
+const FOLDER='application/vnd.google-apps.folder';
+const DF='nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,shortcutDetails)';
+let gTok=null,gExp=0,tokenClient=null;
+try{const x=JSON.parse(sessionStorage.getItem('gtok')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
+const sheet2=document.getElementById('sheet2');
+function fecharSheet2(){sheet2.hidden=true;sheet2.innerHTML=''}
+function driveOk(){return GID&&!/COLE_AQUI/.test(GID)}
+function driveConectado(){return !!gTok&&Date.now()<gExp}
+function driveId(link){const m=String(link||'').match(/\/folders\/([\w-]+)|[?&]id=([\w-]+)|\/d\/([\w-]+)/);return m?(m[1]||m[2]||m[3]):''}
+function pedirToken(prompt){return new Promise((res,rej)=>{
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return rej(new Error('O Google ainda está carregando. Tente de novo em alguns segundos.'));
+  if(!tokenClient)tokenClient=google.accounts.oauth2.initTokenClient({client_id:GID,scope:DSCOPE,callback:()=>{}});
+  tokenClient.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));gTok=r.access_token;gExp=Date.now()+((r.expires_in||3600)-120)*1000;try{sessionStorage.setItem('gtok',JSON.stringify([gTok,gExp]))}catch(_){}res(gTok)};
+  tokenClient.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'A janela do Google foi fechada.':'Não consegui conectar ao Google.'));
+  tokenClient.requestAccessToken({prompt:prompt||'',login_hint:(S.me&&S.me.email)||''});
+})}
+async function token(){if(driveConectado())return gTok;return pedirToken('')}
+async function gfetch(url,opt,tentou){opt=opt||{};const t=await token();
+  const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({},opt.headers||{},{Authorization:'Bearer '+t})}));
+  if(r.status===401&&!tentou){gTok=null;gExp=0;return gfetch(url,opt,true)}
+  if(!r.ok){let m='';try{m=(await r.json()).error.message}catch(_){}throw new Error(r.status===404?'Pasta não encontrada ou sem permissão para esta conta Google.':(m||'Erro do Google Drive ('+r.status+')'))}
+  return r}
+async function dListar(id,soPastas){
+  let q=id==='shared'?'sharedWithMe=true and trashed=false':"'"+id+"' in parents and trashed=false";
+  if(soPastas)q+=" and (mimeType='"+FOLDER+"' or mimeType='application/vnd.google-apps.shortcut')";
+  let out=[],pt='';
+  do{const u=DAPI+'/files?q='+encodeURIComponent(q)+'&fields='+encodeURIComponent(DF)+'&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true'+(id==='shared'?'':'&orderBy=folder,name_natural')+(pt?'&pageToken='+pt:'');
+    const j=await(await gfetch(u)).json();out=out.concat(j.files||[]);pt=j.nextPageToken||''}while(pt&&out.length<2000);
+  return out.map(f=>f.mimeType==='application/vnd.google-apps.shortcut'&&f.shortcutDetails?Object.assign({},f,{id:f.shortcutDetails.targetId,mimeType:f.shortcutDetails.targetMimeType}):f)
+    .filter(f=>!soPastas||f.mimeType===FOLDER).sort((a,b)=>(a.mimeType===FOLDER?0:1)-(b.mimeType===FOLDER?0:1)||String(a.name).localeCompare(String(b.name),'pt',{numeric:true}))}
+async function dCriarPasta(nome,pai){const j=await(await gfetch(DAPI+'/files?supportsAllDrives=true&fields=id,name,webViewLink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,mimeType:FOLDER,parents:[pai]})})).json();return j}
+async function dAcharPasta(nome,pai){const q="'"+pai+"' in parents and trashed=false and mimeType='"+FOLDER+"' and name='"+String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
+  const j=await(await gfetch(DAPI+'/files?q='+encodeURIComponent(q)+'&fields=files(id,name,webViewLink)&supportsAllDrives=true&includeItemsFromAllDrives=true')).json();return (j.files||[])[0]||null}
+async function dInfo(id){return (await gfetch(DAPI+'/files/'+id+'?fields=id,name,webViewLink,mimeType&supportsAllDrives=true')).json()}
+async function dSubirArquivo(file,pai,onp){
+  const t=await token();
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Type':file.type||'application/octet-stream','X-Upload-Content-Length':String(file.size)},body:JSON.stringify({name:file.name,parents:[pai]})});
+  if(!r.ok)throw new Error('Falha ao iniciar envio de '+file.name);
+  const loc=r.headers.get('Location');if(!loc)throw new Error('O Google não liberou o envio. Recarregue e tente de novo.');
+  const CH=16*1024*1024;let off=0,falhas=0;
+  if(!file.size){const z=await fetch(loc,{method:'PUT',headers:{'Content-Range':'bytes */0'}});if(!z.ok)throw new Error('Falha em '+file.name);return}
+  while(off<file.size){const end=Math.min(off+CH,file.size);
+    let res;try{res=await fetch(loc,{method:'PUT',headers:{'Content-Range':'bytes '+off+'-'+(end-1)+'/'+file.size},body:file.slice(off,end)})}catch(e){if(++falhas>5)throw new Error('Conexão caiu enviando '+file.name);await new Promise(x=>setTimeout(x,2000*falhas));continue}
+    if(res.status===308){const rg=res.headers.get('Range');off=rg?parseInt(rg.split('-')[1],10)+1:end;onp(off);falhas=0}
+    else if(res.ok){onp(file.size);return}
+    else if(res.status>=500&&++falhas<=5){await new Promise(x=>setTimeout(x,2000*falhas))}
+    else throw new Error('Falha ao enviar '+file.name+' ('+res.status+')')}
+}
+let enviando=false;
+window.addEventListener('beforeunload',e=>{if(enviando){e.preventDefault();e.returnValue=''}});
+function upPainel(html){const p=document.getElementById('upPanel');if(html==null){p.hidden=true;p.innerHTML='';return}p.hidden=false;p.innerHTML=html}
+// Sobe uma lista de arquivos (com caminhos de pasta) para dentro de "pai". Retorna a pasta criada (ou o próprio pai).
+async function dSubir(files,pai,opts){
+  opts=opts||{};files=[...files].filter(f=>!/(^|\/)(\.DS_Store|Thumbs\.db|desktop\.ini)$/i.test(f.webkitRelativePath||f.name));
+  if(!files.length)throw new Error('Nenhum arquivo para enviar.');
+  if(enviando)throw new Error('Já existe um envio em andamento. Espere terminar.');
+  enviando=true;const total=files.reduce((a,f)=>a+f.size,0);let feito=0,n=0;const cache={};const ini=Date.now();
+  const mb=b=>b>1e9?(b/1e9).toFixed(1).replace('.',',')+' GB':Math.max(1,Math.round(b/1e6))+' MB';
+  const pinta=()=>{const pc=total?Math.round(feito/total*100):100;const v=(Date.now()-ini)/1000>3?feito/((Date.now()-ini)/1000):0;const rest=v?Math.round((total-feito)/v/60):null;
+    upPainel('<b>Enviando para o Drive</b><span class="muted">'+n+' de '+files.length+' arquivos · '+mb(feito)+' de '+mb(total)+(rest!=null&&pc<100?' · falta ~'+(rest<1?'menos de 1':rest)+' min':'')+'</span><div class="upbar"><i style="width:'+pc+'%"></i></div><span class="hint">Não feche a Central até terminar.</span>')};
+  pinta();
+  try{
+    let raiz=pai,raizInfo=null;
+    const temPastas=files.some(f=>(f.webkitRelativePath||'').includes('/'));
+    if(opts.nomePasta||temPastas){
+      const nomeRaiz=opts.nomePasta||(files[0].webkitRelativePath||'').split('/')[0]||'Envio '+hoje();
+      raizInfo=await dCriarPasta(nomeRaiz,pai);raiz=raizInfo.id;
+    }
+    const pasta=async(caminho)=>{ // caminho relativo dentro da raiz (sem a pasta raiz local)
+      if(!caminho)return raiz;if(cache[caminho])return cache[caminho];
+      cache[caminho]=(async()=>{const partes=caminho.split('/');const nome=partes.pop();const p=await pasta(partes.join('/'));return (await dCriarPasta(nome,p)).id})();
+      return cache[caminho]};
+    const fila=files.slice();
+    const worker=async()=>{while(fila.length){const f=fila.shift();const rel=(f.webkitRelativePath||f.name).split('/');rel.pop();if(temPastas)rel.shift();
+      const destino=await pasta(rel.join('/'));let ant=0;
+      await dSubirArquivo(f,destino,x=>{feito+=x-ant;ant=x;pinta()});n++;pinta()}};
+    await Promise.all([worker(),worker(),worker()]);
+    upPainel('<b style="color:var(--pos)">Envio concluído</b><span class="muted">'+files.length+' arquivos · '+mb(total)+'</span>');setTimeout(()=>upPainel(null),5000);
+    return raizInfo?raizInfo:await dInfo(raiz);
+  }catch(e){upPainel('<b style="color:var(--neg)">O envio parou</b><span class="muted">'+esc(e.message)+'</span><span class="hint">'+n+' de '+files.length+' arquivos foram enviados. Tente de novo.</span><button class="btn sm" onclick="this.parentNode.hidden=true">Fechar</button>');throw e}
+  finally{enviando=false}
+}
+async function dCopiar(link){try{await navigator.clipboard.writeText(link);toast('Link copiado')}catch(_){prompt('Copie o link:',link)}}
+async function dLinkPublico(id){await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}
+async function linkCliente(T){const id=driveId(T.drive);if(!id)return;
+  try{await dLinkPublico(id);await dCopiar(T.drive);toast('Link liberado para o cliente e copiado')}catch(e){toast(e.message)}}
+// pasta onde o material de um trabalho deve ir
+async function pastaDestino(ctx){
+  const cfg=S.driveCfg||{};
+  if(ctx.tipo==='duraes'){if(!cfg.duraes)throw new Error('O Adm ainda não escolheu a pasta da Durães Fotografia (aba Drive).');return cfg.duraes.id}
+  if(!cfg.clientes)throw new Error('O Adm ainda não escolheu a pasta Clientes (aba Drive).');
+  const nome=lojaNome(ctx.loja);if(!nome)return cfg.clientes.id;
+  const ex=await dAcharPasta(nome,cfg.clientes.id);return ex?ex.id:(await dCriarPasta(nome,cfg.clientes.id)).id}
+function ligarBotoesDrive(root,inputSel,ctx){
+  const inp=root.querySelector(inputSel);if(!inp||!driveOk())return;
+  const box=document.createElement('div');box.className='drvbtns';
+  box.innerHTML='<button type="button" class="btn sm" data-x="pasta">'+ico('i-folder')+'Subir pasta do computador</button><button type="button" class="btn sm" data-x="arq">'+ico('i-file')+'Subir arquivos</button><button type="button" class="btn sm ghost" data-x="esc">Escolher no Drive</button><span class="hint" data-x="st"></span>';
+  inp.insertAdjacentElement('afterend',box);
+  const st=box.querySelector('[data-x="st"]');
+  const fp=document.createElement('input');fp.type='file';fp.multiple=true;fp.hidden=true;box.appendChild(fp);
+  let modo='pasta';
+  box.addEventListener('click',async e=>{const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
+    if(x==='esc'){try{await token()}catch(er){st.textContent=er.message;return}
+      let ini=null;try{ini=await pastaDestino(ctx)}catch(er){st.textContent=er.message}
+      abrirSeletor(ini,f=>{inp.value=f.webViewLink;st.textContent='Pasta escolhida: '+f.name});return}
+    if(x==='pasta'||x==='arq'){modo=x;try{await token()}catch(er){st.textContent=er.message;return}
+      if(x==='pasta'){fp.setAttribute('webkitdirectory','');fp.setAttribute('directory','')}else{fp.removeAttribute('webkitdirectory');fp.removeAttribute('directory')}
+      fp.value='';fp.click()}});
+  fp.addEventListener('change',async()=>{if(!fp.files.length)return;
+    try{st.textContent='Preparando…';const destino=await pastaDestino(ctx);
+      const nome=modo==='arq'?(hoje().split('-').reverse().join('-')+' '+ctx.titulo).slice(0,90):'';
+      const res=await dSubir(fp.files,destino,nome?{nomePasta:nome}:{});
+      inp.value=res.webViewLink;st.textContent='Enviado: '+res.name;toast('Pasta enviada e link preenchido')}
+    catch(er){st.textContent=er.message}});
+}
+// Seletor de pasta (janela por cima do formulário)
+async function abrirSeletor(iniId,onEscolher){
+  const cfg=S.driveCfg||{};
+  const raizes=[cfg.duraes&&{id:cfg.duraes.id,name:'Durães Fotografia'},cfg.clientes&&{id:cfg.clientes.id,name:'Clientes · Elite'},{id:'root',name:'Meu Drive'},{id:'shared',name:'Compartilhados comigo'}].filter(Boolean);
+  let path=iniId?[{id:iniId,name:'Pasta do cliente'}]:[raizes[0]];
+  if(iniId){try{const i=await dInfo(iniId);path=[{id:i.id,name:i.name}]}catch(_){}}
+  const pinta=async()=>{const cur=path[path.length-1];
+    sheet2.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Escolher pasta</h2><button type="button" class="btn sm ghost" data-close2>Fechar</button></div>'+
+      '<div class="seg">'+raizes.map(r=>'<button type="button" data-r="'+r.id+'">'+esc(r.name)+'</button>').join('')+'</div>'+
+      '<div class="crumbs">'+path.map((p,i)=>(i?'<span>›</span>':'')+'<button type="button" data-i="'+i+'">'+esc(p.name)+'</button>').join('')+'</div>'+
+      '<div class="list" id="selL"><div class="spinner"></div></div>'+
+      '<div class="formacts">'+(cur.id!=='shared'&&cur.id!=='root'?'<button type="button" class="btn primary" data-usar>Usar "'+esc(cur.name)+'"</button>':'')+'</div></form>';
+    sheet2.hidden=false;
+    sheet2.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const r=raizes.find(x=>x.id===b.dataset.r);path=[r];pinta()});
+    sheet2.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{path=path.slice(0,+b.dataset.i+1);pinta()});
+    const u=sheet2.querySelector('[data-usar]');if(u)u.onclick=async()=>{try{const i=await dInfo(cur.id);fecharSheet2();onEscolher(i)}catch(e){toast(e.message)}};
+    try{const fs=await dListar(cur.id,true);const L=sheet2.querySelector('#selL');if(!L)return;
+      L.innerHTML=fs.length?fs.map(f=>'<div class="row click" data-f="'+f.id+'" data-n="'+esc(f.name)+'">'+'<span style="color:var(--gold)">'+ico('i-folder')+'</span><div class="t">'+esc(f.name)+'</div><span class="muted">›</span></div>').join(''):emptyMsg('Sem subpastas','Use esta pasta ou volte.');
+      L.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{path.push({id:r.dataset.f,name:r.dataset.n});pinta()})}
+    catch(e){const L=sheet2.querySelector('#selL');if(L)L.innerHTML='<p class="err">'+esc(e.message)+'</p>'}};
+  pinta()}
+// Aba Drive
+function dRootCur(){const c=(S.driveCfg||{})[S.dRoot];return c||null}
+async function renderDrive(){
+  const acts=document.getElementById('dActs'),roots=document.getElementById('dRoots'),body=document.getElementById('dBody');if(!acts)return;
+  if(!driveOk()){acts.innerHTML='';roots.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Falta configurar o Google Drive','O Thiago precisa colocar o "ID do cliente OAuth" no arquivo firebase-config.js (passo a passo no LEIA-ME).')+'</div>';return}
+  const cfg=S.driveCfg||{};
+  roots.innerHTML=[['duraes','Durães Fotografia','Casamentos, eventos e aniversários',logoTile('duraes')],['clientes','Clientes · Elite','Uma pasta para cada loja',logoTile('elite')]].map(([k,n,d,tile])=>'<button data-dv="root" data-k="'+k+'" aria-pressed="'+(S.dRoot===k)+'">'+tile+'<div><b>'+n+'</b><small>'+(cfg[k]?esc(cfg[k].nome):'Pasta ainda não escolhida')+' · '+d+'</small></div></button>').join('');
+  if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">Conecte sua conta Google</p><p class="muted" style="margin:0 0 16px;font-size:14px">Use a conta que tem acesso às pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
+  const raiz=dRootCur();
+  if(!raiz){acts.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Escolha a pasta '+(S.dRoot==='duraes'?'da Durães Fotografia':'Clientes (Elite)'),S.adm?'<button class="btn primary sm" style="margin-top:10px" data-dv="cfg">Escolher pasta no Drive</button>':'Peça ao Thiago para escolher a pasta.')+'</div>';return}
+  if(!S.dPath.length||S.dPath[0].id!==raiz.id)S.dPath=[{id:raiz.id,name:S.dRoot==='duraes'?'Durães Fotografia':'Clientes'}];
+  const cur=S.dPath[S.dPath.length-1];
+  acts.innerHTML='<button class="btn" data-dv="novapasta">'+ico('i-plus')+'Nova pasta</button><button class="btn" data-dv="uparq">'+ico('i-file')+'Subir arquivos</button><button class="btn primary" data-dv="uppasta">'+ico('i-folder')+'Subir pasta</button>';
+  body.innerHTML='<div class="crumbs">'+S.dPath.map((p,i)=>(i?'<span>›</span>':'')+'<button data-dv="crumb" data-i="'+i+'">'+esc(p.name)+'</button>').join('')+'<span style="flex:1"></span><button data-dv="copiar" data-id="'+cur.id+'" class="btn sm ghost">Copiar link</button><button data-dv="abrir" data-id="'+cur.id+'" class="btn sm ghost">Abrir no Drive</button>'+(S.adm&&S.dPath.length===1?'<button data-dv="cfg" class="btn sm ghost">Trocar pasta</button>':'')+'</div><div id="dList"><div class="spinner"></div></div>';
+  try{const fs=await dListar(cur.id);if(S.dPath[S.dPath.length-1].id!==cur.id)return;S.dItems=fs;
+    const L=document.getElementById('dList');if(!L)return;
+    L.innerHTML=fs.length?'<div class="dgrid">'+fs.map(f=>{const pasta=f.mimeType===FOLDER,vid=/^video\//.test(f.mimeType);
+      return '<div class="ditem'+(pasta?' folder':'')+'" data-dv="item" data-id="'+f.id+'" tabindex="0">'+
+        '<div class="th">'+(!pasta&&f.thumbnailLink?'<img src="'+esc(f.thumbnailLink)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(\'<svg class=&quot;i&quot;><use href=&quot;#i-file&quot;/></svg>\'))">':ico(pasta?'i-folder':vid?'i-video':'i-file'))+'</div>'+
+        '<div class="nm">'+esc(f.name)+'</div><div class="mt">'+(pasta?'Pasta':(f.size?Math.max(1,Math.round(f.size/1e6))+' MB':''))+(f.modifiedTime?' · '+dCurta(f.modifiedTime.slice(0,10)):'')+'</div>'+
+        '<div class="mini"><button data-dv="copiar" data-id="'+f.id+'" aria-label="Copiar link">Link</button>'+(pasta?'<button data-dv="usar" data-id="'+f.id+'">Usar no fluxo</button>':'')+'</div></div>'}).join('')+'</div>'
+      :'<div class="panel">'+emptyMsg('Pasta vazia','Use "Subir pasta" para enviar o material do computador.')+'</div>'}
+  catch(e){const L=document.getElementById('dList');if(L)L.innerHTML='<div class="panel"><p class="err" style="margin:0">'+esc(e.message)+'</p></div>'}
+}
+function escolherUpload(tipo){if(!driveConectado()){setTab('drive');return}const i=document.getElementById(tipo==='pasta'?'dUpPasta':'dUpArq');i.value='';i.click()}
+['dUpPasta','dUpArq'].forEach(id=>document.getElementById(id).addEventListener('change',async e=>{const fs=e.target.files;if(!fs||!fs.length)return;
+  const cur=S.dPath[S.dPath.length-1];if(!cur)return;
+  try{const r=await dSubir(fs,cur.id);toast('Enviado: '+r.name);S.dItems=null;renderDrive()}catch(er){toast(er.message)}}));
+async function driveClique(b,e){const k=b.dataset.dv;e.stopPropagation&&e.stopPropagation();
+  try{
+    if(k==='conectar'){S.dErr='';await pedirToken('consent');S.dItems=null;renderDrive();return}
+    if(k==='root'){S.dRoot=b.dataset.k;S.dPath=[];S.dItems=null;renderDrive();return}
+    if(k==='crumb'){S.dPath=S.dPath.slice(0,+b.dataset.i+1);renderDrive();return}
+    if(k==='cfg'){abrirSeletor(null,async f=>{const nv=Object.assign({},S.driveCfg||{});nv[S.dRoot]={id:f.id,nome:f.name};
+      await write(()=>db.collection('config').doc('drive').set(nv));S.driveCfg=nv;S.dPath=[];toast('Pasta definida');renderDrive()});return}
+    if(k==='uppasta'){escolherUpload('pasta');return}
+    if(k==='uparq'){escolherUpload('arq');return}
+    if(k==='novapasta'){const nome=prompt('Nome da nova pasta:');if(!nome)return;await dCriarPasta(nome.trim().slice(0,100),S.dPath[S.dPath.length-1].id);renderDrive();return}
+    if(k==='copiar'){const i=await dInfo(b.dataset.id);dCopiar(i.webViewLink);return}
+    if(k==='abrir'){const i=await dInfo(b.dataset.id);window.open(i.webViewLink,'_blank','noopener');return}
+    if(k==='usar'){const i=await dInfo(b.dataset.id);usarNoFluxo(i);return}
+    if(k==='item'){const f=(S.dItems||[]).find(x=>x.id===b.dataset.id);if(!f)return;
+      if(f.mimeType===FOLDER){S.dPath.push({id:f.id,name:f.name});renderDrive()}else window.open(f.webViewLink,'_blank','noopener');return}
+  }catch(er){if(k==='conectar'){S.dErr=er.message;renderDrive()}else toast(er.message)}
+}
+function usarNoFluxo(f){
+  const ts=S.tar.filter(t=>(t.etapa==='captado'||t.etapa==='edicao')||(t.empresa==='duraes'&&t.etapa==='entregue'&&t.entregaStatus!=='enviado')).sort((a,b)=>(a.prazo||'z').localeCompare(b.prazo||'z'));
+  sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Usar "'+esc(f.name)+'" em qual trabalho?</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="list">'+(ts.length?ts.map(t=>'<div class="row click" data-usar-t="'+t.id+'">'+dBox(t.prazo||t.data,t.empresa)+'<div><div class="t">'+esc(t.titulo)+'</div><div class="s">'+chipEmp(t.empresa)+(t.loja?'<span>'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+(ETAPAS.find(x=>x[0]===t.etapa)||ETAPAS[0])[1]+'</span></div></div><span class="muted">›</span></div>').join(''):emptyMsg('Nenhum trabalho em edição','Os trabalhos captados ou em edição aparecem aqui.'))+'</div></form>';
+  sheet.hidden=false;
+  sheet.querySelectorAll('[data-usar-t]').forEach(r=>r.onclick=()=>{const T=Object.assign({},S.tar.find(x=>x.id===r.dataset.usarT),{drive:f.webViewLink});
+    if(T.empresa==='duraes')formEntregaD(T);else if(T.loja)formEntrega(T);else{write(()=>store.update('tar',T.id,{drive:f.webViewLink})).then(()=>{closeSheet();toast('Link salvo no trabalho')}).catch(()=>{})}});
+}
+
 /* ---------- Durães: entrega ao cliente ---------- */
 function renderDuraes(){
   const ts=S.tar.filter(t=>t.empresa==='duraes'),h=hoje(),lim=addDias(h,-60);
@@ -966,7 +1213,7 @@ function renderDuraes(){
   document.getElementById('lojaBody').innerHTML='<div class="pipe">'+
     col('Próximos eventos','#4C8DFF',prox,prox.map(t=>c(t,'<span>Capta: '+esc(nomes(t.captacao))+'</span>','')).join(''),'Nenhum evento marcado.')+
     col('Em edição','#FF6A1F',edi,edi.map(t=>c(t,'<span>Edição: '+esc(nomes(t.edicao))+'</span>'+(prazoChip(t)?'<span>'+prazoChip(t)+'</span>':''),w?'<button class="btn sm primary" data-dact="drive" data-id="'+t.id+'">Pronto no Drive</button>':'')).join(''),'Nada em edição.')+
-    col('No Drive · enviar ao cliente','#E2B24C',drv,drv.map(t=>{const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;return c(t,'<span>Pronto '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · <b style="color:var(--warn)">esperando há '+d+' dias</b>':'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(w?'<button class="btn sm primary" data-dact="enviado" data-id="'+t.id+'">Enviei ao cliente</button>':''))}).join(''),'Nada esperando envio.')+
+    col('No Drive · enviar ao cliente','#E2B24C',drv,drv.map(t=>{const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;return c(t,'<span>Pronto '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · <b style="color:var(--warn)">esperando há '+d+' dias</b>':'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(t.drive&&driveId(t.drive)?'<button class="btn sm" data-dact="linkcli" data-id="'+t.id+'">Copiar link p/ cliente</button>':'')+(w?'<button class="btn sm primary" data-dact="enviado" data-id="'+t.id+'">Enviei ao cliente</button>':''))}).join(''),'Nada esperando envio.')+
     col('Entregue ao cliente (60 dias)','#34D399',env,env.map(t=>c(t,'<span>Enviado '+(t.enviadoEm?dCurta(t.enviadoEm.slice(0,10)):'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(w?'<button class="btn sm ghost" data-dact="desfazer" data-id="'+t.id+'">Desfazer</button>':''))).join(''),'Nenhuma entrega nos últimos 60 dias.')+'</div>';
 }
 function formEntregaD(T){
@@ -974,7 +1221,7 @@ function formEntregaD(T){
   '<div class="fld"><label for="edDrive">Link da pasta no Drive</label><input id="edDrive" type="url" inputmode="url" placeholder="https://drive.google.com/..." value="'+esc(T.drive||'')+'"></div>'+
   '<div class="fld"><label for="edContato">Contato do cliente</label><input id="edContato" inputmode="tel" placeholder="WhatsApp" value="'+esc(T.contato||'')+'"></div>'+
   '<div class="err" id="edErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Confirmar e avisar</button></div></form>';
-  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);ligarBotoesDrive(sheet,'#edDrive',{tipo:'duraes',titulo:T.titulo});
   q('#fEd').onsubmit=async e=>{e.preventDefault();const drive=q('#edDrive').value.trim();
     if(!/^https?:\/\//i.test(drive)){q('#edErr').textContent='Cole o link da pasta do Drive (começa com https://).';return}
     meus.add(T.id);try{await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive,contato:q('#edContato').value.trim().slice(0,40),entregaStatus:'drive',prontoEm:agoraLocal(),enviadoEm:''}))}catch(_){return}
@@ -982,6 +1229,7 @@ function formEntregaD(T){
   q('#edDrive').focus()}
 async function duraesAcao(b){const id=b.dataset.id,k=b.dataset.dact,T=S.tar.find(x=>x.id===id);if(!T)return;
   if(k==='drive')formEntregaD(T);
+  else if(k==='linkcli')linkCliente(T);
   else if(k==='enviado'){try{await write(()=>store.update('tar',id,{entregaStatus:'enviado',enviadoEm:agoraLocal()}));toast('Marcado como entregue ao cliente')}catch(_){}}
   else if(k==='desfazer'){meus.add(id);try{await write(()=>store.update('tar',id,{entregaStatus:'drive',enviadoEm:''}));toast('Voltou para "enviar ao cliente"')}catch(_){}}
 }
@@ -1092,6 +1340,7 @@ function formEntrega(T){
   '<div class="fld"><span class="l">O que foi entregue</span><div class="items" id="enItems">'+itemRow({titulo:'',tipo:'reels'})+'</div><button type="button" class="btn sm" id="enAdd" style="align-self:flex-start">'+ico('i-plus')+'Mais um conteúdo</button><span class="hint">Um item para cada post: cada carro, cada reels, cada carrossel.</span></div>'+
   '<div class="err" id="enErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Entregar e avisar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  ligarBotoesDrive(sheet,'#enDrive',{tipo:'elite',loja:T.loja,titulo:T.titulo});
   q('#enAdd').onclick=()=>{q('#enItems').insertAdjacentHTML('beforeend',itemRow({}));const ins=q('#enItems').querySelectorAll('input');ins[ins.length-1].focus()};
   q('#enItems').onclick=e=>{const b=e.target.closest('[data-rm-item]');if(b&&q('#enItems').children.length>1)b.closest('.item').remove()};
   q('#fEn').onsubmit=async e=>{e.preventDefault();const drive=q('#enDrive').value.trim();
@@ -1310,6 +1559,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
+  subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   if(finOk){store.sub('lanc');store.sub('valores')}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}

@@ -50,6 +50,9 @@ service cloud.firestore {
     match /lojas/{id} { allow read: if ativo(); allow write: if adm(); }
     match /posts/{id} { allow read, write: if ativo(); }
 
+    // Configurações (pastas do Drive): todos leem, só Adm muda
+    match /config/{id} { allow read: if ativo(); allow write: if adm(); }
+
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
     match /valores/{id} { allow read, write: if financeiro(); }
