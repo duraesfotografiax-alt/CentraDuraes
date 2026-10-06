@@ -17,4 +17,4 @@ self.ADMIN_EMAIL = "duraesfotografiax@gmail.com";
 self.VAPID_KEY = "BFrDvo5YEjZpTtqG_mBTZzcDaACPcpdpATFg8WdV7tu3JGvvps4LJyGqhA3XL4L4Ae61myJ34Efq-Ecn-Ty7s2w";
 
 // Google Drive: "ID do cliente OAuth" (Google Cloud > APIs e serviços > Credenciais). Veja o LEIA-ME.
-self.GOOGLE_CLIENT_ID = "COLE_AQUI";
+self.GOOGLE_CLIENT_ID = "534493994572-6rtn1vu9gh63qki3br1s3g9fmlnqjsth.apps.googleusercontent.com";
