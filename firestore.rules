@@ -55,8 +55,9 @@ service cloud.firestore {
     match /valores/{id} { allow read, write: if financeiro(); }
 
     // Qualquer outra coisa: bloqueado
-    // Controle interno do robô de notificações (só o servidor acessa)
-    match /avisos/{id} { allow read, write: if false; }
+    // Controle do robô de notificações: o app só pode marcar "já avisei esta pessoa" (a própria),
+    // para o robô não repetir um aviso que já apareceu na tela. Ninguém lê.
+    match /avisos/{id} { allow create, update: if ativo() && id.matches('.*_' + request.auth.uid); }
 
     match /{outro=**} { allow read, write: if false; }
   }

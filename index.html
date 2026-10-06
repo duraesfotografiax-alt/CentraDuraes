@@ -571,7 +571,7 @@ function valOf(id){return S.valores.find(x=>x.id===id)||null}
 
 /* ---------- armazenamento ---------- */
 function fbStore(){
-  const sub=(c)=>{subs.push(db.collection(c).onSnapshot(snap=>{S[c]=snap.docs.map(d=>Object.assign({id:d.id},d.data()));render()},
+  const sub=(c)=>{let primeiro=true;subs.push(db.collection(c).onSnapshot(snap=>{S[c]=snap.docs.map(d=>Object.assign({id:d.id},d.data()));if(!snap.metadata.fromCache||!primeiro){avisosAoVivo(c,primeiro);primeiro=false}render()},
     e=>{if(e&&e.code==='permission-denied')S[c]=[];else showNotice('A conexão com os dados caiu. Recarregue a página.');render()}))};
   return { sub,
     add:async(c,d)=>{const r=db.collection(c).doc();await r.set(d);return r.id},
@@ -977,13 +977,13 @@ function formEntregaD(T){
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fEd').onsubmit=async e=>{e.preventDefault();const drive=q('#edDrive').value.trim();
     if(!/^https?:\/\//i.test(drive)){q('#edErr').textContent='Cole o link da pasta do Drive (começa com https://).';return}
-    try{await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive,contato:q('#edContato').value.trim().slice(0,40),entregaStatus:'drive',prontoEm:agoraLocal(),enviadoEm:''}))}catch(_){return}
+    meus.add(T.id);try{await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive,contato:q('#edContato').value.trim().slice(0,40),entregaStatus:'drive',prontoEm:agoraLocal(),enviadoEm:''}))}catch(_){return}
     closeSheet();toast('Pronto no Drive · aviso enviado')};
   q('#edDrive').focus()}
 async function duraesAcao(b){const id=b.dataset.id,k=b.dataset.dact,T=S.tar.find(x=>x.id===id);if(!T)return;
   if(k==='drive')formEntregaD(T);
   else if(k==='enviado'){try{await write(()=>store.update('tar',id,{entregaStatus:'enviado',enviadoEm:agoraLocal()}));toast('Marcado como entregue ao cliente')}catch(_){}}
-  else if(k==='desfazer'){try{await write(()=>store.update('tar',id,{entregaStatus:'drive',enviadoEm:''}));toast('Voltou para "enviar ao cliente"')}catch(_){}}
+  else if(k==='desfazer'){meus.add(id);try{await write(()=>store.update('tar',id,{entregaStatus:'drive',enviadoEm:''}));toast('Voltou para "enviar ao cliente"')}catch(_){}}
 }
 
 /* ---------- cofre: Resumo e Caixa só com PIN ---------- */
@@ -1100,7 +1100,7 @@ function formEntrega(T){
     if(!its.length){q('#enErr').textContent='Escreva pelo menos um conteúdo (ex.: o nome do carro).';return}
     const agora=agoraLocal();
     try{
-      await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive}));
+      meus.add(T.id);await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive}));
       for(const it of its)await write(()=>store.add('posts',{loja:T.loja,tar:T.id,titulo:it.titulo.slice(0,100),tipo:it.tipo,drive,status:'pronto',editadoPor:eu,editadoEm:agora,quando:'',link:'',obs:''}));
     }catch(_){return}
     closeSheet();toast(its.length+' conteúdo(s) enviado(s) para programar')};
@@ -1149,6 +1149,23 @@ async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find
   else if(k==='editar'&&P)formPost(P);
   else if(k==='apagar'||k==='arquivarLoja'){if(!armed['p'+id]){armed['p'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['p'+id]){b.textContent=armed['p'+id];delete armed['p'+id]}},3000);return}delete armed['p'+id];
     try{if(k==='apagar')await write(()=>store.del('posts',id));else await write(()=>store.update('lojas',id,{ativo:false}))}catch(_){return}closeSheet();toast(k==='apagar'?'Apagado':'Cliente arquivado')}
+}
+
+/* ---------- avisos na hora (app aberto) ---------- */
+const vistos={posts:new Set(),tar:new Set()},meus=new Set();
+function avisosAoVivo(c,primeiro){
+  if(c!=='posts'&&c!=='tar')return;
+  const eu=meuMembro(),novos=[];
+  if(c==='posts')for(const p of S.posts){if(p.status!=='pronto')continue;const k='pronto_'+p.id;if(vistos.posts.has(k))continue;vistos.posts.add(k);
+    const l=S.lojas.find(x=>x.id===p.loja);const resp=(l&&l.postagem)||'Vanessa';
+    if(!primeiro&&!meus.has(p.tar||p.id)&&(eu===resp||(!eu&&S.adm)))novos.push({k,tit:'Programar post: '+(l?l.nome:''),body:p.titulo+' ('+(TPOST[p.tipo]||'post')+'). O material está no Drive.'})}
+  if(c==='tar')for(const t of S.tar){if(!(t.empresa==='duraes'&&t.etapa==='entregue'&&t.entregaStatus==='drive'))continue;const k='drive_'+t.id+'_'+String(t.prontoEm||'').replace(/[^0-9]/g,'');if(vistos.tar.has(k))continue;vistos.tar.add(k);
+    if(!primeiro&&S.fin&&!meus.has(t.id))novos.push({k,tit:'Pronto no Drive: '+t.titulo,body:'Editado e no Drive. Falta enviar ao cliente'+(t.contato?' ('+t.contato+')':'')+'.'})}
+  for(const n of novos)notificarLocal(n)}
+async function notificarLocal(n){
+  toast(n.tit);
+  try{if('Notification' in window&&Notification.permission==='granted'){const reg=swReg||await registrarSW();if(reg)await reg.showNotification(n.tit,{body:n.body,icon:'icons/icon-192.png',tag:n.k})}}catch(_){}
+  try{await db.collection('avisos').doc(n.k+'_'+S.uid).set({em:agoraLocal()})}catch(_){}
 }
 
 /* ---------- avisos ---------- */
@@ -1266,7 +1283,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){vistos.posts.clear();vistos.tar.clear();subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}

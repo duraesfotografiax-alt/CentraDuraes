@@ -142,7 +142,8 @@ Dentro do app, o **sino** no topo mostra a mesma lista a qualquer hora.
    - Todo mundo que ativou as notificações recebe uma mensagem de teste em alguns segundos.
 
 ### Observações
-- O robô roda de hora em hora no GitHub Actions, de graça. Os avisos podem chegar com alguns minutos de atraso.
+- **Com o app aberto** (inclusive em outra aba ou minimizado no PC), o aviso de "Programar post" e de "Pronto no Drive" aparece **na hora**.
+- **Com o app fechado**, quem avisa é o robô do GitHub, que confere a cada 10 minutos. O GitHub às vezes atrasa alguns minutos a mais. O mesmo aviso nunca chega duas vezes para a mesma pessoa.
 - O GitHub pausa robôs agendados em repositórios sem nenhuma alteração por 60 dias. Se isso acontecer, ele avisa por e-mail; basta entrar em **Actions** e clicar em **Enable workflow**.
 
 ---

@@ -60,7 +60,7 @@ async function enviar(u, title, body) {
     return;
   }
 
-  const tarefas = (await db.collection('tar').get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
+  const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
   const emEdicao = (t) => t.etapa === 'captado' || t.etapa === 'edicao';
   const doUsuario = (u, t) => { const m = membroDe(u); return m && arr(t.captacao).concat(arr(t.edicao)).includes(m); };
   const naEdicao = (u, t) => { const m = membroDe(u); return m && arr(t.edicao).includes(m); };
@@ -74,17 +74,19 @@ async function enviar(u, title, body) {
   const agoraIso = `${hoje}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   const minutosEntre = (a, b) => Math.round((new Date(a + ':00Z') - new Date(b + ':00Z')) / 6e4);
 
-  // 0a) Material entregue: avisa quem programa (agrupado por loja)
-  const prontosNovos = [];
-  for (const p of posts.filter((x) => x.status === 'pronto')) if (!(await jaFoi(`pronto_${p.id}`))) prontosNovos.push(p);
-  const porLoja = {};
-  prontosNovos.forEach((p) => { (porLoja[p.loja] = porLoja[p.loja] || []).push(p); });
-  for (const [lid, ps] of Object.entries(porLoja)) {
-    const lj = lojas[lid]; if (!lj) continue;
-    const titulo = ps.length === 1 ? `Programar post: ${lj.nome}` : `Programar ${ps.length} posts: ${lj.nome}`;
-    const corpo = ps.map((p) => `${p.titulo} (${TPOST[p.tipo] || 'post'})`).join(', ') + '. O material está no Drive.';
-    for (const u of respDe(lj)) await enviar(u, titulo, corpo);
-    for (const p of ps) await marcar(`pronto_${p.id}`);
+  // 0a) Material entregue: avisa quem programa (agrupado por loja). Chave por pessoa:
+  //     se o app dela estava aberto e já mostrou o aviso na hora, o robô não repete.
+  for (const lj of Object.values(lojas)) {
+    const ps = posts.filter((x) => x.status === 'pronto' && x.loja === lj.id);
+    if (!ps.length) continue;
+    for (const u of respDe(lj)) {
+      const novos = [];
+      for (const p of ps) if (!(await jaFoi(`pronto_${p.id}_${u.id}`))) novos.push(p);
+      if (!novos.length) continue;
+      const titulo = novos.length === 1 ? `Programar post: ${lj.nome}` : `Programar ${novos.length} posts: ${lj.nome}`;
+      await enviar(u, titulo, novos.map((p) => `${p.titulo} (${TPOST[p.tipo] || 'post'})`).join(', ') + '. O material está no Drive.');
+      for (const p of novos) await marcar(`pronto_${p.id}_${u.id}`);
+    }
   }
   // 0b) Programado há mais de 2h e ainda não marcado como no ar: pedir conferência
   for (const p of posts.filter((x) => x.status === 'programado' && x.quando && minutosEntre(agoraIso, x.quando) >= 120)) {
@@ -100,10 +102,12 @@ async function enviar(u, title, body) {
   const prontosDrive = (await db.collection('tar').where('entregaStatus', '==', 'drive').get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa === 'entregue');
   const socios = usuarios.filter((u) => ehAdm(u) || u.financeiro === true);
   for (const t of prontosDrive) {
-    const chave = `drive_${t.id}_${String(t.prontoEm || '').replace(/[^0-9]/g, '')}`;
-    if (await jaFoi(chave)) continue;
-    for (const u of socios) await enviar(u, `Pronto no Drive: ${t.titulo}`, `${TIPOS[t.tipo] || 'Trabalho'} editado e no Drive. Falta enviar ao cliente${t.contato ? ' (' + t.contato + ')' : ''}.`);
-    await marcar(chave);
+    for (const u of socios) {
+      const chave = `drive_${t.id}_${String(t.prontoEm || '').replace(/[^0-9]/g, '')}_${u.id}`;
+      if (await jaFoi(chave)) continue;
+      await enviar(u, `Pronto no Drive: ${t.titulo}`, `${TIPOS[t.tipo] || 'Trabalho'} editado e no Drive. Falta enviar ao cliente${t.contato ? ' (' + t.contato + ')' : ''}.`);
+      await marcar(chave);
+    }
   }
 
   // 1) Resumo do dia, a partir das 8h
