@@ -70,6 +70,8 @@ service cloud.firestore {
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
     match /valores/{id} { allow read, write: if financeiro(); }
+    match /recibos/{id} { allow read, write: if financeiro(); }
+    match /recibosCfg/{id} { allow read: if financeiro(); allow write: if adm(); }
 
     // Qualquer outra coisa: bloqueado
     // Controle do robô de notificações: o app só pode marcar "já avisei esta pessoa" (a própria),

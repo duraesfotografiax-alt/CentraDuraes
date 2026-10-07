@@ -262,3 +262,31 @@ Observações:
 - Na galeria aparecem fotos **JPG/PNG**. Arquivos RAW não aparecem.
 - Cole de novo o `firestore.rules` no Firebase, porque ele ganhou as regras dos álbuns.
 - O link do cliente é secreto e difícil de adivinhar. Quem tiver o link consegue escolher fotos até a seleção ser enviada.
+
+---
+
+## Aba Recibos (fica no cadeado, junto com Caixa e Resumo)
+
+1. **Na primeira vez**, abra **Dados da empresa** e preencha, para a Durães e para a Elite: nome, CNPJ/CPF, quem assina, cidade, endereço, telefone e chave Pix.
+2. **Novo recibo:**
+   - Escolha a empresa e, se quiser, o trabalho. O "Referente a" se preenche sozinho.
+   - Preencha o cliente e o CPF/CNPJ (opcional).
+   - Escolha o tipo:
+     - **Único:** pagamento de uma vez.
+     - **Parcelado:** valor total + número de parcelas → **Gerar parcelas**. As datas vêm mês a mês e podem ser ajustadas. Marque quais já estão pagas e escolha de qual parcela é este recibo.
+     - **Mensal:** mês de referência e vencimento.
+   - Confira o valor recebido, a data e a forma de pagamento.
+   - Deixe marcado **Lançar no Caixa** para a entrada ir junto para o Caixa.
+3. O recibo sai com número automático (DF-2026-001, EM-2026-001…), o valor **por extenso**, a tabela de parcelas e o local para assinatura.
+4. Use **Baixar PDF**, **Baixar imagem** ou **Enviar**. No celular, o Enviar abre o WhatsApp ou o e-mail com o PDF anexado.
+5. No mês seguinte, use **Próximo mês** ou **Próxima parcela** para gerar o recibo seguinte com tudo já preenchido.
+
+Cole de novo o `firestore.rules` no Firebase, porque ele ganhou as regras dos recibos.
+
+---
+
+## Fotos ou vídeo
+Cada trabalho tem o campo **Material**: **Fotos**, **Vídeo** ou **Fotos + vídeo**. Ele já vem sugerido pelo tipo (loja e casamento: fotos + vídeo; conteúdo para redes: vídeo; ensaio, evento e aniversário: fotos) e pode ser trocado.
+- Nos cartões aparece uma etiqueta: dourada com câmera para **Fotos** e lilás com câmera de vídeo para **Vídeo**.
+- Na **Produção** há o filtro **Só fotos / Só vídeos**. Trabalhos com fotos + vídeo aparecem nos dois.
+- Nos posts das lojas, **Reels** e **Stories** aparecem com a etiqueta de vídeo, e **Feed** e **Carrossel** com a de foto.

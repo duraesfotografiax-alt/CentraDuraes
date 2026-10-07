@@ -196,7 +196,7 @@ h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 .card.elite{--c:var(--elite)} .card.duraes{--c:var(--duraes)}
 .card:hover{border-color:var(--line2)}
 .card.dragging{opacity:.4}
-.card .t{font-weight:800;overflow-wrap:anywhere;line-height:1.25}
+.card .t{font-weight:800;overflow-wrap:break-word;min-width:0;flex:1;line-height:1.25}
 .card .meta{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
 .card .meta span{overflow-wrap:anywhere}
 .card .foot{display:flex;gap:6px;justify-content:space-between;align-items:center;flex-wrap:wrap}
@@ -345,6 +345,44 @@ details.panel[open] summary{margin-bottom:12px}
 .selgrid figcaption{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere;line-height:1.2}
 .morenav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .morenav button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px}
+/* recibos */
+.parc{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) auto;gap:6px;align-items:center;font-size:13px}
+.parc input{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:7px 8px;min-width:0;width:100%}
+.parc label{display:flex;gap:4px;align-items:center;white-space:nowrap;color:var(--muted)}
+.recwrap{background:#fff;border-radius:10px;overflow:auto;max-height:60vh}
+/* documento do recibo (sempre claro, como papel) */
+.rdoc{width:794px;min-height:560px;background:#fff;color:#1a1a1a;font-family:var(--body);font-size:14px;line-height:1.5;margin:0 auto}
+.rdoc .band{background:#0B0B0D;color:#fff;display:flex;align-items:center;gap:18px;padding:22px 36px}
+.rdoc .band img{height:64px;width:auto}
+.rdoc .band .lg{width:64px;height:64px;border-radius:12px;background:#000 center/cover no-repeat}
+.rdoc .band .em b{display:block;font-family:var(--display);font-size:20px;letter-spacing:.01em}
+.rdoc .band .em span{font-size:12px;color:#c9c9cf;display:block}
+.rdoc .band .no{margin-left:auto;text-align:right}
+.rdoc .band .no b{display:block;font-family:var(--display);font-size:22px;letter-spacing:.12em}
+.rdoc .band .no span{font-size:12px;color:#c9c9cf}
+.rdoc .bar{height:4px;background:linear-gradient(90deg,#4C8DFF,#E2B24C 55%,#FF6A1F)}
+.rdoc .body{padding:28px 36px 30px;display:flex;flex-direction:column;gap:16px}
+.rdoc .val{display:flex;justify-content:space-between;align-items:center;border:1.5px solid #1a1a1a;border-radius:10px;padding:12px 18px}
+.rdoc .val span{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:700}
+.rdoc .val b{font-family:var(--display);font-size:26px}
+.rdoc p{margin:0}
+.rdoc .tx{font-size:15px;line-height:1.7}
+.rdoc table{width:100%;border-collapse:collapse;font-size:13px}
+.rdoc th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#666;border-bottom:1px solid #ddd;padding:6px 8px}
+.rdoc td{border-bottom:1px solid #eee;padding:6px 8px}
+.rdoc .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-size:13px}
+.rdoc .meta div{background:#f4f4f6;border-radius:8px;padding:8px 10px}
+.rdoc .meta small{display:block;font-size:10.5px;color:#666;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.rdoc .sig{margin-top:34px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.rdoc .sig .ln{flex:1;max-width:340px;border-top:1px solid #1a1a1a;padding-top:6px;text-align:center;font-size:13px}
+.rdoc .foot{font-size:11px;color:#777;border-top:1px solid #eee;padding:10px 36px;display:flex;justify-content:space-between;gap:10px}
+@media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{position:absolute;left:0;top:0}}
+/* fotos x vídeo */
+.mid{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;padding:2px 8px 2px 6px;border-radius:999px;white-space:nowrap}
+.mid svg.i{width:13px;height:13px;stroke-width:2.2}
+.mid.foto{background:var(--gold-bg);color:var(--gold)}
+.mid.video{background:rgba(183,156,255,.16);color:#B79CFF}
+.mid.ambos{background:linear-gradient(90deg,var(--gold-bg),rgba(183,156,255,.16));color:var(--ink)}
 /* avisos */
 .bell{position:relative;margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .bell:hover{background:var(--hover)}
@@ -456,12 +494,25 @@ details.panel[open] summary{margin-bottom:12px}
         </div>
       </section>
 
+      <!-- RECIBOS -->
+      <section id="tab-recibos" hidden>
+        <div class="head">
+          <h1>Recibos<small>Emita, baixe em PDF e mande para o cliente</small></h1>
+          <div class="sp"></div>
+          <div class="seg" id="fRec"></div>
+          <button class="btn" data-rec="emissor">Dados da empresa</button>
+          <button class="btn primary" data-rec="novo"><svg class="i"><use href="#i-plus"/></svg>Novo recibo</button>
+        </div>
+        <div class="panel"><input class="search" id="recBusca" placeholder="Buscar cliente ou número…" aria-label="Buscar recibo" style="width:100%;margin-bottom:8px"><div class="list" id="recList"></div></div>
+      </section>
+
       <!-- PRODUÇÃO -->
       <section id="tab-producao" hidden>
         <div class="head">
           <h1>Produção<small>Arraste o cartão para mudar de etapa</small></h1>
           <div class="sp"></div>
           <div class="seg" id="fEmpP"></div>
+          <div class="seg" id="fMid"></div>
           <div class="seg" id="fPes"></div>
           <button class="btn primary" data-new-tar><svg class="i"><use href="#i-plus"/></svg>Trabalho</button>
         </div>
@@ -573,6 +624,7 @@ details.panel[open] summary{margin-bottom:12px}
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
   <symbol id="i-album" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
@@ -592,22 +644,25 @@ const TEAM = ['Thiago','Vanessa','Lucas'];
 const TCOR = { Thiago:'#E2B24C', Vanessa:'#F58BB8', Lucas:'#3DD6C4' };
 const EMP = { elite:'Elite Marketing', duraes:'Durães Fotografia', ambas:'As duas' };
 const TIPOS = {
-  loja:       { nome:'Produção em loja', emp:'elite',  dias:3,  todos:true },
-  social:     { nome:'Conteúdo / redes', emp:'elite',  dias:3 },
-  casamento:  { nome:'Casamento',        emp:'duraes', dias:30, todos:true },
+  loja:       { nome:'Produção em loja', emp:'elite',  dias:3,  todos:true, midia:'ambos' },
+  social:     { nome:'Conteúdo / redes', emp:'elite',  dias:3, midia:'video' },
+  casamento:  { nome:'Casamento',        emp:'duraes', dias:30, todos:true, midia:'ambos' },
   evento:     { nome:'Evento',           emp:'duraes', dias:15 },
   aniversario:{ nome:'Aniversário',      emp:'duraes', dias:15 },
   ensaio:     { nome:'Ensaio',           emp:'duraes', dias:10 },
   outro:      { nome:'Outro',            emp:'',       dias:7 }
 };
+const MIDIA={foto:['foto','Fotos','i-cam'],video:['video','Vídeo','i-video'],ambos:['ambos','Fotos + vídeo','i-video']};
+function midiaDe(t){return MIDIA[t.midia]?t.midia:((TIPOS[t.tipo]||{}).midia||'foto')}
+function midChip(t){const m=MIDIA[midiaDe(t)];return '<span class="mid '+m[0]+'" title="'+m[1]+'">'+(m[0]==='ambos'?ico('i-cam')+ico('i-video'):ico(m[2]))+m[1]+'</span>'}
 const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DFF'],['captado','Captado','#E2B24C'],['edicao','Em edição','#FF6A1F'],['entregue','Entregue','#34D399']];
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { midP:'todos', recibos:[], recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
@@ -709,9 +764,10 @@ function render(){
   const eo=[['todas','Todas'],['elite','Elite'],['duraes','Durães']];
   segs('fEmpR','empR',eo);segs('fEmpC','empC',eo);segs('fEmpP','empP',eo);segs('fEmpA','empA',eo);
   segs('fTipoC','tipoC',[['todos','Tudo'],['entrada','Entradas'],['saida','Saídas']]);
+  segs('fMid','midP',[['todos','Fotos e vídeos'],['foto','Só fotos'],['video','Só vídeos']]);
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
-  if(fin()){renderResumo();renderCaixa()}
+  if(fin()){renderResumo();renderCaixa();renderRecibos()}
   renderBoard();renderClientes();renderAlbuns();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
 }
 
@@ -767,7 +823,7 @@ function drawChart(e){
 function emptyMsg(a,b){return '<div class="empty"><b>'+a+'</b>'+b+'</div>'}
 function tRow(t,prazo){
   const tipo=(TIPOS[t.tipo]||TIPOS.outro).nome;
-  return '<div class="row click" data-open="'+t.id+'">'+dBox(prazo?t.prazo:t.data,t.empresa)+'<div style="min-width:0"><div class="t">'+esc(t.titulo)+'</div><div class="s">'+chipEmp(t.empresa)+'<span>'+tipo+(t.hora&&!prazo?' · '+esc(t.hora):'')+'</span></div></div>'+
+  return '<div class="row click" data-open="'+t.id+'">'+dBox(prazo?t.prazo:t.data,t.empresa)+'<div style="min-width:0"><div class="t">'+esc(t.titulo)+'</div><div class="s">'+chipEmp(t.empresa)+midChip(t)+'<span>'+tipo+(t.hora&&!prazo?' · '+esc(t.hora):'')+'</span></div></div>'+
     '<div class="v">'+(prazo?prazoChip(t):avs(t.captacao))+'</div>'+(prazo?'<div class="acts" style="justify-content:flex-start"><span class="teamline">'+ico('i-edit')+esc(nomes(t.edicao))+'</span></div>':'')+'</div>';
 }
 function lRow(l,acts){
@@ -794,7 +850,7 @@ function renderCaixa(){
 /* ---------- produção ---------- */
 function filtraPes(t){if(S.pes==='todos')return true;const all=arr(t.captacao).concat(arr(t.edicao));if(S.pes==='fr')return all.some(k=>String(k).startsWith('f:'));return all.includes(S.pes)}
 function renderBoard(){
-  let ts=S.tar.filter(t=>(S.empP==='todas'||t.empresa===S.empP)&&filtraPes(t));
+  let ts=S.tar.filter(t=>(S.empP==='todas'||t.empresa===S.empP)&&filtraPes(t)&&(S.midP==='todos'||midiaDe(t)===S.midP||midiaDe(t)==='ambos'));
   const lim=addDias(hoje(),-30);
   document.getElementById('board').innerHTML=ETAPAS.map(([k,n,c],i)=>{
     let cs=ts.filter(t=>(t.etapa||'agendar')===k);
@@ -808,7 +864,7 @@ function card(t,i){
   const tipo=(TIPOS[t.tipo]||TIPOS.outro).nome,w=S.canWrite,v=fin()?valOf(t.id):null;
   return '<div class="card '+(t.empresa||'')+'" data-open="'+t.id+'"'+(w?' draggable="true"':'')+'>'+
     '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(t.titulo)+'</div>'+chipEmp(t.empresa)+'</div>'+
-    '<div class="meta">'+(t.loja&&lojaNome(t.loja)?'<span style="color:var(--ink);font-weight:700">'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+midChip(t)+'</div><div class="meta">'+(t.loja&&lojaNome(t.loja)?'<span style="color:var(--ink);font-weight:700">'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
     '<div class="foot"><span class="teamline" title="Captação: '+esc(nomes(t.captacao))+'">'+ico('i-cam')+avs(t.captacao)+'</span><span class="teamline" title="Edição: '+esc(nomes(t.edicao))+'">'+ico('i-edit')+avs(t.edicao)+'</span></div>'+
     '<div class="foot">'+(prazoChip(t)||'<span></span>')+(v&&v.valor?'<span class="money num">'+$(v.valor)+'</span>':'')+'</div>'+
     (w?'<div class="foot"><div class="mv">'+(i>0?'<button class="btn sm" data-act="back" data-id="'+t.id+'" aria-label="Voltar etapa">←</button>':'')+'</div><div class="mv">'+(i<ETAPAS.length-1?'<button class="btn sm" data-act="fwd" data-id="'+t.id+'">'+ETAPAS[i+1][1]+' →</button>':'')+'</div></div>':'')+'</div>';
@@ -916,6 +972,7 @@ function formTar(t,preset){
   '<div class="fld"><label for="tTit">Cliente / trabalho</label><input id="tTit" placeholder="Ex.: Eduardo Motors, Casamento Julia" value="'+esc(t.titulo)+'"></div>'+
   '<div class="two"><div class="fld"><label for="tTipo">Tipo</label><select id="tTipo">'+opts(Object.entries(TIPOS).map(([k,x])=>[k,x.nome]),t.tipo)+'</select></div>'+
   '<div class="fld"><label for="tEmp">Empresa</label><select id="tEmp">'+opts([['elite','Elite Marketing'],['duraes','Durães Fotografia']],t.empresa)+'</select></div></div>'+
+  '<div class="fld"><span class="l">Material</span><div class="seg" id="tMid">'+Object.values(MIDIA).map(m=>'<button type="button" data-v="'+m[0]+'" aria-pressed="'+(midiaDe(t)===m[0])+'">'+m[1]+'</button>').join('')+'</div></div>'+
   '<div class="fld" id="tLojaF"><label for="tLoja">Cliente (loja)</label><select id="tLoja">'+opts([['','— nenhum —']].concat(lojasOrd().map(l=>[l.id,l.nome])),t.loja||'')+'</select><span class="hint">Ao marcar como Entregue, o material vai para a aba Clientes para a Vanessa programar.</span></div>'+
   '<div class="two"><div class="fld"><label for="tData">Data da captação</label><input id="tData" type="date" value="'+esc(t.data)+'"></div>'+
   '<div class="fld"><label for="tHora">Horário</label><input id="tHora" type="time" value="'+esc(t.hora)+'"></div></div>'+
@@ -942,6 +999,10 @@ function formTar(t,preset){
       if(!S.freelas.find(f=>f.id===id))S.freelas.push({id,nome:n});q('#tFr').value='';
       q('#pkCap').innerHTML=pickHtml('pCap',sel.captacao);q('#pkEd').innerHTML=pickHtml('pEd',sel.edicao);toast('Freelancer adicionado')}catch(_){}};
   const autoPrazo=()=>{if(prazoManual)return;const d=q('#tData').value;if(d)q('#tPrazo').value=addDias(d,(TIPOS[q('#tTipo').value]||TIPOS.outro).dias)};
+  let midSel=midiaDe(t),midManual=!novo;
+  const pintaMid=()=>q('#tMid').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===midSel));
+  q('#tMid').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;midSel=b.dataset.v;midManual=true;pintaMid()};
+  q('#tTipo').addEventListener('change',()=>{if(!midManual){midSel=(TIPOS[q('#tTipo').value]||{}).midia||'foto';pintaMid()}});
   q('#tTipo').onchange=()=>{const x=TIPOS[q('#tTipo').value];if(x.emp)q('#tEmp').value=x.emp;if(novo&&x.todos&&!sel.captacao.length){sel.captacao=TEAM.slice();q('#pkCap').innerHTML=pickHtml('pCap',sel.captacao)}autoPrazo()};
   q('#tData').onchange=autoPrazo;q('#tPrazo').oninput=()=>{prazoManual=true};
   const lojaVis=()=>{q('#tLojaF').hidden=q('#tEmp').value!=='elite'};lojaVis();q('#tEmp').addEventListener('change',lojaVis);
@@ -953,7 +1014,7 @@ function formTar(t,preset){
       if(!(valor>=0)||!(custo>=0)){q('#tErr').textContent='Valor inválido. Use por exemplo 1500,00.';return}}
     const doc={titulo:titulo.slice(0,120),tipo:q('#tTipo').value,empresa:q('#tEmp').value,data:q('#tData').value,hora:q('#tHora').value,local:q('#tLocal').value.trim().slice(0,200),
       captacao:sel.captacao,edicao:sel.edicao,prazo:q('#tPrazo').value,etapa:q('#tEtapa').value,obs:q('#tObs').value.slice(0,1000),
-      loja:q('#tEmp').value==='elite'?q('#tLoja').value:'',drive:t.drive||'',contato:q('#tContato').value.trim().slice(0,40),
+      midia:midSel,loja:q('#tEmp').value==='elite'?q('#tLoja').value:'',drive:t.drive||'',contato:q('#tContato').value.trim().slice(0,40),
       entregaStatus:t.entregaStatus||'',prontoEm:t.prontoEm||'',enviadoEm:t.enviadoEm||''};
     if(doc.etapa==='entregue')doc.entregueEm=t.entregueEm||hoje();
     let tid=t.id;
@@ -971,6 +1032,7 @@ document.addEventListener('click',async e=>{
   const dv=e.target.closest('[data-dv]');if(dv){driveClique(dv,e);return}
   if(e.target.closest('[data-mais]')){const ts=tabs().slice(4);sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Mais</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+ts.map(n=>'<button type="button" data-tabm="'+n[0]+'">'+ico(n[2])+n[1]+'</button>').join('')+'</div></form>';sheet.hidden=false;return}
   const tm=e.target.closest('[data-tabm]');if(tm){closeSheet();setTab(tm.dataset.tabm);return}
+  const rc=e.target.closest('[data-rec]');if(rc){reciboAcao(rc);return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
   if(e.target.closest('[data-bell]')){abrirAvisos();return}
@@ -1001,7 +1063,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-preview-on]')){S.preview=true;render();setTab('producao');toast('Modo equipe: é isto que o Lucas vê');return}
   if(e.target.closest('[data-preview-off]')){S.preview=false;render();return}
   const fp=e.target.closest('[data-filtro-pes]');if(fp){S.pes=fp.dataset.filtroPes;setTab('producao');render();return}
-  if(e.target.closest('#fab')){if(S.tab==='albuns'){formAlbum();return}if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
+  if(e.target.closest('#fab')){if(S.tab==='recibos'){formRecibo();return}if(S.tab==='albuns'){formAlbum();return}if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
   if(e.target.closest('[data-new-lanc]')){formLanc();return}
   if(e.target.closest('[data-new-tar]')){formTar();return}
   if(e.target.closest('[data-close2]')||e.target===sheet2){fecharSheet2();return}
@@ -1231,6 +1293,152 @@ function usarNoFluxo(f){
     if(T.empresa==='duraes')formEntregaD(T);else if(T.loja)formEntrega(T);else{write(()=>store.update('tar',T.id,{drive:f.webViewLink})).then(()=>{closeSheet();toast('Link salvo no trabalho')}).catch(()=>{})}});
 }
 
+/* ---------- Recibos ---------- */
+const FORMAS=['Pix','Dinheiro','Cartão de crédito','Cartão de débito','Transferência','Boleto'];
+const EMIS_PADRAO={duraes:{nome:'Durães Fotografia',doc:'',resp:'Thiago Durães',end:'',cidade:'',tel:'',email:'duraesfotografiax@gmail.com',pix:''},elite:{nome:'Elite Marketing Digital',doc:'',resp:'',end:'',cidade:'',tel:'',email:'',pix:''}};
+function emissor(k){return Object.assign({},EMIS_PADRAO[k]||{},(S.recCfg||{})[k]||{})}
+function extenso(v){
+  const U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','catorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+  const D=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+  const C=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+  const ate999=n=>{if(n===0)return '';if(n===100)return 'cem';const c=Math.floor(n/100),r=n%100,p=[];if(c)p.push(C[c]);if(r){if(r<20)p.push(U[r]);else{const d=Math.floor(r/10),u=r%10;p.push(D[d]+(u?' e '+U[u]:''))}}return p.join(' e ')};
+  const inteiro=n=>{if(n===0)return 'zero';const g=[[1e9,'bilhão','bilhões'],[1e6,'milhão','milhões'],[1e3,'mil','mil']];const partes=[];let r=n;
+    for(const [b,s1,s2] of g){const q=Math.floor(r/b);if(q){partes.push(b===1e3&&q===1?'mil':ate999(q)+' '+(q===1?s1:s2));r%=b}}
+    if(r)partes.push(ate999(r));
+    if(partes.length>1){const ult=partes.pop();return partes.join(', ')+((r<=100||r%100===0)&&r?' e ':' ')+ult}return partes[0]};
+  v=Math.round(v*100)/100;const re=Math.floor(v),ce=Math.round((v-re)*100);
+  let t='';if(re)t=inteiro(re)+(re%1e6===0&&re>=1e6?' de':'')+(re===1?' real':' reais');
+  if(ce)t+=(re?' e ':'')+ate999(ce)+(ce===1?' centavo':' centavos');
+  return t||'zero real'}
+function proxNumero(emp){const ano=hoje().slice(0,4),pre=(emp==='elite'?'EM':'DF')+'-'+ano+'-';
+  const ns=S.recibos.filter(r=>(r.numero||'').startsWith(pre)).map(r=>parseInt(r.numero.slice(pre.length),10)||0);
+  return pre+String((ns.length?Math.max(...ns):0)+1).padStart(3,'0')}
+function dataExt(s){if(!s)return '';const d=new Date(s+'T12:00:00');return d.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})}
+function mesExt(m){if(!m)return '';const [y,mo]=m.split('-').map(Number);return new Date(y,mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}
+function renderRecibos(){
+  const L=document.getElementById('recList');if(!L)return;
+  segs('fRec','fRec',[['todas','Todas'],['duraes','Durães'],['elite','Elite']]);if(!S.fRec)S.fRec='todas';
+  const q=(document.getElementById('recBusca').value||'').toLowerCase();
+  let rs=S.recibos.filter(r=>(S.fRec==='todas'||r.empresa===S.fRec)&&(!q||((r.cliente||'')+' '+(r.numero||'')+' '+(r.ref||'')).toLowerCase().includes(q))).sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
+  L.innerHTML=rs.length?rs.map(r=>'<div class="row">'+dBox(r.dataPag,r.empresa)+'<div style="min-width:0"><div class="t">'+esc(r.cliente)+'</div><div class="s"><span>'+esc(r.numero)+'</span>'+chipEmp(r.empresa)+'<span>'+({unico:'Pagamento único',parcelado:'Parcela '+(r.parcAtual||1)+' de '+(r.parcelas||[]).length,mensal:'Mensalidade '+mesExt(r.mes)})[r.tipo]+'</span></div></div><div class="v num">'+$(r.valor)+'</div>'+
+    '<div class="acts"><button class="btn sm primary" data-rec="ver" data-id="'+r.id+'">Ver / enviar</button>'+(r.tipo!=='unico'?'<button class="btn sm" data-rec="proximo" data-id="'+r.id+'">'+(r.tipo==='mensal'?'Próximo mês':'Próxima parcela')+'</button>':'')+'<button class="btn sm ghost" data-rec="editar" data-id="'+r.id+'">Editar</button><button class="btn sm ghost danger" data-rec="apagar" data-id="'+r.id+'">Apagar</button></div></div>').join('')
+    :emptyMsg('Nenhum recibo ainda','Toque em "Novo recibo". Antes, confira em "Dados da empresa" o CNPJ/CPF e o endereço que vão no recibo.');
+}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='recBusca')renderRecibos()});
+function parcelasPadrao(total,n,ini){const out=[],base=Math.floor(total/n*100)/100;for(let i=0;i<n;i++){const d=new Date((ini||hoje())+'T12:00:00');d.setMonth(d.getMonth()+i);out.push({data:iso(d),valor:i===n-1?Math.round((total-base*(n-1))*100)/100:base,paga:i===0})}return out}
+function formRecibo(r,base){
+  const novo=!r;
+  r=r||Object.assign({empresa:'duraes',cliente:'',docCli:'',ref:'',tar:'',forma:'Pix',tipo:'unico',valor:'',dataPag:hoje(),emissao:hoje(),mes:ym(new Date()),total:'',parcelas:[],parcAtual:1,obs:'',caixa:true},base||{});
+  const ts=S.tar.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  let parc=(r.parcelas||[]).map(x=>Object.assign({},x));
+  sheet.innerHTML='<form id="fRc" novalidate><h2>'+(novo?'Novo recibo':'Editar recibo '+esc(r.numero))+'</h2>'+
+  '<div class="seg" id="rcEmp"><button type="button" data-v="duraes" aria-pressed="'+(r.empresa==='duraes')+'">Durães Fotografia</button><button type="button" data-v="elite" aria-pressed="'+(r.empresa==='elite')+'">Elite Marketing</button></div>'+
+  '<div class="fld"><label for="rcTar">Trabalho (opcional)</label><select id="rcTar">'+opts([['','—']].concat(ts.map(t=>[t.id,t.titulo+(t.data?' · '+dCurta(t.data):'')])),r.tar||'')+'</select></div>'+
+  '<div class="two"><div class="fld"><label for="rcCli">Cliente (quem pagou)</label><input id="rcCli" value="'+esc(r.cliente)+'" placeholder="Nome completo"></div><div class="fld"><label for="rcDoc">CPF/CNPJ do cliente</label><input id="rcDoc" value="'+esc(r.docCli)+'" placeholder="opcional"></div></div>'+
+  '<div class="fld"><label for="rcRef">Referente a</label><input id="rcRef" value="'+esc(r.ref)+'" placeholder="Ex.: cobertura fotográfica do casamento de Julia e Pedro"></div>'+
+  '<div class="fld"><span class="l">Tipo de pagamento</span><div class="seg" id="rcTipo"><button type="button" data-v="unico" aria-pressed="'+(r.tipo==='unico')+'">Único</button><button type="button" data-v="parcelado" aria-pressed="'+(r.tipo==='parcelado')+'">Parcelado</button><button type="button" data-v="mensal" aria-pressed="'+(r.tipo==='mensal')+'">Mensal</button></div></div>'+
+  '<div id="rcMensal" class="two"><div class="fld"><label for="rcMes">Mês de referência</label><input id="rcMes" type="month" value="'+esc(r.mes||'')+'"></div><div class="fld"><label for="rcVenc">Vencimento</label><input id="rcVenc" type="date" value="'+esc(r.venc||'')+'"></div></div>'+
+  '<div id="rcParc" class="fld"><div class="two"><div class="fld"><label for="rcTotal">Valor total do contrato (R$)</label><input id="rcTotal" inputmode="decimal" value="'+(r.total?String(r.total).replace('.',','):'')+'"></div><div class="fld"><label for="rcN">Número de parcelas</label><input id="rcN" type="number" min="2" max="24" value="'+(parc.length||2)+'"></div></div>'+
+    '<button type="button" class="btn sm" id="rcGer" style="align-self:flex-start">Gerar parcelas com datas mensais</button><div id="rcLista" style="display:flex;flex-direction:column;gap:6px"></div><span class="hint">Marque as parcelas já pagas. O recibo mostra a tabela com as datas e quais estão pagas.</span>'+
+    '<div class="fld"><label for="rcAt">Este recibo é da parcela</label><select id="rcAt"></select></div></div>'+
+  '<div class="two"><div class="fld"><label for="rcVal">Valor recebido (R$)</label><input id="rcVal" inputmode="decimal" value="'+(r.valor?String(r.valor).replace('.',','):'')+'"></div><div class="fld"><label for="rcData">Data do pagamento</label><input id="rcData" type="date" value="'+esc(r.dataPag)+'"></div></div>'+
+  '<div class="two"><div class="fld"><label for="rcForma">Forma de pagamento</label><select id="rcForma">'+opts(FORMAS,r.forma)+'</select></div><div class="fld"><label for="rcEm">Data de emissão</label><input id="rcEm" type="date" value="'+esc(r.emissao)+'"></div></div>'+
+  '<div class="fld"><label for="rcObs">Observação no recibo (opcional)</label><input id="rcObs" value="'+esc(r.obs)+'"></div>'+
+  (novo?'<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="rcCx" '+(r.caixa?'checked':'')+' style="width:18px;height:18px"> Lançar esta entrada no Caixa como recebida</label>':'')+
+  '<div class="err" id="rcErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">'+(novo?'Emitir recibo':'Salvar')+'</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  const st={empresa:r.empresa,tipo:r.tipo};
+  const segUm=(id,k,cb)=>q(id).onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;st[k]=b.dataset.v;q(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb&&cb()};
+  const vis=()=>{q('#rcMensal').hidden=st.tipo!=='mensal';q('#rcParc').hidden=st.tipo!=='parcelado'};
+  segUm('#rcEmp','empresa');segUm('#rcTipo','tipo',vis);vis();
+  const desenha=()=>{q('#rcLista').innerHTML=parc.map((p,i)=>'<div class="parc"><b>'+(i+1)+'ª</b><input type="date" data-pi="'+i+'" data-pk="data" value="'+esc(p.data)+'"><input inputmode="decimal" data-pi="'+i+'" data-pk="valor" value="'+String(p.valor).replace('.',',')+'"><label><input type="checkbox" data-pi="'+i+'" data-pk="paga" '+(p.paga?'checked':'')+'> paga</label></div>').join('');
+    q('#rcAt').innerHTML=parc.map((p,i)=>'<option value="'+(i+1)+'"'+((i+1)===(r.parcAtual||1)?' selected':'')+'>'+(i+1)+'ª parcela · '+dCurta(p.data)+' · '+$(p.valor)+'</option>').join('')};
+  desenha();
+  q('#rcLista').oninput=e=>{const el=e.target.closest('[data-pi]');if(!el)return;const p=parc[+el.dataset.pi];const k=el.dataset.pk;if(k==='paga')p.paga=el.checked;else if(k==='valor')p.valor=parseValor(el.value)||0;else p.data=el.value};
+  q('#rcLista').onchange=()=>{const at=q('#rcAt').value;desenha();q('#rcAt').value=at};
+  q('#rcGer').onclick=()=>{const tot=parseValor(q('#rcTotal').value),n=Math.max(2,Math.min(24,parseInt(q('#rcN').value,10)||2));if(!(tot>0)){q('#rcErr').textContent='Informe o valor total do contrato.';return}q('#rcErr').textContent='';parc=parcelasPadrao(tot,n,q('#rcData').value||hoje());desenha();q('#rcVal').value=String(parc[0].valor).replace('.',',')};
+  q('#rcAt').onchange=()=>{const p=parc[+q('#rcAt').value-1];if(p){q('#rcVal').value=String(p.valor).replace('.',',');if(p.data)q('#rcData').value=p.data<=hoje()?p.data:q('#rcData').value;p.paga=true;desenha();q('#rcAt').value=String(parc.indexOf(p)+1)}};
+  q('#rcTar').onchange=()=>{const T=S.tar.find(t=>t.id===q('#rcTar').value);if(!T)return;st.empresa=T.empresa==='elite'?'elite':'duraes';q('#rcEmp').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===st.empresa));
+    if(!q('#rcRef').value.trim())q('#rcRef').value=(T.empresa==='duraes'?'cobertura fotográfica: ':'serviços de marketing digital: ')+T.titulo;
+    const v=valOf(T.id);if(v&&v.valor&&!q('#rcTotal').value)q('#rcTotal').value=String(v.valor).replace('.',',')};
+  q('#fRc').onsubmit=async e=>{e.preventDefault();const err=m=>q('#rcErr').textContent=m;
+    const cliente=q('#rcCli').value.trim(),ref=q('#rcRef').value.trim(),valor=parseValor(q('#rcVal').value);
+    if(!cliente){err('Escreva o nome de quem pagou.');return}if(!ref){err('Escreva a que se refere o pagamento.');return}if(!(valor>0)){err('Informe o valor recebido.');return}
+    if(st.tipo==='parcelado'&&parc.length<2){err('Gere as parcelas (valor total e número de parcelas).');return}
+    if(st.tipo==='mensal'&&!q('#rcMes').value){err('Escolha o mês de referência.');return}
+    const doc={empresa:st.empresa,cliente:cliente.slice(0,120),docCli:q('#rcDoc').value.trim().slice(0,30),ref:ref.slice(0,300),tar:q('#rcTar').value,forma:q('#rcForma').value,tipo:st.tipo,valor,dataPag:q('#rcData').value||hoje(),emissao:q('#rcEm').value||hoje(),obs:q('#rcObs').value.slice(0,300),
+      mes:st.tipo==='mensal'?q('#rcMes').value:'',venc:st.tipo==='mensal'?q('#rcVenc').value:'',total:st.tipo==='parcelado'?(parseValor(q('#rcTotal').value)||parc.reduce((a,p)=>a+p.valor,0)):0,
+      parcelas:st.tipo==='parcelado'?parc:[],parcAtual:st.tipo==='parcelado'?(+q('#rcAt').value||1):0};
+    try{
+      if(novo){doc.numero=proxNumero(doc.empresa);doc.criadoEm=agoraLocal();
+        const id=await write(()=>store.add('recibos',doc));
+        if(q('#rcCx')&&q('#rcCx').checked)await write(()=>store.add('lanc',{tipo:'entrada',valor,data:doc.dataPag,empresa:doc.empresa,categoria:doc.tipo==='mensal'?'Mensalidade cliente':'Contrato / serviço',resp:'',descricao:('Recibo '+doc.numero+' · '+cliente).slice(0,200),pago:true}));
+        closeSheet();toast('Recibo '+doc.numero+' emitido');verRecibo(Object.assign({id},doc))}
+      else{doc.numero=r.numero;doc.criadoEm=r.criadoEm||agoraLocal();await write(()=>store.set('recibos',r.id,doc));closeSheet();toast('Recibo atualizado')}
+    }catch(_){}};
+  q('#rcCli').focus()}
+function htmlRecibo(r){const e=emissor(r.empresa);
+  const logo=r.empresa==='elite'?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img src="logos/duraes.png" alt="">';
+  const tipoTx=r.tipo==='mensal'?'mensalidade referente a <b>'+esc(mesExt(r.mes))+'</b>'+(r.venc?' (vencimento '+dCurta(r.venc).replace(/^\w+\., /,'')+')':''):r.tipo==='parcelado'?'<b>'+(r.parcAtual||1)+'ª parcela de '+(r.parcelas||[]).length+'</b> do valor total de <b>'+$(r.total)+'</b>':'pagamento integral';
+  const tabela=r.tipo==='parcelado'&&(r.parcelas||[]).length?'<table><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>'+r.parcelas.map((p,i)=>'<tr'+((i+1)===r.parcAtual?' style="background:#fff6e8"':'')+'><td>'+(i+1)+'ª</td><td>'+(p.data?p.data.split('-').reverse().join('/'):'')+'</td><td>'+$(p.valor)+'</td><td>'+(p.paga?'Paga':'A vencer')+'</td></tr>').join('')+'</tbody></table>':'';
+  const pagas=r.tipo==='parcelado'?(r.parcelas||[]).filter(p=>p.paga).reduce((a,p)=>a+p.valor,0):0;
+  return '<div class="rdoc" id="rdoc"><div class="band">'+logo+'<div class="em"><b>'+esc(e.nome)+'</b>'+(e.doc?'<span>'+esc(e.doc)+'</span>':'')+(e.end?'<span>'+esc(e.end)+(e.cidade?' · '+esc(e.cidade):'')+'</span>':'')+((e.tel||e.email)?'<span>'+esc([e.tel,e.email].filter(Boolean).join(' · '))+'</span>':'')+'</div><div class="no"><b>RECIBO</b><span>Nº '+esc(r.numero)+'</span></div></div><div class="bar"></div>'+
+    '<div class="body"><div class="val"><span>Valor recebido</span><b>'+$(r.valor)+'</b></div>'+
+    '<p class="tx">Recebi(emos) de <b>'+esc(r.cliente)+'</b>'+(r.docCli?', CPF/CNPJ '+esc(r.docCli):'')+', a importância de <b>'+$(r.valor)+'</b> ('+esc(extenso(r.valor))+'), referente a '+esc(r.ref)+', '+tipoTx+'.</p>'+
+    '<div class="meta"><div><small>Data do pagamento</small>'+(r.dataPag||'').split('-').reverse().join('/')+'</div><div><small>Forma de pagamento</small>'+esc(r.forma)+'</div><div><small>'+(r.tipo==='parcelado'?'Pago até agora':'Tipo')+'</small>'+(r.tipo==='parcelado'?$(pagas)+' de '+$(r.total):r.tipo==='mensal'?'Mensal':'Único')+'</div></div>'+
+    tabela+(r.obs?'<p style="font-size:13px;color:#444"><b>Obs.:</b> '+esc(r.obs)+'</p>':'')+
+    '<p style="font-size:13px;color:#444">Para clareza, firmo(amos) o presente recibo, dando plena quitação do valor recebido.</p>'+
+    '<div class="sig"><p style="font-size:13px">'+esc(e.cidade?e.cidade+', ':'')+esc(dataExt(r.emissao))+'.</p><div class="ln"><b>'+esc(e.resp||e.nome)+'</b><br>'+esc(e.nome)+(e.doc?' · '+esc(e.doc):'')+'</div></div></div>'+
+    '<div class="foot"><span>'+esc(e.nome)+' · Recibo '+esc(r.numero)+'</span><span>'+(e.pix?'Pix: '+esc(e.pix):'')+'</span></div></div>'}
+function verRecibo(r){
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:880px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Recibo '+esc(r.numero)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="recwrap">'+htmlRecibo(r)+'</div>'+
+    '<div class="formacts"><button type="button" class="btn" data-rec="png" data-id="'+(r.id||'')+'">Baixar imagem</button><button type="button" class="btn" data-rec="pdf" data-id="'+(r.id||'')+'">Baixar PDF</button><button type="button" class="btn primary" data-rec="enviar" data-id="'+(r.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p></form>';
+  sheet.hidden=false;S._recAtual=r}
+function carregarJs(src){return new Promise((ok,er)=>{if(document.querySelector('script[src="'+src+'"]'))return ok();const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>er(new Error('Sem internet para gerar o arquivo.'));document.head.appendChild(s)})}
+async function gerarArquivo(r,tipo){
+  await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff';box.innerHTML=htmlRecibo(r);document.body.appendChild(box);
+  await Promise.all([...box.querySelectorAll('img')].map(i=>i.complete?1:new Promise(o=>{i.onload=i.onerror=o})));
+  try{const cv=await html2canvas(box.firstElementChild,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    const nome='Recibo '+r.numero+' - '+r.cliente.replace(/[\\/:*?"<>|]/g,'');
+    if(tipo==='png'){const b=await new Promise(o=>cv.toBlob(o,'image/png'));return new File([b],nome+'.png',{type:'image/png'})}
+    await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});const w=210,h=cv.height*w/cv.width;
+    pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,Math.min(h,297));
+    return new File([pdf.output('blob')],nome+'.pdf',{type:'application/pdf'})}
+  finally{box.remove()}}
+function baixarArquivo(f){const u=URL.createObjectURL(f);const a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+async function reciboAcao(b){const k=b.dataset.rec,id=b.dataset.id;const r=S.recibos.find(x=>x.id===id)||(S._recAtual&&(!id||S._recAtual.id===id)?S._recAtual:null);
+  try{
+    if(k==='novo'){formRecibo();return}
+    if(k==='emissor'){formEmissor();return}
+    if(!r)return;
+    if(k==='ver'){verRecibo(r);return}
+    if(k==='editar'){formRecibo(r);return}
+    if(k==='proximo'){const base=JSON.parse(JSON.stringify(r));delete base.id;delete base.numero;base.emissao=hoje();base.dataPag=hoje();base.caixa=true;
+      if(r.tipo==='mensal'){base.mes=addMes(r.mes||ym(new Date()),1);if(r.venc){const d=new Date(r.venc+'T12:00:00');d.setMonth(d.getMonth()+1);base.venc=iso(d)}}
+      else{const n=(r.parcAtual||1)+1;if(n>(r.parcelas||[]).length){toast('Todas as parcelas já têm recibo');return}base.parcAtual=n;base.parcelas=(r.parcelas||[]).map((p,i)=>Object.assign({},p,{paga:i<n}));base.valor=base.parcelas[n-1].valor}
+      formRecibo(null,base);return}
+    if(k==='apagar'){if(!armed['r'+id]){armed['r'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['r'+id]){b.textContent=armed['r'+id];delete armed['r'+id]}},3000);return}delete armed['r'+id];await write(()=>store.del('recibos',id));toast('Recibo apagado');return}
+    if(k==='png'||k==='pdf'||k==='enviar'){b.disabled=true;const t=b.textContent;b.textContent='Gerando…';
+      try{const f=await gerarArquivo(r,k==='png'?'png':'pdf');
+        if(k==='enviar'&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Recibo '+r.numero,text:'Segue o recibo '+r.numero+' de '+$(r.valor)+'. Obrigado!'})}catch(_){}}
+        else{baixarArquivo(f);if(k==='enviar')toast('PDF baixado. Agora é só anexar no WhatsApp ou e-mail.')}}
+      finally{b.disabled=false;b.textContent=t}}
+  }catch(er){toast(er.message||'Não deu certo')}}
+function formEmissor(){const d=emissor('duraes'),el=emissor('elite');
+  const bloco=(k,e,t)=>'<div class="pushbox"><b>'+t+'</b><div class="two"><div class="fld"><label for="e_'+k+'_nome">Nome no recibo</label><input id="e_'+k+'_nome" value="'+esc(e.nome)+'"></div><div class="fld"><label for="e_'+k+'_doc">CNPJ ou CPF</label><input id="e_'+k+'_doc" value="'+esc(e.doc)+'"></div></div>'+
+    '<div class="two"><div class="fld"><label for="e_'+k+'_resp">Quem assina</label><input id="e_'+k+'_resp" value="'+esc(e.resp)+'"></div><div class="fld"><label for="e_'+k+'_cidade">Cidade/UF</label><input id="e_'+k+'_cidade" value="'+esc(e.cidade)+'" placeholder="Ex.: Artur Nogueira/SP"></div></div>'+
+    '<div class="fld"><label for="e_'+k+'_end">Endereço</label><input id="e_'+k+'_end" value="'+esc(e.end)+'"></div>'+
+    '<div class="two"><div class="fld"><label for="e_'+k+'_tel">Telefone</label><input id="e_'+k+'_tel" value="'+esc(e.tel)+'"></div><div class="fld"><label for="e_'+k+'_email">E-mail</label><input id="e_'+k+'_email" value="'+esc(e.email)+'"></div></div>'+
+    '<div class="fld"><label for="e_'+k+'_pix">Chave Pix (aparece no rodapé)</label><input id="e_'+k+'_pix" value="'+esc(e.pix)+'"></div></div>';
+  sheet.innerHTML='<form id="fEm" novalidate><h2>Dados da empresa no recibo</h2>'+bloco('duraes',d,'Durães Fotografia')+bloco('elite',el,'Elite Marketing Digital')+'<div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
+  sheet.hidden=false;
+  sheet.querySelector('#fEm').onsubmit=async e=>{e.preventDefault();const g=(k,f)=>sheet.querySelector('#e_'+k+'_'+f).value.trim().slice(0,160);const out={};
+    for(const k of ['duraes','elite'])out[k]={nome:g(k,'nome'),doc:g(k,'doc'),resp:g(k,'resp'),cidade:g(k,'cidade'),end:g(k,'end'),tel:g(k,'tel'),email:g(k,'email'),pix:g(k,'pix')};
+    try{await write(()=>db.collection('recibosCfg').doc('emissores').set(out));S.recCfg=out;closeSheet();toast('Dados salvos')}catch(_){}}}
+
 /* ---------- Álbuns (seleção de fotos pelo cliente) ---------- */
 const ALB_ST={aberto:['eq','Aguardando cliente'],enviado:['rec','Seleção recebida'],baixado:['ok','Baixado · em montagem'],producao:['ok','Enviado p/ produção']};
 function linkCliente_(a){return location.origin+location.pathname.replace(/[^/]*$/,'')+'album.html?a='+a.id}
@@ -1346,7 +1554,7 @@ function renderDuraes(){
   const env=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus==='enviado'&&(t.enviadoEm||'')>=lim).sort((a,b)=>(b.enviadoEm||'').localeCompare(a.enviadoEm||''));
   const tp=t=>(TIPOS[t.tipo]||TIPOS.outro).nome;
   const ct=t=>t.contato?'<span>Contato: <span style="user-select:all">'+esc(t.contato)+'</span></span>':'';
-  const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
+  const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div>'+midChip(t)+'</div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
   const col=(tit,cor,arr_,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+arr_.length+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
   const w=S.canWrite;
   document.getElementById('lojaBody').innerHTML='<div class="pipe">'+
@@ -1380,7 +1588,7 @@ async function hashPin(pin){const b=await crypto.subtle.digest('SHA-256',new Tex
 const LEMB_KEY=()=>'cofreAberto_'+S.uid;
 function lembrado(){try{return localStorage.getItem(LEMB_KEY())==='1'}catch(_){return false}}
 function lerPin(){try{return localStorage.getItem(PIN_KEY())}catch(_){return null}}
-function trancar(avisar){if(!S.unlocked)return;if(avisar){try{localStorage.removeItem(LEMB_KEY())}catch(_){}}else if(lembrado())return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
+function trancar(avisar){if(!S.unlocked)return;if(avisar){try{localStorage.removeItem(LEMB_KEY())}catch(_){}}else if(lembrado())return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa'||S.tab==='recibos')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
 function destrancar(lembrar){S.unlocked=true;try{if(lembrar)localStorage.setItem(LEMB_KEY(),'1');else localStorage.removeItem(LEMB_KEY())}catch(_){}ultimoUso=Date.now();closeSheet();render();setTab('resumo');toast('Área financeira aberta')}
 function abrirCofre(modo){
   const tem=!!lerPin();modo=modo||(tem?'entrar':'criar');
@@ -1447,7 +1655,7 @@ function renderClientes(){
     if(p.status==='pronto')a='<button class="btn sm primary" data-pact="programar" data-id="'+p.id+'">Programei</button>';
     else if(p.status==='programado')a='<button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">Saiu ✓</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
-    return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="ptype">'+(TPOST[p.tipo]||'Post')+'</span></div>'+
+    return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="mid '+(p.tipo==='reels'||p.tipo==='stories'?'video':'foto')+'">'+ico(p.tipo==='reels'||p.tipo==='stories'?'i-video':'i-cam')+(TPOST[p.tipo]||'Post')+'</span></div>'+
       '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
       (p.status==='programado'?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
       (p.status==='publicado'?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
@@ -1677,7 +1885,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){S.recibos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}
@@ -1706,10 +1914,10 @@ function iniciarApp(adm,finOk,dono){
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
   store.sub('albuns');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
-  if(finOk){store.sub('lanc');store.sub('valores')}
+  if(finOk){store.sub('lanc');store.sub('valores');store.sub('recibos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
-  S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
+  S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa'||t==='recibos')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
 }
 
 /* ---------- início ---------- */
