@@ -53,6 +53,20 @@ service cloud.firestore {
     // Configurações (pastas do Drive): todos leem, só Adm muda
     match /config/{id} { allow read: if ativo(); allow write: if adm(); }
 
+    // Álbuns: o cliente abre pelo link (id secreto), sem login, e só pode mexer na própria seleção
+    match /albuns/{id} {
+      allow get: if true;
+      allow list, create, delete: if ativo();
+      allow update: if ativo() || (
+        resource.data.status == 'aberto'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['selecionadas', 'obs', 'status', 'enviadoEm', 'atualizadoEm'])
+        && request.resource.data.selecionadas is list
+        && (resource.data.limite == 0 || request.resource.data.selecionadas.size() <= resource.data.limite)
+        && request.resource.data.status in ['aberto', 'enviado']
+        && (!('obs' in request.resource.data) || (request.resource.data.obs is string && request.resource.data.obs.size() <= 1000))
+      );
+    }
+
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
     match /valores/{id} { allow read, write: if financeiro(); }

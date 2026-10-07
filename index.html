@@ -330,6 +330,21 @@ details.panel[open] summary{margin-bottom:12px}
 .upbar i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
 .drvbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .sheet2{z-index:25}
+/* álbuns */
+.albs{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
+.alb{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.alb .t{font-family:var(--display);font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.alb .meta{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.alb .acts{display:flex;gap:6px;flex-wrap:wrap}
+.prog{height:6px;border-radius:99px;background:var(--hover);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--gold)}
+.chip.rec{background:var(--pos-bg);color:var(--pos)}
+.selgrid{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.selgrid figure{margin:0;display:flex;flex-direction:column;gap:3px;min-width:0}
+.selgrid img{width:100%;aspect-ratio:1/1;max-width:100%;object-fit:cover;border-radius:8px;background:var(--panel2)}
+.selgrid figcaption{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere;line-height:1.2}
+.morenav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.morenav button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px}
 /* avisos */
 .bell{position:relative;margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .bell:hover{background:var(--hover)}
@@ -479,6 +494,17 @@ details.panel[open] summary{margin-bottom:12px}
         <input type="file" id="dUpArq" multiple hidden>
       </section>
 
+      <!-- ÁLBUNS -->
+      <section id="tab-albuns" hidden>
+        <div class="head">
+          <h1>Álbuns<small>O cliente escolhe as fotos do álbum por um link; a seleção chega aqui</small></h1>
+          <div class="sp"></div>
+          <div class="seg" id="fAlb"></div>
+          <button class="btn primary" data-alb="novo"><svg class="i"><use href="#i-plus"/></svg>Novo álbum</button>
+        </div>
+        <div id="albBody"></div>
+      </section>
+
       <!-- AGENDA -->
       <section id="tab-agenda" hidden>
         <div class="head">
@@ -545,6 +571,8 @@ details.panel[open] summary{margin-bottom:12px}
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+  <symbol id="i-album" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
@@ -576,10 +604,10 @@ const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DF
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
@@ -660,7 +688,8 @@ function renderShell(){
   const ts=tabs();
   const item=(n,bottom)=>'<button data-tab="'+n[0]+'"'+(S.tab===n[0]?' aria-current="page"':'')+'>'+ico(n[2])+'<span>'+n[1]+'</span>'+(!bottom&&n[3]?'<span class="lock">Adm</span>':'')+'</button>';
   document.getElementById('navSide').innerHTML=ts.map(n=>item(n)).join('');
-  document.getElementById('navBottom').innerHTML=ts.map(n=>item(n,true)).join('');
+  const vis=ts.length>5?ts.slice(0,4):ts,resto=ts.length>5?ts.slice(4):[];
+  document.getElementById('navBottom').innerHTML=vis.map(n=>item(n,true)).join('')+(resto.length?'<button data-mais'+(resto.some(n=>n[0]===S.tab)?' aria-current="page"':'')+'>'+ico('i-more')+'<span>Mais</span></button>':'');
   document.querySelectorAll('[data-tiles]').forEach(e=>e.innerHTML=logoTile('elite')+logoTile('duraes'));
   const cur=NAV.find(n=>n[0]===S.tab);document.getElementById('topTitle').textContent=cur?cur[1]:'Central';
   renderBell();
@@ -683,7 +712,7 @@ function render(){
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
   if(fin()){renderResumo();renderCaixa()}
-  renderBoard();renderClientes();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
+  renderBoard();renderClientes();renderAlbuns();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
 }
 
 /* ---------- resumo ---------- */
@@ -940,6 +969,9 @@ const armed={};
 document.addEventListener('click',async e=>{
   if(e.target.closest('[data-logout]')){try{localStorage.removeItem('gtok');localStorage.removeItem('gConectou')}catch(_){}gTok=null;gExp=0;auth.signOut();return}
   const dv=e.target.closest('[data-dv]');if(dv){driveClique(dv,e);return}
+  if(e.target.closest('[data-mais]')){const ts=tabs().slice(4);sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Mais</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+ts.map(n=>'<button type="button" data-tabm="'+n[0]+'">'+ico(n[2])+n[1]+'</button>').join('')+'</div></form>';sheet.hidden=false;return}
+  const tm=e.target.closest('[data-tabm]');if(tm){closeSheet();setTab(tm.dataset.tabm);return}
+  const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
   if(e.target.closest('[data-bell]')){abrirAvisos();return}
   const lj=e.target.closest('[data-loja]');if(lj){S.loja=lj.dataset.loja;try{localStorage.setItem('loja',S.loja)}catch(_){}renderClientes();return}
@@ -951,6 +983,7 @@ document.addEventListener('click',async e=>{
   const da=e.target.closest('[data-dact]');if(da){duraesAcao(da);return}
   if(e.target.closest('[data-push-on]')){ativarPush();return}
   if(e.target.closest('[data-push-test]')){testePush();return}
+  const ala=e.target.closest('[data-ala]');if(ala){closeSheet();setTab('albuns');verSelecao(ala.dataset.ala);return}
   const ald=e.target.closest('[data-ald]');if(ald){closeSheet();S.cliSeg='duraes';setTab('clientes');render();return}
   const alp=e.target.closest('[data-alp]');if(alp){const P=S.posts.find(x=>x.id===alp.dataset.alp);closeSheet();if(P){S.loja=P.loja;setTab('clientes');render()}return}
   const al=e.target.closest('[data-al]');if(al){const T=S.tar.find(x=>x.id===al.dataset.al);closeSheet();if(T)formTar(T);return}
@@ -968,7 +1001,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-preview-on]')){S.preview=true;render();setTab('producao');toast('Modo equipe: é isto que o Lucas vê');return}
   if(e.target.closest('[data-preview-off]')){S.preview=false;render();return}
   const fp=e.target.closest('[data-filtro-pes]');if(fp){S.pes=fp.dataset.filtroPes;setTab('producao');render();return}
-  if(e.target.closest('#fab')){if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
+  if(e.target.closest('#fab')){if(S.tab==='albuns'){formAlbum();return}if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
   if(e.target.closest('[data-new-lanc]')){formLanc();return}
   if(e.target.closest('[data-new-tar]')){formTar();return}
   if(e.target.closest('[data-close2]')||e.target===sheet2){fecharSheet2();return}
@@ -1198,6 +1231,112 @@ function usarNoFluxo(f){
     if(T.empresa==='duraes')formEntregaD(T);else if(T.loja)formEntrega(T);else{write(()=>store.update('tar',T.id,{drive:f.webViewLink})).then(()=>{closeSheet();toast('Link salvo no trabalho')}).catch(()=>{})}});
 }
 
+/* ---------- Álbuns (seleção de fotos pelo cliente) ---------- */
+const ALB_ST={aberto:['eq','Aguardando cliente'],enviado:['rec','Seleção recebida'],baixado:['ok','Baixado · em montagem'],producao:['ok','Enviado p/ produção']};
+function linkCliente_(a){return location.origin+location.pathname.replace(/[^/]*$/,'')+'album.html?a='+a.id}
+function thumbPub(id,w){return 'https://drive.google.com/thumbnail?id='+id+'&sz=w'+(w||400)}
+function imgFallback(id,w){return "this.onerror=null;this.src='https://lh3.googleusercontent.com/d/"+id+"=w"+(w||400)+"'"}
+function idAleatorio(){const a=new Uint8Array(18);crypto.getRandomValues(a);return [...a].map(x=>'abcdefghijkmnpqrstuvwxyz23456789'[x%32]).join('')}
+function renderAlbuns(){
+  const body=document.getElementById('albBody');if(!body)return;
+  segs('fAlb','fAlb',[['abertos','Em andamento'],['todos','Todos']]);
+  let as=S.albuns.slice().sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  if(S.fAlb==='abertos')as=as.filter(a=>a.status!=='producao');
+  const ord={enviado:0,aberto:1,baixado:2,producao:3};as.sort((a,b)=>(ord[a.status]??9)-(ord[b.status]??9));
+  if(!as.length){body.innerHTML='<div class="panel">'+emptyMsg('Nenhum álbum em andamento','Crie um álbum a partir da pasta do Drive que você mandou ao cliente. Ele recebe um link para escolher as fotos.')+'</div>';return}
+  body.innerHTML='<div class="albs">'+as.map(a=>{const n=arr(a.selecionadas).length,lim=a.limite||0,st=ALB_ST[a.status]||ALB_ST.aberto;
+    const pr=a.prazo?diff(a.prazo,hoje()):null;
+    return '<div class="alb"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(a.titulo)+'</div><span class="chip '+st[0]+'">'+st[1]+'</span></div>'+
+      '<div class="meta"><span>'+arr(a.fotos).length+' fotos na pasta · limite '+(lim||'livre')+'</span>'+
+      (a.status==='aberto'?'<span>'+(n?'Cliente já marcou '+n+(lim?' de '+lim:''):'Cliente ainda não começou')+(pr!=null?' · prazo '+dCurta(a.prazo)+(pr<0?' <b style="color:var(--neg)">(vencido)</b>':''):'')+'</span>':'')+
+      (a.enviadoEm?'<span>Seleção enviada '+fmtQuando(a.enviadoEm)+'</span>':'')+(a.obs?'<span>Recado: "'+esc(a.obs)+'"</span>':'')+'</div>'+
+      (lim?'<div class="prog"><i style="width:'+Math.min(100,n/lim*100)+'%"></i></div>':'')+
+      '<div class="acts">'+(a.status==='aberto'?'<button class="btn sm primary" data-alb="copiar" data-id="'+a.id+'">Copiar link do cliente</button><a class="btn sm" href="https://wa.me/?text='+encodeURIComponent('Olá! Suas fotos estão prontas para escolher as do álbum: '+linkCliente_(a))+'" target="_blank" rel="noopener">WhatsApp</a>':'<button class="btn sm primary" data-alb="ver" data-id="'+a.id+'">Ver seleção ('+n+')</button>')+
+      '<a class="btn sm ghost" href="'+linkCliente_(a)+'" target="_blank" rel="noopener">Abrir galeria</a><button class="btn sm ghost" data-alb="editar" data-id="'+a.id+'">Editar</button></div></div>'}).join('')+'</div>';
+}
+async function listarFotos(pastaId,grupo,prof,out){
+  const fs=await dListar(pastaId);
+  for(const f of fs){if(f.mimeType===FOLDER){if(prof<2)await listarFotos(f.id,f.name,prof+1,out)}else if(/^image\//.test(f.mimeType))out.push({id:f.id,n:f.name,g:grupo||''})}
+  return out}
+function formAlbum(a){const novo=!a;
+  if(!driveOk()){toast('Configure o Google Drive primeiro (aba Drive)');return}
+  a=a||{titulo:'',tar:'',pasta:null,limite:80,prazo:'',msg:''};
+  const ts=S.tar.filter(t=>t.empresa==='duraes').sort((x,y)=>(y.data||'').localeCompare(x.data||''));
+  let pasta=a.pasta;
+  sheet.innerHTML='<form id="fAl" novalidate><h2>'+(novo?'Novo álbum':'Editar álbum')+'</h2>'+
+  '<div class="fld"><label for="alTar">Trabalho</label><select id="alTar">'+opts([['','— escolha —']].concat(ts.map(t=>[t.id,t.titulo+(t.data?' · '+dCurta(t.data):'')])),a.tar||'')+'</select></div>'+
+  '<div class="fld"><label for="alTit">Nome que o cliente vê</label><input id="alTit" value="'+esc(a.titulo)+'" placeholder="Ex.: Casamento Julia & Pedro"></div>'+
+  '<div class="fld"><span class="l">Pasta das fotos no Drive</span><div id="alPasta" class="hint" style="font-size:14px;color:var(--ink)">'+(pasta?esc(pasta.nome):'Nenhuma pasta escolhida')+'</div><div class="drvbtns"><button type="button" class="btn sm" id="alEsc">'+ico('i-folder')+(pasta?'Trocar pasta':'Escolher pasta no Drive')+'</button>'+(novo?'':'<button type="button" class="btn sm ghost" id="alAtu">Atualizar lista de fotos</button>')+'</div><span class="hint">Use a pasta que você mandou ao cliente. Subpastas (ex.: Cerimônia, Festa) viram filtros na galeria.</span></div>'+
+  '<div class="two"><div class="fld"><label for="alLim">Limite de fotos</label><input id="alLim" type="number" min="0" inputmode="numeric" value="'+(a.limite||'')+'" placeholder="0 = sem limite"></div>'+
+  '<div class="fld"><label for="alPr">Prazo para escolher</label><input id="alPr" type="date" value="'+esc(a.prazo||'')+'"></div></div>'+
+  '<div class="fld"><label for="alMsg">Mensagem para o cliente</label><textarea id="alMsg" rows="2" placeholder="Ex.: Escolham as 80 fotos favoritas para o álbum de vocês ♥">'+esc(a.msg||'')+'</textarea></div>'+
+  '<div class="err" id="alErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-alb="apagar" data-id="'+a.id+'">Apagar</button>'+(a.status!=='aberto'?'<button type="button" class="btn sm ghost" data-alb="reabrir" data-id="'+a.id+'">Reabrir para o cliente</button>':''))+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">'+(novo?'Criar e gerar link':'Salvar')+'</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#alTar').onchange=()=>{const T=S.tar.find(t=>t.id===q('#alTar').value);if(T&&!q('#alTit').value.trim())q('#alTit').value=T.titulo};
+  q('#alEsc').onclick=async()=>{try{await token()}catch(er){q('#alErr').textContent=er.message;return}
+    const T=S.tar.find(t=>t.id===q('#alTar').value);const ini=(T&&driveId(T.drive))||((S.driveCfg||{}).duraes||{}).id||null;
+    abrirSeletor(ini,f=>{pasta={id:f.id,nome:f.name,link:f.webViewLink};q('#alPasta').textContent=f.name;a._relistar=true})};
+  const atu=q('#alAtu');if(atu)atu.onclick=()=>{a._relistar=true;q('#alPasta').textContent=(pasta?pasta.nome:'')+' · a lista será atualizada ao salvar'};
+  q('#fAl').onsubmit=async e=>{e.preventDefault();const err=m=>q('#alErr').textContent=m;
+    const titulo=q('#alTit').value.trim();if(!titulo){err('Escreva o nome do álbum.');return}
+    if(!pasta){err('Escolha a pasta das fotos no Drive.');return}
+    const lim=Math.max(0,parseInt(q('#alLim').value||'0',10)||0);
+    const btn=q('button[type=submit]');btn.disabled=true;
+    try{
+      let fotos=a.fotos;
+      if(novo||a._relistar){err('');q('#alErr').innerHTML='<span class="muted">Lendo as fotos da pasta…</span>';
+        fotos=await listarFotos(pasta.id,'',0,[]);
+        if(!fotos.length){err('Não achei fotos (JPG/PNG) nessa pasta.');btn.disabled=false;return}
+        fotos.sort((x,y)=>(x.g+'/'+x.n).localeCompare(y.g+'/'+y.n,'pt',{numeric:true}));
+        try{await dLinkPublico(pasta.id)}catch(_){err('Não consegui liberar a pasta para o cliente. Confira se sua conta é dona ou editora dela.');btn.disabled=false;return}}
+      const doc={titulo:titulo.slice(0,100),tar:q('#alTar').value,pasta,fotos,limite:lim,prazo:q('#alPr').value,msg:q('#alMsg').value.slice(0,500)};
+      if(novo){Object.assign(doc,{status:'aberto',selecionadas:[],obs:'',criadoEm:agoraLocal(),criadoPor:meuMembro()||'',enviadoEm:''});
+        const id=idAleatorio();await write(()=>db.collection('albuns').doc(id).set(doc));
+        closeSheet();doc.id=id;mostrarLink(doc)}
+      else{const sel=arr(a.selecionadas).filter(id=>fotos.some(f=>f.id===id));doc.selecionadas=sel;
+        await write(()=>store.update('albuns',a.id,doc));closeSheet();toast('Álbum atualizado')}
+    }catch(er){err(er.message||'Não deu certo.');btn.disabled=false}};
+}
+function mostrarLink(a){const link=linkCliente_(a);
+  sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Álbum criado</h2><p class="muted" style="margin:0;font-size:14px">'+arr(a.fotos).length+' fotos'+(a.limite?' · o cliente pode escolher até '+a.limite:'')+'. Mande este link para o cliente:</p>'+
+    '<div class="fld"><input readonly value="'+esc(link)+'" onclick="this.select()"></div>'+
+    '<div class="formacts"><a class="btn" href="https://wa.me/?text='+encodeURIComponent('Olá! Suas fotos estão prontas. Escolham aqui as fotos do álbum: '+link)+'" target="_blank" rel="noopener">Mandar no WhatsApp</a><button type="button" class="btn primary" data-alb="copiar" data-id="'+a.id+'">Copiar link</button><button type="button" class="btn ghost" data-close>Fechar</button></div></form>';
+  sheet.hidden=false}
+function verSelecao(id){const a=S.albuns.find(x=>x.id===id);if(!a)return;
+  const sel=arr(a.selecionadas),mapa=Object.fromEntries(arr(a.fotos).map(f=>[f.id,f])),fotos=sel.map(i=>mapa[i]).filter(Boolean);
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:760px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(a.titulo)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<p class="muted" style="margin:0;font-size:14px">'+fotos.length+' fotos escolhidas'+(a.enviadoEm?' · enviada '+fmtQuando(a.enviadoEm):'')+'</p>'+(a.obs?'<div class="pushbox"><b>Recado do cliente</b><span>'+esc(a.obs)+'</span></div>':'')+
+    '<div class="formacts" style="justify-content:flex-start"><button type="button" class="btn primary" data-alb="pasta" data-id="'+a.id+'">'+ico('i-folder')+(a.pastaSel?'Abrir pasta das escolhidas':'Criar pasta com as escolhidas no Drive')+'</button><button type="button" class="btn" data-alb="nomes" data-id="'+a.id+'">Copiar nomes (Lightroom)</button>'+
+    (a.status==='enviado'?'<button type="button" class="btn ghost" data-alb="baixado" data-id="'+a.id+'">Marcar como baixado</button>':a.status==='baixado'?'<button type="button" class="btn ghost" data-alb="producao" data-id="'+a.id+'">Enviado para produção</button>':'')+'</div>'+
+    '<div class="selgrid">'+fotos.map(f=>'<figure><img src="'+thumbPub(f.id,300)+'" onerror="'+imgFallback(f.id,300)+'" alt="" loading="lazy" referrerpolicy="no-referrer"><figcaption>'+esc(f.n)+'</figcaption></figure>').join('')+'</div></form>';
+  sheet.hidden=false}
+async function albumAcao(b){const k=b.dataset.alb,id=b.dataset.id,a=S.albuns.find(x=>x.id===id);
+  try{
+    if(k==='novo'){formAlbum();return}
+    if(!a)return;
+    if(k==='copiar'){dCopiar(linkCliente_(a));return}
+    if(k==='editar'){formAlbum(a);return}
+    if(k==='ver'){verSelecao(id);return}
+    if(k==='nomes'){const mapa=Object.fromEntries(arr(a.fotos).map(f=>[f.id,f.n]));const ns=arr(a.selecionadas).map(i=>mapa[i]).filter(Boolean);
+      dCopiar(ns.map(n=>n.replace(/\.[^.]+$/,'')).join(', '));return}
+    if(k==='baixado'||k==='producao'){await write(()=>store.update('albuns',id,{status:k}));toast(k==='baixado'?'Marcado como baixado':'Marcado como enviado para produção');closeSheet();return}
+    if(k==='reabrir'){await write(()=>store.update('albuns',id,{status:'aberto',enviadoEm:''}));toast('O cliente pode mexer na seleção de novo');closeSheet();return}
+    if(k==='apagar'){if(!armed['a'+id]){armed['a'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['a'+id]){b.textContent=armed['a'+id];delete armed['a'+id]}},3000);return}delete armed['a'+id];
+      await write(()=>store.del('albuns',id));closeSheet();toast('Álbum apagado');return}
+    if(k==='pasta'){
+      if(a.pastaSel){window.open(a.pastaSel.link,'_blank','noopener');return}
+      await token();const sel=arr(a.selecionadas);if(!sel.length){toast('Nenhuma foto escolhida');return}
+      const nova=await dCriarPasta('Escolhidas para o álbum ('+sel.length+' fotos)',a.pasta.id);
+      let n=0;const fila=sel.slice();
+      const pinta=()=>upPainel('<b>Separando as fotos escolhidas</b><span class="muted">'+n+' de '+sel.length+'</span><div class="upbar"><i style="width:'+Math.round(n/sel.length*100)+'%"></i></div>');pinta();
+      const w=async()=>{while(fila.length){const fid=fila.shift();await gfetch(DAPI+'/files/'+fid+'/copy?supportsAllDrives=true&fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({parents:[nova.id]})});n++;pinta()}};
+      await Promise.all([w(),w(),w(),w()]);
+      upPainel('<b style="color:var(--pos)">Pasta criada</b><span class="muted">'+sel.length+' fotos copiadas. No Drive, clique com o botão direito na pasta → Fazer download.</span>');setTimeout(()=>upPainel(null),7000);
+      await write(()=>store.update('albuns',id,{pastaSel:{id:nova.id,link:nova.webViewLink}}));
+      window.open(nova.webViewLink,'_blank','noopener');verSelecao(id);return}
+  }catch(er){upPainel(null);toast(er.message||'Não deu certo')}
+}
+
 /* ---------- Durães: entrega ao cliente ---------- */
 function renderDuraes(){
   const ts=S.tar.filter(t=>t.empresa==='duraes'),h=hoje(),lim=addDias(h,-60);
@@ -1404,15 +1543,17 @@ async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find
 }
 
 /* ---------- avisos na hora (app aberto) ---------- */
-const vistos={posts:new Set(),tar:new Set()},meus=new Set();
+const vistos={posts:new Set(),tar:new Set(),albuns:new Set()},meus=new Set();
 function avisosAoVivo(c,primeiro){
-  if(c!=='posts'&&c!=='tar')return;
+  if(c!=='posts'&&c!=='tar'&&c!=='albuns')return;
   const eu=meuMembro(),novos=[];
   if(c==='posts')for(const p of S.posts){if(p.status!=='pronto')continue;const k='pronto_'+p.id;if(vistos.posts.has(k))continue;vistos.posts.add(k);
     const l=S.lojas.find(x=>x.id===p.loja);const resp=(l&&l.postagem)||'Vanessa';
     if(!primeiro&&!meus.has(p.tar||p.id)&&(eu===resp||(!eu&&S.adm)))novos.push({k,tit:'Programar post: '+(l?l.nome:''),body:p.titulo+' ('+(TPOST[p.tipo]||'post')+'). O material está no Drive.'})}
   if(c==='tar')for(const t of S.tar){if(!(t.empresa==='duraes'&&t.etapa==='entregue'&&t.entregaStatus==='drive'))continue;const k='drive_'+t.id+'_'+String(t.prontoEm||'').replace(/[^0-9]/g,'');if(vistos.tar.has(k))continue;vistos.tar.add(k);
     if(!primeiro&&S.fin&&!meus.has(t.id))novos.push({k,tit:'Pronto no Drive: '+t.titulo,body:'Editado e no Drive. Falta enviar ao cliente'+(t.contato?' ('+t.contato+')':'')+'.'})}
+  if(c==='albuns')for(const a of S.albuns){if(a.status!=='enviado')continue;const k='album_'+a.id+'_'+String(a.enviadoEm||'').replace(/[^0-9]/g,'');if(vistos.albuns.has(k))continue;vistos.albuns.add(k);
+    if(!primeiro&&S.fin)novos.push({k,tit:'Seleção do álbum recebida: '+a.titulo,body:arr(a.selecionadas).length+' fotos escolhidas'+(a.obs?'. Recado: '+a.obs.slice(0,80):'')+'.'})}
   for(const n of novos)notificarLocal(n)}
 async function notificarLocal(n){
   toast(n.tit);
@@ -1434,6 +1575,7 @@ function alertas(){
     else if(t.data===am&&!ed)out.push({t,n:3,cor:'var(--'+(t.empresa||'gold')+')',tit:'Amanhã'+(t.hora?' às '+t.hora:'')+': '+t.titulo,sub:[(TIPOS[t.tipo]||TIPOS.outro).nome,t.local,'capta: '+nomes(t.captacao)].filter(Boolean).join(' · ')});
   }
   const agoraL=agoraLocal();
+  if(S.fin)for(const a of S.albuns.filter(x=>x.status==='enviado'))out.push({alb:a,n:1.4,cor:'var(--pos)',tit:'Seleção recebida: '+a.titulo,sub:arr(a.selecionadas).length+' fotos escolhidas para o álbum · baixar e montar'});
   if(S.fin)for(const t of S.tar.filter(x=>x.empresa==='duraes'&&x.etapa==='entregue'&&x.entregaStatus==='drive')){const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;out.push({t,n:1.6,cor:'var(--duraes)',tit:'Enviar ao cliente: '+t.titulo,sub:'Pronto no Drive '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · esperando há '+d+' dias':'')})}
   for(const pst of S.posts){const l=S.lojas.find(x=>x.id===pst.loja);if(!l)continue;const resp=l.postagem||'Vanessa';
     if(!(S.adm||eu===resp))continue;
@@ -1459,7 +1601,7 @@ function abrirAvisos(){
     '<div class="pushbox"><b>Notificações no celular e no PC</b><span class="muted">'+esc(msg)+'</span><div class="row2">'+
     (st==='off'?'<button type="button" class="btn primary sm" data-push-on>Ativar notificações</button>':'')+(st==='ok'?'<button type="button" class="btn sm" data-push-test>Testar neste aparelho</button>':'')+'</div>'+
     '<div class="fld"><label for="euSou">Eu sou</label><select id="euSou">'+opts([['','Escolha…']].concat(TEAM),eu)+'</select><span class="hint">Você recebe avisos dos trabalhos em que está marcado'+(S.adm?'; como Adm, também recebe os atrasos de todos':'')+'.</span></div></div>'+
-    '<div class="list">'+(a.length?a.map(x=>'<div class="al" '+(x.post?'data-alp="'+x.post.id+'"':x.n===1.6?'data-ald="'+x.t.id+'"':'data-al="'+x.t.id+'"')+'><span class="k" style="background:'+x.cor+'"></span><div><b>'+esc(x.tit)+'</b><small>'+esc(x.sub)+'</small></div></div>').join(''):emptyMsg('Tudo em dia','Nada atrasado e nenhuma captação hoje ou amanhã'+(S.adm?'':' para você')+'.'))+'</div></form>';
+    '<div class="list">'+(a.length?a.map(x=>'<div class="al" '+(x.alb?'data-ala="'+x.alb.id+'"':x.post?'data-alp="'+x.post.id+'"':x.n===1.6?'data-ald="'+x.t.id+'"':'data-al="'+x.t.id+'"')+'><span class="k" style="background:'+x.cor+'"></span><div><b>'+esc(x.tit)+'</b><small>'+esc(x.sub)+'</small></div></div>').join(''):emptyMsg('Tudo em dia','Nada atrasado e nenhuma captação hoje ou amanhã'+(S.adm?'':' para você')+'.'))+'</div></form>';
   sheet.hidden=false;
   const sel=sheet.querySelector('#euSou');sel.onchange=async()=>{try{await write(()=>db.collection('usuarios').doc(S.uid).update({membro:sel.value}));S.me.membro=sel.value;toast('Salvo');abrirAvisos()}catch(_){}};
 }
@@ -1535,7 +1677,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){vistos.posts.clear();vistos.tar.clear();subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}
@@ -1562,6 +1704,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
+  store.sub('albuns');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   if(finOk){store.sub('lanc');store.sub('valores')}
   if(adm)store.sub('usuarios');

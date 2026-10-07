@@ -110,6 +110,17 @@ async function enviar(u, title, body) {
     }
   }
 
+  // 0d) Álbum: cliente enviou a seleção de fotos
+  const albunsEnv = (await db.collection('albuns').where('status', '==', 'enviado').get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  for (const a of albunsEnv) {
+    for (const u of socios) {
+      const chave = `album_${a.id}_${String(a.enviadoEm || '').replace(/[^0-9]/g, '')}_${u.id}`;
+      if (await jaFoi(chave)) continue;
+      await enviar(u, `Seleção do álbum recebida: ${a.titulo}`, `${(a.selecionadas || []).length} fotos escolhidas${a.obs ? '. Recado: ' + String(a.obs).slice(0, 80) : ''}.`);
+      await marcar(chave);
+    }
+  }
+
   // 1) Resumo do dia, a partir das 8h
   if (min >= 8 * 60 && min < 22 * 60) {
     for (const u of usuarios) {

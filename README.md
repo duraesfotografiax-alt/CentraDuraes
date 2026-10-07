@@ -237,3 +237,28 @@ Observações:
 - Vídeos grandes sobem em partes e retomam sozinhos se a internet oscilar. Não feche a Central enquanto aparecer "Enviando para o Drive".
 - No iPhone, o navegador não permite escolher uma pasta inteira. Use **Subir arquivos**, que cria uma pasta com a data e o nome do trabalho.
 - Cole de novo o `firestore.rules` no Firebase, porque ele ganhou a regra das configurações do Drive.
+
+---
+
+## Aba Álbuns (o cliente escolhe as fotos do álbum)
+
+1. **Criar:** em **Álbuns → Novo álbum**, escolha o trabalho e clique em **Escolher pasta no Drive**, apontando a pasta de fotos que foi para o cliente. Defina o **limite de fotos** (ex.: 80), o prazo (opcional) e uma mensagem.
+2. A Central lê as fotos da pasta e das subpastas (ex.: Cerimônia, Festa) e **libera a pasta para quem tiver o link**.
+3. Ela gera o **link da galeria**. Copie ou mande pelo **WhatsApp** direto do botão.
+4. **O cliente abre o link** (não precisa de login nem de conta Google):
+   - toca no ♥ para escolher, vê cada foto em tela cheia e passa para o lado;
+   - pode filtrar por subpasta e por "Escolhidas";
+   - não consegue passar do limite;
+   - a escolha fica salva sozinha, então ele pode continuar depois;
+   - no fim, toca em **Enviar seleção**, com um recado opcional.
+5. **Vocês recebem o aviso** "Seleção do álbum recebida", na hora com o app aberto ou pelo robô.
+6. **Em "Ver seleção":**
+   - **Criar pasta com as escolhidas no Drive:** copia só as fotos escolhidas para uma pasta nova dentro da pasta do cliente. No Drive, clique com o botão direito nela → **Fazer download** para baixar tudo em .zip.
+   - **Copiar nomes (Lightroom):** copia a lista de nomes dos arquivos para filtrar no Lightroom.
+   - **Marcar como baixado** → **Enviado para produção**.
+7. Precisa que o cliente troque alguma foto? Em **Editar**, use **Reabrir para o cliente**.
+
+Observações:
+- Na galeria aparecem fotos **JPG/PNG**. Arquivos RAW não aparecem.
+- Cole de novo o `firestore.rules` no Firebase, porque ele ganhou as regras dos álbuns.
+- O link do cliente é secreto e difícil de adivinhar. Quem tiver o link consegue escolher fotos até a seleção ser enviada.
