@@ -348,6 +348,12 @@ details.panel[open] summary{margin-bottom:12px}
 /* contratos */
 .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:560px){.three{grid-template-columns:1fr 1fr}}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick .pk{border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.pick .pk[aria-pressed="true"]{background:var(--pos-bg);border-color:var(--pos);color:var(--ink)}
+.pick .pk[aria-pressed="true"]::before{content:"✓ ";color:var(--pos)}
+.addit{display:flex;gap:6px}.addit input{flex:1;min-width:0}
+.cul{margin:2px 0 0;padding-left:18px;columns:2;column-gap:24px}.cul li{break-inside:avoid}
 .checks{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}.checks label{display:flex;gap:8px;align-items:center}.checks input{width:18px;height:18px}
 details.pushbox summary{cursor:pointer}
 .cpwrap{background:#d9d9de;padding:12px}
@@ -1607,12 +1613,16 @@ function formEmissor(){const d=emissor('duraes'),el=emissor('elite');
     try{await write(()=>db.collection('recibosCfg').doc('emissores').set(out));S.recCfg=out;closeSheet();toast('Dados salvos')}catch(_){}}}
 
 /* ---------- Contratos ---------- */
-const CT_EVT={casamento:'Casamento',aniversario:'Aniversário',debutante:'Debutante',outro:'Outro'};
+const CT_EVT={casamento:'Casamento',civil:'Casamento civil',aniversario:'Aniversário',debutante:'Debutante',outro:'Outro'};
+const CT_MOM=['Making of da noiva','Making of do noivo','Cerimônia religiosa','Cerimônia civil','Almoço','Recepção / festa','Jantar','Ensaio dos noivos','Ensaio pré-wedding','Ensaio pós-casamento','Família e padrinhos','Decoração e detalhes'];
+const CT_ENT=['Fotografia (fotos editadas em alta resolução)','Filmagem da cerimônia','Vídeo melhores momentos','Vídeo completo do evento','Teaser para redes sociais (reels)','Imagens aéreas com drone','Álbum impresso','Fotos impressas'];
+const ehVideo=s=>/film|v[íi]deo|teaser|reels|drone/i.test(s),ehFoto=s=>/foto|[áa]lbum|ensaio/i.test(s);
+const casam=t=>t==='casamento'||t==='civil';
 const CT_SERV={foto_video:'Fotografia e Filmagem',foto:'Fotografia',video:'Filmagem'};
 const CT_FREQ={avista:'À vista (1 pagamento)',semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
 const CT_ST={rascunho:['eq','Rascunho'],enviado:['soon','Enviado'],assinado:['rec','Assinado']};
 const CT_PADRAO={
-  evento:{empresa:'duraes',modelo:'evento',tipoEvt:'casamento',servico:'foto_video',servNome:'Fotografia e Filmagem Completa',cobertura:'Making of (noiva/noivo), Cerimônia e Festa',horas:12,prazoFotos:15,prazoVideo:30,duracaoVideo:'10 a 20 minutos',multaDia:2,diasAtraso:10,cancelDias:2,taxaClip:25,freq:'semanal',forma:'Pix'},
+  evento:{empresa:'duraes',modelo:'evento',tipoEvt:'casamento',servico:'foto_video',servNome:'',momentos:[],entregas:[],descServ:'',horas:8,prazoFotos:15,prazoVideo:30,duracaoVideo:'10 a 20 minutos',multaDia:2,diasAtraso:10,cancelDias:2,taxaClip:25,freq:'semanal',forma:'Pix'},
   marketing:{empresa:'elite',modelo:'marketing',sConteudo:true,sRedes:true,sTrafego:true,meses:3,diaVenc:5,forma:'Pix ou Débito',multaDia:2,avisoPrevio:30}
 };
 function dBR(s){return s?String(s).split('-').reverse().join('/'):''}
@@ -1642,7 +1652,7 @@ function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.mode
   if(ev){
     B.push(sec('Contratante','<div class="cgrid">'+g('Nome do contratante','<b>'+esc(c.nome)+'</b>',!c.doc)+g('CPF',esc(c.doc))+g('E-mail',esc(c.email))+g('Telefone',esc(c.tel))+g('Endereço',esc(c.end),true)+'</div>'));
     const marca=Object.entries(CT_EVT).map(([k,t])=>'( '+(c.tipoEvt===k?'<b>x</b>':'&nbsp;')+' ) '+t.toUpperCase()+(k==='outro'&&c.tipoEvt==='outro'&&c.outro?': <b>'+esc(c.outro)+'</b>':'')).join('&nbsp;&nbsp; ');
-    const nomes=c.tipoEvt==='casamento'?g('Nome do noivo',esc(c.n1))+g('Nome da noiva',esc(c.n2)):g(c.tipoEvt==='aniversario'||c.tipoEvt==='debutante'?'Aniversariante':'Homenageado(s) / evento',esc(c.n1),true);
+    const nomes=casam(c.tipoEvt)?g('Nome do noivo',esc(c.n1))+g('Nome da noiva',esc(c.n2)):g(c.tipoEvt==='aniversario'||c.tipoEvt==='debutante'?'Aniversariante':'Homenageado(s) / evento',esc(c.n1),true);
     B.push(sec('Tipo do evento ou cobertura fotográfica','<div class="cbox" style="margin-bottom:6px">'+marca+'</div><div class="cgrid">'+nomes+g('Data','<b>'+dBR(c.data)+'</b>')+g('Horário',esc(c.hora))+g('Local da cerimônia / festa',esc(c.local),true)+'</div>'));
   } else {
     B.push(sec('Contratante','<div class="cbox"><b>'+esc(c.nome)+'</b>'+(c.doc?', inscrito(a) no CNPJ/CPF '+esc(c.doc):'')+(c.empCli?', representando a empresa <b>'+esc(c.empCli)+'</b>':'')+(c.end?', com endereço na '+esc(c.end):'')+(c.email||c.tel?' · '+esc([c.tel,c.email].filter(Boolean).join(' · ')):'')+', doravante denominado(a) <b>CONTRATANTE</b>.</div>'));
@@ -1654,7 +1664,13 @@ function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.mode
     :'<div class="cbox"><div class="ctot"><span>Valor mensal</span><b>'+$(c.mensal)+'</b></div><p class="cext">('+esc(extenso(c.mensal||0))+') · '+c.meses+' '+(c.meses==1?'mês':'meses')+' = '+$(tot)+'</p>'+tab+'</div>';
   if(ev){
     B.push(sec('Condições de pagamento',pagBox));
-    B.push(sec('Serviços contratados','<div class="cbox"><b>Serviços:</b> '+esc(c.servNome||CT_SERV[c.servico])+(c.cobertura?'<ul style="margin:4px 0 0;padding-left:18px"><li>'+esc(c.cobertura)+'</li></ul>':'')+'</div>'));
+    {const lst=a=>'<ul class="cul">'+a.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>',mo=c.momentos||[],en=c.entregas||[];
+     B.push(sec('Serviços contratados','<div class="cbox">'+(c.servNome?'<b>Pacote:</b> '+esc(c.servNome)+'<br>':'')+
+       (mo.length?'<p style="margin:4px 0 0"><b>Cobertura (o que será registrado):</b></p>'+lst(mo):'')+
+       (en.length?'<p style="margin:6px 0 0"><b>O que será entregue:</b></p>'+lst(en):'')+
+       (!mo.length&&!en.length&&c.cobertura?'<b>Serviços:</b> '+esc(CT_SERV[c.servico])+'<ul class="cul"><li>'+esc(c.cobertura)+'</li></ul>':'')+
+       (!mo.length&&!en.length&&!c.cobertura&&!c.descServ?'<b>Serviços:</b> '+esc(CT_SERV[c.servico]):'')+
+       (c.descServ?'<p style="margin:6px 0 0">'+esc(c.descServ).replace(/\n/g,'<br>')+'</p>':'')+'</div>'))}
     B.push(sec('Objetivo do contrato','<div class="cbox">A cobertura '+(c.servico==='video'?'audiovisual':'fotográfica')+' está prevista em até <b>'+(c.horas||0)+' horas</b> de duração, na data informada.<br><span style="color:#666">*O detalhamento completo dos serviços segue nos Termos e Condições abaixo.</span></div>'));
     const fv=c.servico==='foto'?['fotografia','fotografias']:c.servico==='video'?['filmagem','filmagens']:['fotografia e filmagem','fotografias e filmagens'];
     B.push('<div class="csub">Termos e condições</div>');
@@ -1665,7 +1681,7 @@ function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.mode
     B.push(cl('Cancelamento','Em caso de cancelamento por parte do Cliente, o depósito não será reembolsado. Se o cancelamento ocorrer dentro de '+numExt(c.cancelDias||2)+' ('+(c.cancelDias||2)+') dias antes da Data do Evento, o cliente será responsável pelo pagamento integral do Honorário.'));
     B.push(cl('Responsabilidade do Fotógrafo','O Fotógrafo não será responsável por quaisquer danos ou perda de bens pessoais do cliente ou de seus convidados. O Fotógrafo não será responsável por quaisquer atrasos resultantes de circunstâncias fora de seu controle, incluindo, mas não se limitando a atrasos por condições climáticas.'));
     if(c.servico!=='video')B.push(cl('Entrega das Fotos','O Fotógrafo entregará fotos ilimitadas e editadas em alta resolução em até '+(c.prazoFotos||15)+' dias após o evento.'));
-    if(c.servico!=='foto')B.push(cl('Entrega do Vídeo','O vídeo'+(c.servNome?' ('+esc(c.servNome)+')':'')+' será entregue em até '+(c.prazoVideo||30)+' dias após o evento'+(c.duracaoVideo?', com edição de vídeo de '+esc(c.duracaoVideo):'')+'. Após a entrega do vídeo, o cliente tem prazo de 7 dias para pedir troca de clipes sem custo adicional; passados os 7 dias, será cobrada a taxa de '+$(c.taxaClip)+' por clipe editado.'));
+    if(c.servico!=='foto')B.push(cl('Entrega do Vídeo','O vídeo será entregue em até '+(c.prazoVideo||30)+' dias após o evento'+(c.duracaoVideo?', com edição de vídeo de '+esc(c.duracaoVideo):'')+'. Após a entrega do vídeo, o cliente tem prazo de 7 dias para pedir troca de clipes sem custo adicional; passados os 7 dias, será cobrada a taxa de '+$(c.taxaClip)+' por clipe editado.'));
     B.push(cl('Uso das Fotos e da Filmagem','O cliente concorda que o Fotógrafo pode usar as '+fv[1]+' feitas durante o evento para fins promocionais, incluindo, mas não se limitando a publicações em sites e em redes sociais. O cliente também concorda em permitir que o Fotógrafo use seus nomes e imagens em conexão com o uso promocional das '+fv[1]+'.'));
     B.push(cl('Autorização de Imagem','O cliente concorda em autorizar o Fotógrafo a fazer '+(c.servico==='foto'?'fotos':c.servico==='video'?'filmagens':'fotos e filmagens')+' dele e de seus convidados durante o evento. O cliente concorda em garantir que seus convidados estejam cientes de que podem ser '+(c.servico==='foto'?'fotografados':c.servico==='video'?'filmados':'fotografados e filmados')+' durante o evento.'));
     if(c.obs)B.push(cl('Condições adicionais',esc(c.obs).split(/\n+/)));
@@ -1739,8 +1755,10 @@ function formContrato(c,base){
     '<div class="two">'+I('ctN1','<span id="ctN1l">Nome do noivo</span>',c.n1)+'<div id="ctN2w">'+I('ctN2','Nome da noiva',c.n2)+'</div></div>'+
     '<div class="two">'+I('ctData','Data do evento',c.data,' type="date"')+I('ctHora','Horário',c.hora,' placeholder="Ex.: 16:00"')+'</div>'+
     I('ctLocal','Local / cidade da cerimônia e festa',c.local)+
-    '<div class="two"><div class="fld"><label for="ctServ">Serviço</label><select id="ctServ">'+opts(Object.entries(CT_SERV),c.servico||'foto_video')+'</select></div>'+I('ctServNome','Nome do pacote',c.servNome,' placeholder="Ex.: Fotografia e Filmagem Completa"')+'</div>'+
-    I('ctCob','O que a cobertura inclui',c.cobertura,' placeholder="Ex.: Making of (noiva/noivo), Cerimônia e Festa"')+
+    '<div class="two"><div class="fld"><label for="ctServ">Tipo de cobertura</label><select id="ctServ">'+opts(Object.entries(CT_SERV),c.servico||'foto_video')+'</select></div>'+I('ctServNome','Nome do pacote (opcional)',c.servNome,' placeholder="Ex.: Civil + Almoço"')+'</div>'+
+    '<div class="fld"><span class="l">Cobertura · o que vai ser fotografado/filmado</span><div class="pick" id="ctMom"></div><div class="addit"><input id="ctMomN" placeholder="Outro momento (ex.: Chá de panela)"><button type="button" class="btn sm" data-addit="mom">Adicionar</button></div></div>'+
+    '<div class="fld"><span class="l">O que será entregue</span><div class="pick" id="ctEnt"></div><div class="addit"><input id="ctEntN" placeholder="Outra entrega (ex.: Pen drive personalizado)"><button type="button" class="btn sm" data-addit="ent">Adicionar</button></div></div>'+
+    '<div class="fld"><label for="ctDesc">Descrição dos serviços, escrita do seu jeito (opcional)</label><textarea id="ctDesc" rows="3" placeholder="Ex.: Cobertura do casamento civil no cartório às 10h e do almoço no restaurante até as 15h.">'+esc(c.descServ||'')+'</textarea></div>'+
     '<div class="three">'+I('ctHoras','Duração (horas)',c.horas,' type="number" min="1"')+I('ctPF','Entrega fotos (dias)',c.prazoFotos,' type="number" min="1"')+I('ctPV','Entrega vídeo (dias)',c.prazoVideo,' type="number" min="1"')+'</div>'+
     I('ctDV','Duração do vídeo editado',c.duracaoVideo,' placeholder="Ex.: 10 a 20 minutos"')+'</div>'+
   /* marketing */
@@ -1765,8 +1783,11 @@ function formContrato(c,base){
   '<div class="err" id="ctErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">'+(novo?'Criar contrato':'Salvar')+'</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),num=id=>parseValor(q(id).value),int=id=>parseInt(q(id).value,10)||0;
   const ehMk=()=>st.modelo==='marketing';
+  const sel={mom:new Set(c.momentos||[]),ent:new Set(c.entregas||[])},lista={mom:[...new Set(CT_MOM.concat(c.momentos||[]))],ent:[...new Set(CT_ENT.concat(c.entregas||[]))]};
+  const pick=()=>{for(const k of ['mom','ent'])q(k==='mom'?'#ctMom':'#ctEnt').innerHTML=lista[k].map((x,i)=>'<button type="button" class="pk" data-pk="'+k+'" data-i="'+i+'" aria-pressed="'+sel[k].has(x)+'">'+esc(x)+'</button>').join('')};
+  const autoServ=()=>{const en=[...sel.ent];if(!en.length)return;const v=en.some(ehVideo),f=en.some(x=>ehFoto(x)&&!ehVideo(x));q('#ctServ').value=v&&f?'foto_video':v?'video':'foto'};
   const vis=()=>{const m=ehMk();['#ctMk','#ctMkPre','#ctEmpWrap','#ctMkA'].forEach(s=>q(s).hidden=!m);['#ctEv','#ctEvPre','#ctEvPag','#ctEvM','#ctEvC','#ctEvT','#ctRestW'].forEach(s=>q(s).hidden=m);
-    const t=q('#ctTipo').value;q('#ctN2w').hidden=t!=='casamento';q('#ctN1l').textContent=t==='casamento'?'Nome do noivo':t==='outro'?'Homenageado(s) / evento':'Aniversariante';q('#ctOutro').closest('.fld').hidden=t!=='outro';
+    const t=q('#ctTipo').value;q('#ctN2w').hidden=!casam(t);q('#ctN1l').textContent=casam(t)?'Nome do noivo':t==='outro'?'Homenageado(s) / evento':'Aniversariante';q('#ctOutro').closest('.fld').hidden=t!=='outro';
     const sv=q('#ctServ').value;q('#ctPV').closest('.fld').hidden=sv==='foto';q('#ctDV').closest('.fld').hidden=sv==='foto';q('#ctPF').closest('.fld').hidden=sv==='video';
     const e=emissor(ehMk()?'elite':'duraes');q('#ctAss').disabled=!e.assinatura;q('#ctAss').parentElement.title=e.assinatura?'':'Envie a imagem da assinatura em "Dados das empresas"';q('#ctAss').parentElement.style.opacity=e.assinatura?1:.5};
   const soma=()=>{const s=parc.reduce((a,p)=>a+(p.valor||0),0);
@@ -1784,7 +1805,11 @@ function formContrato(c,base){
     parc=p1&&men>0?gerarDatas(p1,meses,'mensal').map(d=>({data:d,valor:men})):[];desenha()};
   if(novo)q('#ctMod').onclick=e=>{const b=e.target.closest('[data-v]');if(!b||b.dataset.v===st.modelo)return;st.modelo=b.dataset.v;q('#ctMod').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
     const keep={};['nome','doc','email','tel','end'].forEach(k=>keep[k]=q('#ct'+k.charAt(0).toUpperCase()+k.slice(1)).value);formContrato(null,Object.assign({},CT_PADRAO[b.dataset.v],keep))};
-  q('#ctTipo').onchange=vis;q('#ctServ').onchange=()=>{const sv=q('#ctServ').value;const atual=q('#ctServNome').value.trim();if(!atual||Object.values(CT_SERV).some(x=>atual.startsWith(x)))q('#ctServNome').value=CT_SERV[sv]+(sv==='foto_video'?' Completa':'');vis()};
+  q('#ctTipo').onchange=()=>{if(q('#ctTipo').value==='civil'&&!sel.mom.size){sel.mom.add('Cerimônia civil');pick()}vis()};q('#ctServ').onchange=vis;
+  q('#ctEv').onclick=e=>{const b=e.target.closest('[data-pk]');if(b){const k=b.dataset.pk,x=lista[k][+b.dataset.i];if(sel[k].has(x))sel[k].delete(x);else sel[k].add(x);b.setAttribute('aria-pressed',sel[k].has(x));if(k==='ent'){autoServ();vis()}return}
+    const a=e.target.closest('[data-addit]');if(a){const k=a.dataset.addit,inp=q(k==='mom'?'#ctMomN':'#ctEntN'),x=inp.value.trim().slice(0,80);if(!x)return;if(!lista[k].includes(x))lista[k].push(x);sel[k].add(x);inp.value='';pick();if(k==='ent'){autoServ();vis()}}};
+  ['#ctMomN','#ctEntN'].forEach(s=>q(s).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();q('[data-addit="'+(s==='#ctMomN'?'mom':'ent')+'"]').click()}});
+  pick();
   q('#ctGer').onclick=gerarEv;['#ctFreq'].forEach(s=>q(s).onchange=()=>{if(q('#ctFreq').value==='avista')q('#ctN').value=1;if(parc.length)gerarEv()});
   ['#ctTotal','#ctEntV'].forEach(s=>q(s).oninput=soma);
   q('#ctEntD').onchange=()=>{if(!parc.length)return};
@@ -1807,9 +1832,9 @@ function formContrato(c,base){
       if(!(d.mensal>0)){err('Informe o valor mensal.');return}if(!d.meses){err('Informe a duração em meses.');return}if(!d.ini){err('Informe a data de início.');return}
       if(!d.fim)d.fim=fimVigencia(d.ini,d.meses);if(!d.parcelas.length){err('Confira o 1º vencimento para gerar as mensalidades.');return}}
     else{Object.assign(d,{tar:q('#ctTar').value,tipoEvt:q('#ctTipo').value,outro:q('#ctOutro').value.trim().slice(0,60),n1:q('#ctN1').value.trim().slice(0,120),n2:q('#ctN2').value.trim().slice(0,120),data:q('#ctData').value,hora:q('#ctHora').value.trim().slice(0,20),local:q('#ctLocal').value.trim().slice(0,200),
-        servico:q('#ctServ').value,servNome:q('#ctServNome').value.trim().slice(0,100),cobertura:q('#ctCob').value.trim().slice(0,200),horas:int('#ctHoras'),prazoFotos:int('#ctPF'),prazoVideo:int('#ctPV'),duracaoVideo:q('#ctDV').value.trim().slice(0,60),
+        servico:q('#ctServ').value,servNome:q('#ctServNome').value.trim().slice(0,100),momentos:lista.mom.filter(x=>sel.mom.has(x)),entregas:lista.ent.filter(x=>sel.ent.has(x)),descServ:q('#ctDesc').value.trim().slice(0,1000),cobertura:'',horas:int('#ctHoras'),prazoFotos:int('#ctPF'),prazoVideo:int('#ctPV'),duracaoVideo:q('#ctDV').value.trim().slice(0,60),
         total:num('#ctTotal')||0,entV:num('#ctEntV')||0,entD:q('#ctEntD').value,freq:q('#ctFreq').value,pri:q('#ctPri').value,restTx:q('#ctRest').value.trim().slice(0,200),diasAtraso:int('#ctAtr')||10,cancelDias:int('#ctCanc')||2,taxaClip:num('#ctClip')||0});
-      if(!d.data){err('Informe a data do evento.');return}if(!(d.total>0)){err('Informe o valor total.');return}
+      if(!d.data){err('Informe a data do evento.');return}if(!d.momentos.length&&!d.entregas.length&&!d.descServ){err('Marque o que será coberto e entregue (ou escreva a descrição dos serviços).');return}if(!(d.total>0)){err('Informe o valor total.');return}
       if(d.total-d.entV>0.009&&!d.parcelas.length&&!d.restTx){err('Toque em "Calcular parcelas" para dividir o restante (ou escreva a condição na observação).');return}}
     try{
       if(novo){d.numero=ctNumero(d.empresa);d.criadoEm=agoraLocal();d.status='rascunho';const id=await write(()=>store.add('contratos',d));closeSheet();toast('Contrato '+d.numero+' criado');verContrato(Object.assign({id},d))}
