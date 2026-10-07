@@ -349,6 +349,8 @@ details.panel[open] summary{margin-bottom:12px}
 .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:560px){.three{grid-template-columns:1fr 1fr}}
 .pick{display:flex;flex-wrap:wrap;gap:6px}
+#zapBox .addit input{background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;color:var(--ink);font:inherit;font-size:14px}
+.btn.zap{background:#1d4ed8;border-color:#1d4ed8;color:#fff}.btn.zap:hover{background:#2563eb}
 .pick .pk{border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
 .pick .pk[aria-pressed="true"]{background:var(--pos-bg);border-color:var(--pos);color:var(--ink)}
 .pick .pk[aria-pressed="true"]::before{content:"✓ ";color:var(--pos)}
@@ -1726,7 +1728,7 @@ function renderContratos(){
   const cs=(S.contratos||[]).filter(c=>(S.fCt==='todas'||c.empresa===S.fCt)&&(!q||((c.nome||'')+' '+(c.numero||'')+' '+(c.empCli||'')+' '+(c.n1||'')+' '+(c.n2||'')).toLowerCase().includes(q))).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
   L.innerHTML=cs.length?cs.map(c=>{const st=CT_ST[c.status]||CT_ST.rascunho;
     const sub=c.modelo==='marketing'?(c.empCli?esc(c.empCli)+' · ':'')+c.meses+' '+(c.meses==1?'mês':'meses')+' · '+$(c.mensal)+'/mês':(CT_EVT[c.tipoEvt]||'Evento')+(c.data?' · '+dCurta(c.data):'')+' · '+esc(CT_SERV[c.servico]||'');
-    return '<div class="row">'+dBox(c.modelo==='marketing'?c.ini:c.data,c.empresa)+'<div style="min-width:0"><div class="t">'+esc(c.nome)+'</div><div class="s"><span>'+esc(c.numero)+'</span>'+chipEmp(c.empresa)+'<span class="chip '+st[0]+'">'+st[1]+'</span><span>'+sub+'</span>'+(c.caixa?'<span class="hint">no Caixa</span>':'')+'</div></div><div class="v num">'+$(ctTotal(c))+'</div>'+
+    return '<div class="row">'+dBox(c.modelo==='marketing'?c.ini:c.data,c.empresa)+'<div style="min-width:0"><div class="t">'+esc(c.nome)+'</div><div class="s"><span>'+esc(c.numero)+'</span>'+chipEmp(c.empresa)+'<span class="chip '+st[0]+'">'+st[1]+'</span><span>'+sub+'</span>'+(c.caixa?'<span class="hint">no Caixa</span>':'')+(c.zapLink&&c.status!=='assinado'?'<span class="hint">no ZapSign</span>':'')+'</div></div><div class="v num">'+$(ctTotal(c))+'</div>'+
       '<div class="acts"><button class="btn sm primary" data-ct="ver" data-id="'+c.id+'">Ver / enviar</button><button class="btn sm ghost" data-ct="editar" data-id="'+c.id+'">Editar</button><button class="btn sm ghost" data-ct="mais" data-id="'+c.id+'">Mais…</button></div></div>'}).join('')
     :emptyMsg('Nenhum contrato ainda','Toque em "Novo contrato" e escolha Durães (evento) ou Elite (marketing). Antes, confira em "Dados das empresas" o CNPJ, endereço e quem assina.');
 }
@@ -1846,7 +1848,10 @@ function formContrato(c,base){
 async function verContrato(c){S._ctAtual=c;
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:880px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Contrato '+esc(c.numero)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
     '<div class="recwrap cpwrap" id="ctPrev"><p class="hint" style="padding:20px">Montando o contrato…</p></div>'+
-    '<div class="formacts"><button type="button" class="btn ghost" data-ct="editar" data-id="'+(c.id||'')+'">Editar</button><button type="button" class="btn" data-ct="pdf" data-id="'+(c.id||'')+'">Baixar PDF</button><button type="button" class="btn primary" data-ct="enviar" data-id="'+(c.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p></form>';
+    '<div class="formacts"><button type="button" class="btn ghost" data-ct="editar" data-id="'+(c.id||'')+'">Editar</button><button type="button" class="btn" data-ct="pdf" data-id="'+(c.id||'')+'">Baixar PDF</button><button type="button" class="btn zap" data-ct="zapsign" data-id="'+(c.id||'')+'">'+ico('i-contract')+'Assinar no ZapSign</button><button type="button" class="btn primary" data-ct="enviar" data-id="'+(c.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p>'+
+    '<div class="pushbox" id="zapBox"'+(c.zapLink?'':' hidden')+'><b>Assinatura eletrônica (ZapSign)</b><span class="hint">Depois de subir o PDF no ZapSign e adicionar o cliente como signatário, copie o link de assinatura dele e cole aqui.</span>'+
+    '<div class="addit"><input id="zapLink" type="url" inputmode="url" placeholder="https://app.zapsign.com.br/verificar/..." value="'+esc(c.zapLink||'')+'"><button type="button" class="btn sm" data-ct="zapsalvar" data-id="'+(c.id||'')+'">Salvar</button></div>'+
+    '<button type="button" class="btn sm primary" data-ct="zapwhats" data-id="'+(c.id||'')+'" style="align-self:flex-start">Mandar link pelo WhatsApp</button></div></form>';
   sheet.hidden=false;const pgs=await ctPaginas(c);const el=document.getElementById('ctPrev');if(el)el.innerHTML=pgs.join('')}
 async function gerarContratoPdf(c){
   await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
@@ -1885,6 +1890,18 @@ async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.c
       else if(pg.length>1)Object.assign(base,{tipo:'parcelado',total:c.total,parcelas:pg.map((p,i)=>({data:p.data,valor:p.valor,paga:i===0})),parcAtual:1,valor:pg[0].valor});
       else Object.assign(base,{tipo:'unico',valor:c.total});
       formRecibo(null,base);return}
+    if(k==='zapsign'){const w=window.open('about:blank','_blank');b.disabled=true;const t=b.innerHTML;b.textContent='Gerando PDF…';
+      try{const f=await gerarContratoPdf(c);baixarArquivo(f);if(w)w.location.href='https://app.zapsign.com.br/';else window.open('https://app.zapsign.com.br/','_blank');
+        const zb=document.getElementById('zapBox');if(zb)zb.hidden=false;toast('PDF baixado. No ZapSign: Novo documento → envie o PDF → adicione o cliente.')}
+      catch(er){if(w)w.close();throw er}finally{b.disabled=false;b.innerHTML=t}return}
+    if(k==='zapsalvar'||k==='zapwhats'){const inp=document.getElementById('zapLink'),link=(inp&&inp.value||'').trim();
+      if(link&&!/^https:\/\/[^\s]*zapsign\.com\.br\//i.test(link)){toast('Cole o link do ZapSign (começa com https://app.zapsign.com.br/...)');return}
+      if(c.id&&link!==(c.zapLink||'')){await write(()=>store.update('contratos',c.id,Object.assign({zapLink:link},link&&(c.status||'rascunho')==='rascunho'?{status:'enviado'}:{})));c.zapLink=link}
+      if(k==='zapsalvar'){toast(link?'Link salvo no contrato':'Link removido');return}
+      if(!link){toast('Cole primeiro o link de assinatura');return}
+      const tel=String(c.tel||'').replace(/\D/g,''),num=tel?(tel.length<=11?'55'+tel:tel):'';
+      const msg='Olá, '+(c.nome||'').split(' ')[0]+'! Segue o contrato '+c.numero+' para assinatura eletrônica pelo ZapSign. É só abrir o link e assinar pelo celular: '+link;
+      window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');return}
     if(k==='pdf'||k==='enviar'){b.disabled=true;const t=b.textContent;b.textContent='Gerando…';
       try{const f=await gerarContratoPdf(c);
         if(k==='enviar'&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Contrato '+c.numero,text:'Olá! Segue o contrato '+c.numero+' para conferência e assinatura.'})}catch(_){}}
