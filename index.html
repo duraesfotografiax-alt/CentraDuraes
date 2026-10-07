@@ -1248,10 +1248,10 @@ async function renderDrive(){
   roots.innerHTML=[['duraes','Durães Fotografia','Casamentos, eventos e aniversários',logoTile('duraes')],['clientes','Clientes · Elite','Uma pasta para cada loja',logoTile('elite')]].map(([k,n,d,tile])=>'<button data-dv="root" data-k="'+k+'" aria-pressed="'+(S.dRoot===k)+'">'+tile+'<div><b>'+n+'</b><small>'+(cfg[k]?esc(cfg[k].nome):'Pasta ainda não escolhida')+' · '+d+'</small></div></button>').join('');
   if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">'+(localStorage.getItem('gConectou')==='1'?'Reconectando ao Google…':'Conecte sua conta Google')+'</p><p class="muted" style="margin:0 0 16px;font-size:14px">Use a conta que tem acesso às pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
   const raiz=dRootCur();
-  if(!raiz){acts.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Escolha a pasta '+(S.dRoot==='duraes'?'da Durães Fotografia':'Clientes (Elite)'),S.adm?'<button class="btn primary sm" style="margin-top:10px" data-dv="cfg">Escolher pasta no Drive</button>':'Peça ao Thiago para escolher a pasta.')+'</div>';return}
+  if(!raiz){acts.innerHTML='<button class="btn ghost" data-dv="desconectar">Desconectar Drive</button>';body.innerHTML='<div class="panel">'+emptyMsg('Escolha a pasta '+(S.dRoot==='duraes'?'da Durães Fotografia':'Clientes (Elite)'),S.adm?'<button class="btn primary sm" style="margin-top:10px" data-dv="cfg">Escolher pasta no Drive</button>':'Peça ao Thiago para escolher a pasta.')+'</div>';return}
   if(!S.dPath.length||S.dPath[0].id!==raiz.id)S.dPath=[{id:raiz.id,name:S.dRoot==='duraes'?'Durães Fotografia':'Clientes'}];
   const cur=S.dPath[S.dPath.length-1];
-  acts.innerHTML='<button class="btn" data-dv="novapasta">'+ico('i-plus')+'Nova pasta</button><button class="btn" data-dv="uparq">'+ico('i-file')+'Subir arquivos</button><button class="btn primary" data-dv="uppasta">'+ico('i-folder')+'Subir pasta</button>';
+  acts.innerHTML='<button class="btn ghost" data-dv="desconectar" title="Desconectar a conta Google deste aparelho">Desconectar Drive</button><button class="btn" data-dv="novapasta">'+ico('i-plus')+'Nova pasta</button><button class="btn" data-dv="uparq">'+ico('i-file')+'Subir arquivos</button><button class="btn primary" data-dv="uppasta">'+ico('i-folder')+'Subir pasta</button>';
   body.innerHTML='<div class="crumbs">'+S.dPath.map((p,i)=>(i?'<span>›</span>':'')+'<button data-dv="crumb" data-i="'+i+'">'+esc(p.name)+'</button>').join('')+'<span style="flex:1"></span><button data-dv="copiar" data-id="'+cur.id+'" class="btn sm ghost">Copiar link</button><button data-dv="abrir" data-id="'+cur.id+'" class="btn sm ghost">Abrir no Drive</button>'+(S.adm&&S.dPath.length===1?'<button data-dv="cfg" class="btn sm ghost">Trocar pasta</button>':'')+'</div><div id="dList"><div class="spinner"></div></div>';
   try{const fs=await dListar(cur.id);if(S.dPath[S.dPath.length-1].id!==cur.id)return;S.dItems=fs;
     const L=document.getElementById('dList');if(!L)return;
@@ -1269,7 +1269,10 @@ function escolherUpload(tipo){if(!driveConectado()){setTab('drive');return}const
   try{const r=await dSubir(fs,cur.id);toast('Enviado: '+r.name);S.dItems=null;renderDrive()}catch(er){toast(er.message)}}));
 async function driveClique(b,e){const k=b.dataset.dv;e.stopPropagation&&e.stopPropagation();
   try{
-    if(k==='conectar'){S.dErr='';await pedirToken('consent');S.dItems=null;renderDrive();return}
+    if(k==='desconectar'){const t=gTok;gTok=null;gExp=0;try{localStorage.removeItem('gtok');localStorage.removeItem('gConectou')}catch(_){}
+      try{if(t&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(t,()=>{})}catch(_){}
+      S.dItems=null;S.dPath=[];renderDrive();toast('Drive desconectado deste aparelho');return}
+    if(k==='conectar'){S.dErr='';await pedirToken('select_account consent');S.dItems=null;renderDrive();return}
     if(k==='root'){S.dRoot=b.dataset.k;S.dPath=[];S.dItems=null;renderDrive();return}
     if(k==='crumb'){S.dPath=S.dPath.slice(0,+b.dataset.i+1);renderDrive();return}
     if(k==='cfg'){abrirSeletor(null,async f=>{const nv=Object.assign({},S.driveCfg||{});nv[S.dRoot]={id:f.id,nome:f.name};
