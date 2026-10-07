@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'teste = manda uma notificação de teste para todos; auto = roda normal'
+        description: 'teste = notificação de teste; auto = roda normal; meta = atualiza o tráfego pago agora'
         default: 'teste'
         type: choice
-        options: [teste, auto]
+        options: [teste, auto, meta]
 
 jobs:
   notificar:
@@ -27,3 +27,4 @@ jobs:
           APP_URL: https://duraesfotografiax-alt.github.io/CentraDuraes/
           ADMIN_EMAIL: duraesfotografiax@gmail.com
           MODO: ${{ github.event.inputs.modo || 'auto' }}
+          META_TOKEN: ${{ secrets.META_TOKEN }}

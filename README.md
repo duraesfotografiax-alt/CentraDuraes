@@ -290,3 +290,49 @@ Cada trabalho tem o campo **Material**: **Fotos**, **Vídeo** ou **Fotos + víde
 - Nos cartões aparece uma etiqueta: dourada com câmera para **Fotos** e lilás com câmera de vídeo para **Vídeo**.
 - Na **Produção** há o filtro **Só fotos / Só vídeos**. Trabalhos com fotos + vídeo aparecem nos dois.
 - Nos posts das lojas, **Reels** e **Stories** aparecem com a etiqueta de vídeo, e **Feed** e **Carrossel** com a de foto.
+
+---
+
+## Aba Tráfego pago (campanhas do Meta)
+
+A aba **Tráfego** mostra todas as contas de anúncio dos clientes. Ela aparece só para quem vê o caixa, e não precisa de PIN.
+- **No topo:** campanhas ativas, gasto de hoje, gasto do mês e quantas contas estão com problema.
+- **Por cliente:**
+  - a situação de cada campanha: 🟢 ativa, ⚪ pausada, 🟡 em análise ou 🔴 reprovada/com problema/falta pagamento;
+  - o orçamento;
+  - o gasto de hoje, dos últimos 7 dias e do mês;
+  - os resultados dos últimos 7 dias (conversas, cadastros, cliques…);
+  - a data de término.
+- **Filtros:** Ativas / Com problema / Todas, além de busca.
+- **Abrir no Gerenciador** leva direto à conta no Gerenciador de Anúncios.
+- O Adm usa **Vincular à loja** para ligar cada conta ao cliente. A partir daí, a loja na aba Clientes mostra "Tráfego: 3 ativas · R$ X no mês".
+- **Avisos no celular:** anúncio reprovado ou com problema, conta travada por pagamento e campanha que termina em menos de 36 horas.
+
+O robô atualiza **uma vez por hora**. Para atualizar na hora, vá no GitHub em **Actions → Notificações da Central → Run workflow** e escolha **meta**.
+
+### Configuração (uma vez, uns 15 minutos)
+A Central só **lê** os anúncios: a chave não consegue criar, mudar nem pausar nada.
+
+1. **Criar o app:**
+   - Entre em https://developers.facebook.com/apps e clique em **Criar app**.
+   - Escolha o caso de uso **Outro** e o tipo **Empresa**.
+   - Nome: **Central Elite**. Portfólio empresarial: **Elite MKT**.
+   - Clique em **Criar app**. Se ele pedir para adicionar um produto, escolha **API de Marketing**.
+2. **Criar o usuário do sistema:**
+   - Entre em https://business.facebook.com/settings e, no portfólio **Elite MKT**, vá em **Usuários → Usuários do sistema → Adicionar**.
+   - Nome: **Central**. Função: **Funcionário**.
+3. **Dar acesso às contas:**
+   - No usuário "Central", clique em **Atribuir ativos → Contas de anúncios**, marque as contas dos clientes, escolha a permissão **Ver desempenho** e salve.
+   - Se a conta de um cliente **não aparecer na lista**, é porque ela pertence ao portfólio do próprio cliente (ex.: Eduardo Motors). Nesse caso, no portfólio do cliente, vá em **Configurações → Contas de anúncios**, escolha a conta, clique em **Atribuir parceiro** e informe o ID do portfólio da Elite MKT: `1762462691566395`, com a permissão **Ver desempenho**. Depois volte ao passo 3.
+4. **Gerar a chave:**
+   - No usuário "Central", clique em **Gerar novo token** e escolha o app **Central Elite**.
+   - Expiração: **Nunca**.
+   - Marque as permissões **ads_read** e **read_insights** e clique em **Gerar token**.
+   - Copie o token. Ele não aparece de novo.
+5. **Salvar no GitHub:**
+   - No repositório, vá em **Settings → Secrets and variables → Actions → New repository secret**.
+   - Name: `META_TOKEN`. Secret: cole o token.
+   - Não mande essa chave para ninguém.
+6. **Primeira leitura:** vá em **Actions → Notificações da Central → Run workflow** e escolha **meta**. Em 1 ou 2 minutos, a aba Tráfego se preenche.
+
+Cole de novo o `firestore.rules` no Firebase, porque ele ganhou as regras do tráfego.

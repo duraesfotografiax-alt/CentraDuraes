@@ -60,6 +60,14 @@ async function enviar(u, title, body) {
     return;
   }
 
+  // Tráfego pago (Meta): uma vez por hora, ou quando rodar manualmente no modo "meta"
+  const agoraIso0 = `${hoje}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  if (process.env.META_TOKEN && ((min % 60) < 10 || MODO === 'meta')) {
+    try { await require('./meta')({ db, usuarios, enviar, jaFoi, marcar, ehAdm, hoje, agoraIso: agoraIso0 }); }
+    catch (e) { console.error('Meta:', e.message); await db.collection('anunciosMeta').doc('estado').set({ atualizadoEm: agoraIso0, erro: String(e.message).slice(0, 300) }, { merge: true }); }
+  }
+  if (MODO === 'meta') return;
+
   const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
   const emEdicao = (t) => t.etapa === 'captado' || t.etapa === 'edicao';
   const doUsuario = (u, t) => { const m = membroDe(u); return m && arr(t.captacao).concat(arr(t.edicao)).includes(m); };
