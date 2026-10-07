@@ -39,6 +39,17 @@ function resultado(actions) {
   return { n: 0, tipo: '' };
 }
 const centavos = (v) => (v == null || v === '' ? null : Math.round(Number(v)) / 100);
+// "Saldo disponível (R$1.234,56 BRL)" / "Available balance (R$1,234.56 BRL)" -> 1234.56
+function valorTexto(t) {
+  const x = String(t || '').match(/(?:R\$|BRL)\s?([\d.,]+)/) || String(t || '').match(/([\d][\d.,]*)/);
+  if (!x) return null;
+  let s = x[1];
+  const ld = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+  if (ld >= 0 && s.length - ld - 1 === 2) s = s.slice(0, ld).replace(/[.,]/g, '') + '.' + s.slice(ld + 1);
+  else s = s.replace(/[.,]/g, '');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 
 module.exports = async function sincronizarMeta({ db, usuarios, enviar, jaFoi, marcar, ehAdm, hoje, agoraIso }) {
   const token = process.env.META_TOKEN;
@@ -76,11 +87,43 @@ module.exports = async function sincronizarMeta({ db, usuarios, enviar, jaFoi, m
         saldo: centavos(c.balance), atualizadoEm: agoraIso, campanhas: lista,
         loja: antes.loja || '',
       };
+      // ---- saldo / forma de pagamento (separado: se falhar não derruba o resto) ----
+      try {
+        const f = await g(`act_${id}?fields=funding_source_details,spend_cap,amount_spent,is_prepay_account`, token);
+        const fs = f.funding_source_details || {};
+        doc.pagamentoTx = fs.display_string || '';
+        doc.prepago = !!f.is_prepay_account || /saldo|balance|pr[eé]-?pag/i.test(fs.display_string || '');
+        doc.saldoDisp = doc.prepago ? valorTexto(fs.display_string) : null;
+        const cap = Number(f.spend_cap || 0), gasto = Number(f.amount_spent || 0);
+        doc.limiteRest = cap > 0 ? Math.max(0, (cap - gasto) / 100) : null;
+      } catch (e) { console.error(`Meta: saldo de ${c.name}: ${e.message}`); }
+      // ---- anúncios que rodaram hoje ----
+      try {
+        const adsH = (await todos(`act_${id}/insights?level=ad&date_preset=today&fields=ad_id,ad_name,campaign_id,campaign_name,spend,impressions,clicks,reach,actions&limit=200`, token))
+          .filter((x) => Number(x.impressions || 0) > 0)
+          .sort((a, b) => Number(b.spend || 0) - Number(a.spend || 0)).slice(0, 15);
+        let cri = {};
+        if (adsH.length) {
+          try { cri = await g(`?ids=${adsH.map((x) => x.ad_id).join(',')}&fields=effective_status,creative{thumbnail_url,image_url,instagram_permalink_url}`, token); } catch (_) {}
+        }
+        doc.hoje = adsH.map((x) => {
+          const r = resultado(x.actions), cr = ((cri[x.ad_id] || {}).creative) || {};
+          return { id: x.ad_id, nome: x.ad_name || '', camp: x.campaign_name || '', gasto: Number(x.spend || 0), imp: Number(x.impressions || 0), alcance: Number(x.reach || 0), cliques: Number(x.clicks || 0), res: r.n, resTipo: r.tipo, status: (cri[x.ad_id] || {}).effective_status || '', thumb: cr.thumbnail_url || cr.image_url || '', ig: cr.instagram_permalink_url || '' };
+        });
+      } catch (e) { console.error(`Meta: anúncios de hoje de ${c.name}: ${e.message}`); doc.hoje = antes.hoje || []; }
       await ref.set(doc);
       vistos.push(id);
 
       // ---- avisos ----
       const quem = socios;
+      if (doc.prepago && doc.saldoDisp != null && lista.some((k) => k.status === 'ACTIVE')) {
+        const porDia = lista.filter((k) => k.status === 'ACTIVE').reduce((s, k) => s + (k.orcDia || 0), 0);
+        const minimo = Math.max(30, porDia * 2);
+        if (doc.saldoDisp < minimo) {
+          const chave = `meta_saldo_${id}_${hoje}`;
+          if (!(await jaFoi(chave))) { for (const u of quem) await enviar(u, `Saldo baixo: ${doc.nome}`, `Restam R$ ${doc.saldoDisp.toFixed(2).replace('.', ',')} na conta de anúncio. Coloque crédito para os anúncios não pararem.`); await marcar(chave); }
+        }
+      }
       if (c.account_status !== 1 && c.account_status !== 201) {
         const chave = `meta_conta_${id}_${c.account_status}`;
         if (!(await jaFoi(chave))) { for (const u of quem) await enviar(u, `Conta de anúncio com problema: ${doc.nome}`, `Situação no Meta: ${doc.statusContaTx}. Os anúncios dessa conta podem estar parados.`); await marcar(chave); }

@@ -403,6 +403,14 @@ details.panel[open] summary{margin-bottom:12px}
 .st.bad{color:var(--neg)} .st.bad i{background:var(--neg)}
 .st.wait{color:var(--warn)} .st.wait i{background:var(--warn)}
 #adsBusca{width:240px}
+.adsHoje{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.adH{display:flex;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0;color:inherit;text-decoration:none}
+.adH:hover{border-color:var(--line2)}
+.adH .th{width:64px;height:64px;border-radius:9px;background:var(--hover) center/cover no-repeat;flex:none}
+.adH .tx{min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12px}
+.adH .tx b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adH .tx .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.money{background:var(--pos-bg);color:var(--pos)}
 @media (max-width:640px){#adsBusca{width:100%}}
 /* avisos */
 .bell{position:relative;margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
@@ -533,6 +541,7 @@ details.panel[open] summary{margin-bottom:12px}
           <h1>Tráfego pago<small id="adsSub">Campanhas do Meta de cada cliente</small></h1>
           <div class="sp"></div>
           <div class="seg" id="fAdsSeg"></div>
+          <select class="search" id="adsLojaF" style="width:auto" aria-label="Filtrar por loja"></select>
           <input class="search" id="adsBusca" placeholder="Buscar cliente ou campanha…" aria-label="Buscar campanha">
         </div>
         <div class="kpis" id="adsKpis"></div>
@@ -696,7 +705,7 @@ const NAV = [
   ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['trafego','Tráfego','i-ads','socio'],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { ads:[], adsEst:{}, fAds:'ativas', midP:'todos', recibos:[], recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { ads:[], adsEst:{}, fAds:'ativas', fAdsLoja:'', midP:'todos', recibos:[], recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
@@ -1340,39 +1349,58 @@ function adsDaLoja(lojaId){return S.anuncios_.filter(a=>a.loja===lojaId)}
 Object.defineProperty(S,'anuncios_',{get(){return S.anuncios||[]}});
 function renderTrafego(){
   const body=document.getElementById('adsBody');if(!body)return;
-  segs('fAdsSeg','fAds',[['ativas','Ativas'],['problema','Com problema'],['todas','Todas']]);
+  segs('fAdsSeg','fAds',[['hoje','Hoje'],['ativas','Ativas'],['problema','Com problema'],['todas','Todas']]);
+  {const sel=document.getElementById('adsLojaF'),ls=lojasOrd().filter(l=>S.anuncios_.some(a=>a.loja===l.id));if(S.fAdsLoja&&S.fAdsLoja!=='_sem'&&!ls.some(l=>l.id===S.fAdsLoja))S.fAdsLoja='';
+   sel.innerHTML='<option value="">Todas as lojas</option>'+ls.map(l=>'<option value="'+l.id+'">'+esc(l.nome)+'</option>').join('')+(S.anuncios_.some(a=>!a.loja||!lojaNome(a.loja))?'<option value="_sem">Sem loja vinculada</option>':'');sel.value=S.fAdsLoja;sel.hidden=!S.anuncios_.length}
   document.querySelectorAll('#fAdsSeg [data-seg]').forEach(b=>{b.removeAttribute('data-seg');b.setAttribute('data-ads',b.dataset.v)});
   const est=S.adsEst||{},m=minAtras(est.atualizadoEm);
   document.getElementById('adsSub').textContent=est.atualizadoEm?'Atualizado '+(m<1?'agora':m<60?'há '+m+' min':'há '+Math.round(m/60)+' h')+(est.erro?' · erro: '+est.erro:''):'Campanhas do Meta de cada cliente';
-  const contas=S.anuncios_.slice();
-  if(!contas.length){document.getElementById('adsKpis').innerHTML='';
-    body.innerHTML='<div class="panel">'+emptyMsg(est.erro?'O Meta recusou a conexão':'Falta ligar o Meta',est.erro?esc(est.erro)+'<br>Confira a chave META_TOKEN no GitHub (passo a passo no LEIA-ME).':'Crie a chave do Meta (usuário do sistema) e salve no GitHub como META_TOKEN. Depois rode o robô no modo "meta". O passo a passo está no LEIA-ME.')+'</div>';return}
+  const contas=S.anuncios_.filter(a=>!S.fAdsLoja||(S.fAdsLoja==='_sem'?!lojaNome(a.loja):a.loja===S.fAdsLoja));
+  const todasC=S.anuncios_;
+  if(!todasC.length){document.getElementById('adsKpis').innerHTML='';
+    body.innerHTML='<div class="panel">'+(est.atualizadoEm&&!est.erro?emptyMsg('Meta ligado, mas nenhuma conta liberada','A chave está funcionando, só que o usuário do sistema "Central" ainda não tem contas de anúncio. No Gerenciador de Negócios da Elite MKT, vá em Usuários do sistema → Central → Atribuir ativos → Contas de anúncios, marque as contas com "Ver desempenho" e rode o robô no modo "meta" de novo.'):emptyMsg(est.erro?'O Meta recusou a conexão':'Falta ligar o Meta',est.erro?esc(est.erro)+'<br>Confira a chave META_TOKEN no GitHub (passo a passo no LEIA-ME).':'Crie a chave do Meta (usuário do sistema) e salve no GitHub como META_TOKEN. Depois rode o robô no modo "meta". O passo a passo está no LEIA-ME.'))+'</div>';return}
   const q=(document.getElementById('adsBusca').value||'').toLowerCase();
-  let ativas=0,hojeT=0,mesT=0,prob=0;
-  for(const a of contas){if(contaProblema(a))prob++;for(const k of a.campanhas||[]){if(k.status==='ACTIVE')ativas++;hojeT+=k.gastoHoje||0;mesT+=k.gastoMes||0}}
+  let ativas=0,hojeT=0,mesT=0,prob=0,saldoT=0,temSaldo=false;
+  for(const a of contas){if(a.saldoDisp!=null){saldoT+=a.saldoDisp;temSaldo=true}if(contaProblema(a))prob++;for(const k of a.campanhas||[]){if(k.status==='ACTIVE')ativas++;hojeT+=k.gastoHoje||0;mesT+=k.gastoMes||0}}
   document.getElementById('adsKpis').innerHTML='<div class="kpi"><div class="l">Campanhas ativas</div><div class="v num">'+ativas+'</div><div class="s">'+(n=>'em '+n+(n===1?' conta':' contas'))(contas.filter(a=>(a.campanhas||[]).some(k=>k.status==='ACTIVE')).length)+'</div></div>'+
     '<div class="kpi"><div class="l">Gasto hoje</div><div class="v num">'+$(hojeT)+'</div><div class="s">todas as contas</div></div>'+
     '<div class="kpi"><div class="l">Gasto no mês</div><div class="v num">'+$(mesT)+'</div><div class="s">'+mesLabel(ym(new Date()))+'</div></div>'+
+    (temSaldo?'<div class="kpi"><div class="l">Saldo nas contas</div><div class="v num">'+$(saldoT)+'</div><div class="s">contas pré-pagas</div></div>':'')+
     '<div class="kpi'+(prob?' hero':'')+'"'+(prob?' style="border-color:rgba(255,107,107,.5);background:var(--neg-bg)"':'')+'><div class="l">Com problema</div><div class="v num'+(prob?' neg':'')+'">'+prob+'</div><div class="s">'+(prob?'confira abaixo':'tudo rodando')+'</div></div>';
-  let lista=contas.map(a=>Object.assign({},a,{camps:(a.campanhas||[]).filter(k=>S.fAds==='todas'||(S.fAds==='ativas'?(k.status==='ACTIVE'||(ADS_ST[k.status]||[])[0]==='bad'):(ADS_ST[k.status]||[])[0]==='bad'))}));
+  const hojeV=S.fAds==='hoje';
+  let lista=contas.map(a=>Object.assign({},a,{ads:(a.hoje||[]).filter(x=>!q||((x.nome||'')+' '+(x.camp||'')).toLowerCase().includes(q)),camps:(a.campanhas||[]).filter(k=>S.fAds==='todas'||hojeV&&(k.gastoHoje>0)||!hojeV&&(S.fAds==='ativas'?(k.status==='ACTIVE'||(ADS_ST[k.status]||[])[0]==='bad'):(ADS_ST[k.status]||[])[0]==='bad'))}));
   if(q)lista=lista.map(a=>{const nomeOk=((a.nome||'')+' '+lojaNome(a.loja)).toLowerCase().includes(q);return Object.assign(a,{camps:nomeOk?a.camps:a.camps.filter(k=>(k.nome||'').toLowerCase().includes(q))})}).filter(a=>a.camps.length||((a.nome||'')+' '+lojaNome(a.loja)).toLowerCase().includes(q));
   if(S.fAds==='problema')lista=lista.filter(a=>contaProblema(a));
   else if(S.fAds==='ativas')lista=lista.filter(a=>a.camps.length||contaProblema(a));
+  if(hojeV){if(q)lista=lista.map(a=>{const nomeOk=((a.nome||'')+' '+lojaNome(a.loja)).toLowerCase().includes(q);return Object.assign(a,{ads:nomeOk?(a.hoje||[]):a.ads})});lista=lista.filter(a=>a.ads.length||(!a.hoje&&a.camps.length));lista.sort((a,b)=>b.ads.reduce((s,x)=>s+x.gasto,0)-a.ads.reduce((s,x)=>s+x.gasto,0))}
   lista.sort((a,b)=>(contaProblema(b)?1:0)-(contaProblema(a)?1:0)||(b.camps.reduce((s,k)=>s+(k.gastoMes||0),0)-a.camps.reduce((s,k)=>s+(k.gastoMes||0),0)));
   body.innerHTML=lista.length?lista.map(a=>{const bad=contaProblema(a),mes=(a.campanhas||[]).reduce((s,k)=>s+(k.gastoMes||0),0);
     const contaOk=!a.statusConta||a.statusConta===1||a.statusConta===201;
     return '<div class="acc2'+(bad?' bad':'')+'"><div class="hd"><div><b>'+esc(lojaNome(a.loja)||a.nome)+'</b>'+(lojaNome(a.loja)&&lojaNome(a.loja)!==a.nome?' <span class="hint">conta: '+esc(a.nome)+'</span>':'')+'</div>'+
       (contaOk?'':'<span class="chip late">Conta: '+esc(a.statusContaTx||'com problema')+'</span>')+(a.erro?'<span class="chip late">Sem acesso: '+esc(a.erro.slice(0,80))+'</span>':'')+
-      '<span class="sp"></span><span class="hint num">Mês: <b style="color:var(--ink)">'+$(mes)+'</b></span>'+
-      (S.adm?'<select class="search" style="width:auto;padding:5px 8px" data-ads-loja="'+a.conta+'" aria-label="Vincular à loja"><option value="">Vincular à loja…</option>'+lojasOrd().map(l=>'<option value="'+l.id+'"'+(l.id===a.loja?' selected':'')+'>'+esc(l.nome)+'</option>').join('')+'</select>':'')+
+      '<span class="sp"></span>'+saldoChip(a)+'<span class="hint num">Mês: <b style="color:var(--ink)">'+$(mes)+'</b></span>'+
+      (S.adm?'<select class="search" style="width:auto;padding:5px 8px" data-ads-loja="'+a.conta+'" aria-label="Vincular à loja"><option value="">Vincular à loja…</option>'+lojasOrd().map(l=>'<option value="'+l.id+'"'+(l.id===a.loja?' selected':'')+'>'+esc(l.nome)+'</option>').join('')+'<option value="_nova">+ Cadastrar nova loja…</option></select>':'')+
       '<a class="btn sm" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act='+encodeURIComponent(a.conta)+'" target="_blank" rel="noopener">Abrir no Gerenciador</a></div>'+
-      (a.camps.length?'<div class="tscroll"><table class="ctab"><thead><tr><th>Campanha</th><th>Situação</th><th>Orçamento</th><th>Hoje</th><th>7 dias</th><th>Mês</th><th>Resultados (7d)</th><th>Termina</th></tr></thead><tbody>'+
+      (hojeV?(a.ads.length?'<div class="adsHoje">'+a.ads.map(adHoje(a)).join('')+'</div>':'<p class="hint" style="margin:0">'+(a.hoje?'Nenhum anúncio rodou hoje nessa conta.':'Aparece na próxima atualização do robô.')+'</p>'):
+      a.camps.length?'<div class="tscroll"><table class="ctab"><thead><tr><th>Campanha</th><th>Situação</th><th>Orçamento</th><th>Hoje</th><th>7 dias</th><th>Mês</th><th>Resultados (7d)</th><th>Termina</th></tr></thead><tbody>'+
         a.camps.map(k=>'<tr><td>'+esc(k.nome)+'</td><td>'+adsSt(k.status)+'</td><td>'+(k.orcDia?$(k.orcDia)+'/dia':k.orcTotal?$(k.orcTotal)+' total':'<span class="hint">no conjunto</span>')+'</td><td>'+$(k.gastoHoje)+'</td><td>'+$(k.gasto7)+'</td><td>'+$(k.gastoMes)+'</td><td>'+(k.res7?k.res7+' <span class="hint">'+esc(k.resTipo)+'</span>':'—')+'</td><td>'+(k.fim?dCurta(k.fim.slice(0,10)):'<span class="hint">sem data</span>')+'</td></tr>').join('')+'</tbody></table></div>'
         :'<p class="hint" style="margin:0">'+(S.fAds==='ativas'?'Nenhuma campanha ativa.':'Nada aqui.')+'</p>')+'</div>'}).join('')
-    :'<div class="panel">'+emptyMsg(S.fAds==='problema'?'Nenhum problema':'Nada encontrado',S.fAds==='problema'?'Todas as contas e campanhas estão rodando normalmente.':'Troque o filtro ou a busca.')+'</div>';
+    :'<div class="panel">'+emptyMsg(S.fAds==='problema'?'Nenhum problema':hojeV?'Nenhum anúncio rodou hoje':'Nada encontrado',S.fAds==='problema'?'Todas as contas e campanhas estão rodando normalmente.':hojeV?'Ainda não teve gasto hoje'+(S.fAdsLoja?' nessa loja':'')+'. Os números atualizam a cada hora.':'Troque o filtro ou a busca.')+'</div>';
 }
+function saldoChip(a){
+  if(a.prepago&&a.saldoDisp!=null){const porDia=(a.campanhas||[]).filter(k=>k.status==='ACTIVE').reduce((s,k)=>s+(k.orcDia||0),0),baixo=a.saldoDisp<Math.max(30,porDia*2);
+    return '<span class="chip '+(baixo?'late':'money')+'" title="'+esc(a.pagamentoTx||'')+'">Saldo '+$(a.saldoDisp)+(porDia>0?' · ~'+Math.max(0,Math.floor(a.saldoDisp/porDia))+' dia'+(Math.floor(a.saldoDisp/porDia)===1?'':'s'):'')+'</span>'}
+  let s='';if(a.saldo)s+='<span class="chip" title="Valor gasto que o Meta ainda vai cobrar">A pagar '+$(a.saldo)+'</span>';
+  if(a.limiteRest!=null)s+='<span class="chip'+(a.limiteRest<50?' late':'')+'" title="Limite de gastos da conta">Limite restante '+$(a.limiteRest)+'</span>';
+  if(!s&&a.pagamentoTx)s='<span class="chip" title="Forma de pagamento">'+esc(a.pagamentoTx.slice(0,40))+'</span>';
+  return s}
+function adHoje(a){return x=>'<a class="adH" href="'+(x.ig||'https://adsmanager.facebook.com/adsmanager/manage/ads?act='+encodeURIComponent(a.conta)+'&selected_ad_ids='+encodeURIComponent(x.id))+'" target="_blank" rel="noopener"><span class="th"'+(x.thumb?' style="background-image:url(\''+esc(x.thumb).replace(/'/g,'%27')+'\')"':'')+'></span><span class="tx"><b title="'+esc(x.nome)+'">'+esc(x.nome||'Anúncio')+'</b><span class="hint" title="'+esc(x.camp)+'">'+esc(x.camp)+'</span>'+
+  '<span class="num"><b style="font-size:13px">'+$(x.gasto)+'</b> hoje</span><span class="hint num">'+x.imp.toLocaleString('pt-BR')+' impressões · '+x.cliques+' cliques'+(x.res?' · '+x.res+' '+esc(x.resTipo):'')+'</span></span></a>'}
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='adsBusca')renderTrafego()});
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='adsLojaF'){S.fAdsLoja=e.target.value;renderTrafego()}});
 document.addEventListener('change',async e=>{const s=e.target.closest&&e.target.closest('[data-ads-loja]');if(!s)return;
+  if(s.value==='_nova'){const conta=s.dataset.adsLoja,a=S.anuncios_.find(x=>x.conta===conta)||{};s.value=a.loja||'';
+    formLoja(null,async id=>{try{await write(()=>db.collection('anuncios').doc(conta).update({loja:id}));toast('Loja cadastrada e vinculada')}catch(_){}},a.nome||'');return}
   try{await write(()=>db.collection('anuncios').doc(s.dataset.adsLoja).update({loja:s.value}));toast(s.value?'Conta vinculada a '+lojaNome(s.value):'Vínculo removido')}catch(_){}});
 
 /* ---------- Recibos ---------- */
@@ -1752,7 +1780,7 @@ function renderClientes(){
 async function addSugestoes(){const tem=new Set(S.lojas.map(l=>(l.nome||'').toLowerCase()));let n=0;
   for(const nome of SUGESTOES){if(tem.has(nome.toLowerCase()))continue;try{await write(()=>store.add('lojas',{nome,instagram:nome==='Eduardo Motors'?'eduardo.motors2018':'',postagem:'Vanessa',ativo:true}));n++}catch(_){return}}
   toast(n+' clientes adicionados')}
-function formLoja(l){const novo=!l;l=l||{nome:'',instagram:'',postagem:'Vanessa',ativo:true};
+function formLoja(l,depois,nomeSug){const novo=!l;l=l||{nome:nomeSug||'',instagram:'',postagem:'Vanessa',ativo:true};
   sheet.innerHTML='<form id="fLj" novalidate><h2>'+(novo?'Novo cliente':'Editar cliente')+'</h2>'+
   '<div class="fld"><label for="ljNome">Nome da loja</label><input id="ljNome" value="'+esc(l.nome)+'" placeholder="Ex.: Tratos Cabelo"></div>'+
   '<div class="two"><div class="fld"><label for="ljIg">Instagram</label><input id="ljIg" value="'+esc(l.instagram)+'" placeholder="@usuario"></div>'+
@@ -1761,7 +1789,7 @@ function formLoja(l){const novo=!l;l=l||{nome:'',instagram:'',postagem:'Vanessa'
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fLj').onsubmit=async e=>{e.preventDefault();const nome=q('#ljNome').value.trim();if(!nome){q('#ljErr').textContent='Escreva o nome da loja.';return}
     const doc={nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true};
-    try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id}}catch(_){return}
+    try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id;if(depois)depois(id)}}catch(_){return}
     closeSheet();toast(novo?'Cliente cadastrado':'Cliente atualizado')};
   q('#ljNome').focus()}
 function itemRow(it){return '<div class="item"><input placeholder="Ex.: Ford Ka SE 2016" value="'+esc(it.titulo||'')+'" data-it="t"><select data-it="k">'+opts(Object.entries(TPOST),it.tipo||'reels')+'</select><button type="button" class="btn sm ghost danger" data-rm-item aria-label="Remover">✕</button></div>'}
