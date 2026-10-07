@@ -345,6 +345,42 @@ details.panel[open] summary{margin-bottom:12px}
 .selgrid figcaption{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere;line-height:1.2}
 .morenav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .morenav button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px}
+/* contratos */
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.three{grid-template-columns:1fr 1fr}}
+.checks{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}.checks label{display:flex;gap:8px;align-items:center}.checks input{width:18px;height:18px}
+details.pushbox summary{cursor:pointer}
+.cpwrap{background:#d9d9de;padding:12px}
+.cpwrap .cpage{margin:0 auto 12px;box-shadow:0 2px 14px rgba(0,0,0,.25)}
+.cpage{--ac:#EF6A1B;width:794px;height:1123px;box-sizing:border-box;background:#fff;color:#1d1d1f;font-family:var(--body);font-size:12.5px;line-height:1.55;padding:52px 64px 0;position:relative;overflow:hidden;text-align:left}
+.cpage.elite{--ac:#C59A2E}
+.cpage .cb{display:flow-root;padding-bottom:12px}
+.chd{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:2px solid var(--ac)}
+.chd img{height:84px;width:auto}
+.chd .lg{width:74px;height:74px;border-radius:14px;background:#000 center/cover no-repeat;flex:none}
+.chd h1{font-family:var(--display);font-size:17px;line-height:1.3;margin:0;color:#111;text-transform:uppercase;letter-spacing:.02em}
+.chd small{display:block;color:#777;font-size:11px;margin-top:5px}
+.csec h3{margin:0 0 6px;font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:#efeff1;padding:5px 10px;border-left:3px solid var(--ac);color:#222}
+.cbox{border:1px solid #d2d2d6;border-radius:4px;padding:9px 12px}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d2d2d6;border-radius:4px;overflow:hidden}
+.cgrid>div{padding:6px 12px;border-bottom:1px solid #e6e6ea;border-right:1px solid #e6e6ea;margin-bottom:-1px}
+.cgrid>div:nth-child(2n){border-right:0}.cgrid>div.full{grid-column:1/-1;border-right:0}
+.cgrid small{display:block;font-size:9.5px;color:#7a7a80;text-transform:uppercase;letter-spacing:.06em}
+.ctot{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.ctot span{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em}.ctot b{font-family:var(--display);font-size:18px}
+.cext{margin:0;color:#666;font-size:11.5px}
+table.ctb{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+table.ctb th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#777;border-bottom:1px solid #d2d2d6;padding:4px 6px}
+table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
+.csub{font-family:var(--display);font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--ac);border-bottom:1px solid #e3e3e7;padding:6px 0 4px}
+.ccl h4{margin:0 0 2px;font-size:12.5px;font-family:var(--display);color:#111}.ccl p{margin:0 0 3px;text-align:justify}
+.csig p{margin:0 0 6px}.csig .cdt{text-align:right;margin:10px 0 0}
+.clns{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px}
+.clns>div{position:relative;padding-top:78px;text-align:center}
+.clns .ln{display:block;border-top:1px solid #333;margin-bottom:5px}
+.clns b{display:block;font-size:12px}.clns small{display:block;color:#777;font-size:10px}
+.cassimg{position:absolute;left:50%;transform:translateX(-50%);bottom:34px;height:92px;width:auto}
+.cfoot{position:absolute;left:64px;right:64px;bottom:26px;display:flex;justify-content:space-between;gap:10px;font-size:9.5px;color:#8a8a90;border-top:1px solid #e6e6ea;padding-top:8px}
+.assprev{height:70px;background:#fff center/contain no-repeat;border-radius:8px;border:1px dashed var(--line2)}
 /* recibos */
 .parc{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) auto;gap:6px;align-items:center;font-size:13px}
 .parc input{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:7px 8px;min-width:0;width:100%}
@@ -535,6 +571,18 @@ details.panel[open] summary{margin-bottom:12px}
         <div class="panel"><input class="search" id="recBusca" placeholder="Buscar cliente ou número…" aria-label="Buscar recibo" style="width:100%;margin-bottom:8px"><div class="list" id="recList"></div></div>
       </section>
 
+      <!-- CONTRATOS -->
+      <section id="tab-contratos" hidden>
+        <div class="head">
+          <h1>Contratos<small>Preencha os dados do cliente e gere o PDF pronto</small></h1>
+          <div class="sp"></div>
+          <div class="seg" id="fCt"></div>
+          <button class="btn" data-rec="emissor">Dados das empresas</button>
+          <button class="btn primary" data-ct="novo"><svg class="i"><use href="#i-plus"/></svg>Novo contrato</button>
+        </div>
+        <div class="panel"><input class="search" id="ctBusca" placeholder="Buscar cliente, noivos ou número…" aria-label="Buscar contrato" style="width:100%;margin-bottom:8px"><div class="list" id="ctList"></div></div>
+      </section>
+
       <!-- TRÁFEGO -->
       <section id="tab-trafego" hidden>
         <div class="head">
@@ -666,6 +714,9 @@ details.panel[open] summary{margin-bottom:12px}
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
   <symbol id="i-album" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+  <symbol id="i-contract" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h3"/><path d="M13 18.5c1-1.2 1.6-1.2 2 0s1 1.2 2-.3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
   <symbol id="i-ads" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -702,10 +753,10 @@ const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DF
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['trafego','Tráfego','i-ads','socio'],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['contratos','Contratos','i-contract',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['trafego','Tráfego','i-ads','socio'],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
-const S = { ads:[], adsEst:{}, fAds:'ativas', fAdsLoja:'', midP:'todos', recibos:[], recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
+const S = { ads:[], adsEst:{}, fAds:'ativas', fAdsLoja:'', midP:'todos', recibos:[], contratos:[], fCt:'todas', recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
   tab:'producao', mes:ym(new Date()), empR:'todas', empC:'todas', tipoC:'todos', busca:'', empP:'todas', pes:'todos', empA:'todas',
   cal:ym(new Date()), dia:iso(new Date()), me:null, uid:null };
 let store=null, db=null, auth=null, subs=[], meUnsub=null, roleKey='', nomeCadastro='';
@@ -810,7 +861,7 @@ function render(){
   segs('fMid','midP',[['todos','Fotos e vídeos'],['foto','Só fotos'],['video','Só vídeos']]);
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
-  if(fin()){renderResumo();renderCaixa();renderRecibos()}
+  if(fin()){renderResumo();renderCaixa();renderRecibos();renderContratos()}
   renderBoard();renderClientes();renderAlbuns();if(S.fin)renderTrafego();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
 }
 
@@ -1076,6 +1127,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-mais]')){const ts=tabs().slice(4);sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Mais</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+ts.map(n=>'<button type="button" data-tabm="'+n[0]+'">'+ico(n[2])+n[1]+'</button>').join('')+'</div></form>';sheet.hidden=false;return}
   const tm=e.target.closest('[data-tabm]');if(tm){closeSheet();setTab(tm.dataset.tabm);return}
   const rc=e.target.closest('[data-rec]');if(rc){reciboAcao(rc);return}
+  const ctb=e.target.closest('[data-ct]');if(ctb){contratoAcao(ctb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
@@ -1107,7 +1159,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-preview-on]')){S.preview=true;render();setTab('producao');toast('Modo equipe: é isto que o Lucas vê');return}
   if(e.target.closest('[data-preview-off]')){S.preview=false;render();return}
   const fp=e.target.closest('[data-filtro-pes]');if(fp){S.pes=fp.dataset.filtroPes;setTab('producao');render();return}
-  if(e.target.closest('#fab')){if(S.tab==='recibos'){formRecibo();return}if(S.tab==='albuns'){formAlbum();return}if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
+  if(e.target.closest('#fab')){if(S.tab==='recibos'){formRecibo();return}if(S.tab==='contratos'){formContrato();return}if(S.tab==='albuns'){formAlbum();return}if(S.tab==='drive'){escolherUpload('pasta');return}if(S.tab==='caixa')formLanc();else if(S.tab==='clientes')formPost(null,S.loja!=='todas'?S.loja:'');else formTar();return}
   if(e.target.closest('[data-new-lanc]')){formLanc();return}
   if(e.target.closest('[data-new-tar]')){formTar();return}
   if(e.target.closest('[data-close2]')||e.target===sheet2){fecharSheet2();return}
@@ -1538,16 +1590,285 @@ async function reciboAcao(b){const k=b.dataset.rec,id=b.dataset.id;const r=S.rec
       finally{b.disabled=false;b.textContent=t}}
   }catch(er){toast(er.message||'Não deu certo')}}
 function formEmissor(){const d=emissor('duraes'),el=emissor('elite');
-  const bloco=(k,e,t)=>'<div class="pushbox"><b>'+t+'</b><div class="two"><div class="fld"><label for="e_'+k+'_nome">Nome no recibo</label><input id="e_'+k+'_nome" value="'+esc(e.nome)+'"></div><div class="fld"><label for="e_'+k+'_doc">CNPJ ou CPF</label><input id="e_'+k+'_doc" value="'+esc(e.doc)+'"></div></div>'+
+  const bloco=(k,e,t)=>'<div class="pushbox"><b>'+t+'</b><div class="two"><div class="fld"><label for="e_'+k+'_nome">Nome da empresa</label><input id="e_'+k+'_nome" value="'+esc(e.nome)+'"></div><div class="fld"><label for="e_'+k+'_doc">CNPJ ou CPF</label><input id="e_'+k+'_doc" value="'+esc(e.doc)+'"></div></div>'+
     '<div class="two"><div class="fld"><label for="e_'+k+'_resp">Quem assina</label><input id="e_'+k+'_resp" value="'+esc(e.resp)+'"></div><div class="fld"><label for="e_'+k+'_cidade">Cidade/UF</label><input id="e_'+k+'_cidade" value="'+esc(e.cidade)+'" placeholder="Ex.: Artur Nogueira/SP"></div></div>'+
-    '<div class="fld"><label for="e_'+k+'_end">Endereço</label><input id="e_'+k+'_end" value="'+esc(e.end)+'"></div>'+
+    '<div class="two"><div class="fld"><label for="e_'+k+'_end">Endereço (rua e número)</label><input id="e_'+k+'_end" value="'+esc(e.end)+'" placeholder="Ex.: Rua Gagliano Fontana, 247"></div><div class="fld"><label for="e_'+k+'_cep">CEP</label><input id="e_'+k+'_cep" value="'+esc(e.cep)+'"></div></div>'+
+    '<div class="fld"><label for="e_'+k+'_respDoc">CPF de quem assina (vai no contrato)</label><input id="e_'+k+'_respDoc" value="'+esc(e.respDoc)+'"></div>'+
+    '<div class="fld"><span class="l">Assinatura digitalizada (para os contratos)</span><div class="assprev" id="e_'+k+'_assPrev" data-ass="'+esc(e.assinatura||'')+'" style="'+(e.assinatura?'background-image:url('+e.assinatura+')':'')+'"></div><div style="display:flex;gap:8px"><label class="btn sm" style="cursor:pointer">Enviar imagem (PNG)<input type="file" accept="image/*" id="e_'+k+'_assFile" hidden></label><button type="button" class="btn sm ghost danger" data-assrm="'+k+'">Remover</button></div><span class="hint">De preferência PNG com fundo transparente.</span></div>'+
     '<div class="two"><div class="fld"><label for="e_'+k+'_tel">Telefone</label><input id="e_'+k+'_tel" value="'+esc(e.tel)+'"></div><div class="fld"><label for="e_'+k+'_email">E-mail</label><input id="e_'+k+'_email" value="'+esc(e.email)+'"></div></div>'+
     '<div class="fld"><label for="e_'+k+'_pix">Chave Pix (aparece no rodapé)</label><input id="e_'+k+'_pix" value="'+esc(e.pix)+'"></div></div>';
-  sheet.innerHTML='<form id="fEm" novalidate><h2>Dados da empresa no recibo</h2>'+bloco('duraes',d,'Durães Fotografia')+bloco('elite',el,'Elite Marketing Digital')+'<div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
+  sheet.innerHTML='<form id="fEm" novalidate><h2>Dados das empresas (recibos e contratos)</h2>'+bloco('duraes',d,'Durães Fotografia')+bloco('elite',el,'Elite Marketing Digital')+'<div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
   sheet.hidden=false;
+  for(const k of ['duraes','elite']){const pv=sheet.querySelector('#e_'+k+'_assPrev');
+    sheet.querySelector('#e_'+k+'_assFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const u=await imgReduzida(f,600);pv.dataset.ass=u;pv.style.backgroundImage='url('+u+')'}catch(_){toast('Não consegui ler essa imagem')}};
+    sheet.querySelector('[data-assrm="'+k+'"]').onclick=()=>{pv.dataset.ass='';pv.style.backgroundImage=''}}
   sheet.querySelector('#fEm').onsubmit=async e=>{e.preventDefault();const g=(k,f)=>sheet.querySelector('#e_'+k+'_'+f).value.trim().slice(0,160);const out={};
-    for(const k of ['duraes','elite'])out[k]={nome:g(k,'nome'),doc:g(k,'doc'),resp:g(k,'resp'),cidade:g(k,'cidade'),end:g(k,'end'),tel:g(k,'tel'),email:g(k,'email'),pix:g(k,'pix')};
+    for(const k of ['duraes','elite'])out[k]={nome:g(k,'nome'),doc:g(k,'doc'),resp:g(k,'resp'),cidade:g(k,'cidade'),end:g(k,'end'),tel:g(k,'tel'),email:g(k,'email'),pix:g(k,'pix'),cep:g(k,'cep'),respDoc:g(k,'respDoc'),assinatura:sheet.querySelector('#e_'+k+'_assPrev').dataset.ass||''};
     try{await write(()=>db.collection('recibosCfg').doc('emissores').set(out));S.recCfg=out;closeSheet();toast('Dados salvos')}catch(_){}}}
+
+/* ---------- Contratos ---------- */
+const CT_EVT={casamento:'Casamento',aniversario:'Aniversário',debutante:'Debutante',outro:'Outro'};
+const CT_SERV={foto_video:'Fotografia e Filmagem',foto:'Fotografia',video:'Filmagem'};
+const CT_FREQ={avista:'À vista (1 pagamento)',semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
+const CT_ST={rascunho:['eq','Rascunho'],enviado:['soon','Enviado'],assinado:['rec','Assinado']};
+const CT_PADRAO={
+  evento:{empresa:'duraes',modelo:'evento',tipoEvt:'casamento',servico:'foto_video',servNome:'Fotografia e Filmagem Completa',cobertura:'Making of (noiva/noivo), Cerimônia e Festa',horas:12,prazoFotos:15,prazoVideo:30,duracaoVideo:'10 a 20 minutos',multaDia:2,diasAtraso:10,cancelDias:2,taxaClip:25,freq:'semanal',forma:'Pix'},
+  marketing:{empresa:'elite',modelo:'marketing',sConteudo:true,sRedes:true,sTrafego:true,meses:3,diaVenc:5,forma:'Pix ou Débito',multaDia:2,avisoPrevio:30}
+};
+function dBR(s){return s?String(s).split('-').reverse().join('/'):''}
+function numExt(n){return extenso(n).replace(/ (real|reais)$/,'')}
+function dataExtC(s){if(!s)return '';const d=new Date(s+'T12:00:00');const m=d.toLocaleDateString('pt-BR',{month:'long'});return d.getDate()+' de '+m.charAt(0).toUpperCase()+m.slice(1)+' de '+d.getFullYear()}
+function cidadeDe(e){return (e.cidade||'').split(/\s*[\/\-–]\s*/)[0].trim()}
+function ctNumero(emp){const ano=hoje().slice(0,4),pre='CT-'+(emp==='elite'?'EM':'DF')+'-'+ano+'-';
+  const ns=(S.contratos||[]).filter(c=>(c.numero||'').startsWith(pre)).map(c=>parseInt(c.numero.slice(pre.length),10)||0);
+  return pre+String((ns.length?Math.max(...ns):0)+1).padStart(3,'0')}
+function ctTotal(c){return c.modelo==='marketing'?(c.mensal||0)*(c.meses||0):(c.total||0)}
+function ctPagamentos(c){/* lista {rot,data,valor} de tudo que o cliente paga */
+  const out=[];if(c.modelo==='marketing'){(c.parcelas||[]).forEach((p,i)=>out.push({rot:(i+1)+'ª mensalidade',data:p.data,valor:p.valor}));return out}
+  if(c.entV>0)out.push({rot:'Entrada',data:c.entD,valor:c.entV});
+  const n=(c.parcelas||[]).length;(c.parcelas||[]).forEach((p,i)=>out.push({rot:n===1?'Restante':(i+1)+'ª parcela',data:p.data,valor:p.valor}));return out}
+function gerarDatas(ini,n,freq){const out=[];for(let i=0;i<n;i++){const d=new Date((ini||hoje())+'T12:00:00');if(freq==='semanal')d.setDate(d.getDate()+7*i);else if(freq==='quinzenal')d.setDate(d.getDate()+14*i);else d.setMonth(d.getMonth()+i);out.push(iso(d))}return out}
+function dividir(total,n){const base=Math.floor(total/n*100)/100;return Array.from({length:n},(_,i)=>i===n-1?Math.round((total-base*(n-1))*100)/100:base)}
+function fimVigencia(ini,meses){if(!ini||!meses)return '';const d=new Date(ini+'T12:00:00');d.setMonth(d.getMonth()+(+meses));return iso(d)}
+
+/* ---- documento ---- */
+function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.modelo!=='marketing';
+  const B=[],sec=(t,h)=>'<div class="csec"><h3>» '+t+'</h3>'+h+'</div>',cl=(t,p)=>'<div class="ccl"><h4>'+t+'</h4>'+[].concat(p).map(x=>'<p>'+x+'</p>').join('')+'</div>';
+  const titulo=ev?'Contrato de Serviços Fotográficos':'Contrato de Prestação de Serviços de Mídias Sociais, Conteúdo Audiovisual'+(c.sTrafego?' e Gestão de Tráfego':'');
+  B.push('<div class="chd">'+(el?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img src="logos/duraes-claro.jpg" alt="">')+'<div><h1>'+titulo+'</h1><small>Contrato nº '+esc(c.numero||'—')+'</small></div></div>');
+  const contratada='<b>'+esc(e.nome)+'</b>'+(e.end?', com sede na '+esc(e.end):'')+(e.cep?', CEP '+esc(e.cep):'')+(e.cidade?' – '+esc(e.cidade):'')+(e.doc?', inscrita no CNPJ/CPF '+esc(e.doc):'')+(e.resp?', representada por <b>'+esc(e.resp)+'</b>'+(e.respDoc?', portador do CPF nº '+esc(e.respDoc):''):'')+', doravante denominada <b>CONTRATADA</b>, e de outro lado:';
+  B.push(sec('Contratada','<div class="cbox">'+contratada+'</div>'));
+  const g=(l,v,full)=>v?'<div'+(full?' class="full"':'')+'><small>'+l+'</small>'+v+'</div>':'';
+  if(ev){
+    B.push(sec('Contratante','<div class="cgrid">'+g('Nome do contratante','<b>'+esc(c.nome)+'</b>',!c.doc)+g('CPF',esc(c.doc))+g('E-mail',esc(c.email))+g('Telefone',esc(c.tel))+g('Endereço',esc(c.end),true)+'</div>'));
+    const marca=Object.entries(CT_EVT).map(([k,t])=>'( '+(c.tipoEvt===k?'<b>x</b>':'&nbsp;')+' ) '+t.toUpperCase()+(k==='outro'&&c.tipoEvt==='outro'&&c.outro?': <b>'+esc(c.outro)+'</b>':'')).join('&nbsp;&nbsp; ');
+    const nomes=c.tipoEvt==='casamento'?g('Nome do noivo',esc(c.n1))+g('Nome da noiva',esc(c.n2)):g(c.tipoEvt==='aniversario'||c.tipoEvt==='debutante'?'Aniversariante':'Homenageado(s) / evento',esc(c.n1),true);
+    B.push(sec('Tipo do evento ou cobertura fotográfica','<div class="cbox" style="margin-bottom:6px">'+marca+'</div><div class="cgrid">'+nomes+g('Data','<b>'+dBR(c.data)+'</b>')+g('Horário',esc(c.hora))+g('Local da cerimônia / festa',esc(c.local),true)+'</div>'));
+  } else {
+    B.push(sec('Contratante','<div class="cbox"><b>'+esc(c.nome)+'</b>'+(c.doc?', inscrito(a) no CNPJ/CPF '+esc(c.doc):'')+(c.empCli?', representando a empresa <b>'+esc(c.empCli)+'</b>':'')+(c.end?', com endereço na '+esc(c.end):'')+(c.email||c.tel?' · '+esc([c.tel,c.email].filter(Boolean).join(' · ')):'')+', doravante denominado(a) <b>CONTRATANTE</b>.</div>'));
+  }
+  // pagamento
+  const pg=ctPagamentos(c),tot=ctTotal(c);
+  const tab=pg.length?'<table class="ctb"><thead><tr><th>Pagamento</th><th>Vencimento</th><th style="text-align:right">Valor</th></tr></thead><tbody>'+pg.map(p=>'<tr><td>'+p.rot+'</td><td>'+(dBR(p.data)||'—')+'</td><td style="text-align:right">'+$(p.valor)+'</td></tr>').join('')+'</tbody></table>':'';
+  const pagBox=ev?'<div class="cbox"><div class="ctot"><span>Valor total dos serviços</span><b>'+$(tot)+'</b></div><p class="cext">('+esc(extenso(tot))+')</p>'+tab+(c.restTx?'<p style="margin:8px 0 0"><b>Condições:</b> '+esc(c.restTx)+'</p>':'')+(c.forma?'<p style="margin:6px 0 0"><b>Forma de pagamento:</b> '+esc(c.forma)+'</p>':'')+'</div>'
+    :'<div class="cbox"><div class="ctot"><span>Valor mensal</span><b>'+$(c.mensal)+'</b></div><p class="cext">('+esc(extenso(c.mensal||0))+') · '+c.meses+' '+(c.meses==1?'mês':'meses')+' = '+$(tot)+'</p>'+tab+'</div>';
+  if(ev){
+    B.push(sec('Condições de pagamento',pagBox));
+    B.push(sec('Serviços contratados','<div class="cbox"><b>Serviços:</b> '+esc(c.servNome||CT_SERV[c.servico])+(c.cobertura?'<ul style="margin:4px 0 0;padding-left:18px"><li>'+esc(c.cobertura)+'</li></ul>':'')+'</div>'));
+    B.push(sec('Objetivo do contrato','<div class="cbox">A cobertura '+(c.servico==='video'?'audiovisual':'fotográfica')+' está prevista em até <b>'+(c.horas||0)+' horas</b> de duração, na data informada.<br><span style="color:#666">*O detalhamento completo dos serviços segue nos Termos e Condições abaixo.</span></div>'));
+    const fv=c.servico==='foto'?['fotografia','fotografias']:c.servico==='video'?['filmagem','filmagens']:['fotografia e filmagem','fotografias e filmagens'];
+    B.push('<div class="csub">Termos e condições</div>');
+    B.push(cl('Serviços do Fotógrafo','O Fotógrafo concorda em fornecer serviços de '+fv[0]+' para o cliente no dia do evento. Os serviços incluirão '+fv[1]+' do evento conforme acordado entre o Fotógrafo e o Cliente.'));
+    B.push(cl('Atraso no Pagamento','No caso de atraso no pagamento, por mais de '+(c.diasAtraso||10)+' dias, será cobrada uma multa de '+$(c.multaDia)+' ao dia.'));
+    B.push(cl('Honorários','O Fotógrafo não fornecerá serviços no dia do Evento até que o depósito seja recebido.'));
+    B.push(cl('Direitos autorais','O Fotógrafo retém os direitos autorais de todas as '+fv[1]+' feitas durante o Evento, incluindo quaisquer imagens usadas para fins promocionais. O Cliente receberá uma licença não exclusiva para usar as '+fv[1]+' para fins pessoais e não comerciais.'));
+    B.push(cl('Cancelamento','Em caso de cancelamento por parte do Cliente, o depósito não será reembolsado. Se o cancelamento ocorrer dentro de '+numExt(c.cancelDias||2)+' ('+(c.cancelDias||2)+') dias antes da Data do Evento, o cliente será responsável pelo pagamento integral do Honorário.'));
+    B.push(cl('Responsabilidade do Fotógrafo','O Fotógrafo não será responsável por quaisquer danos ou perda de bens pessoais do cliente ou de seus convidados. O Fotógrafo não será responsável por quaisquer atrasos resultantes de circunstâncias fora de seu controle, incluindo, mas não se limitando a atrasos por condições climáticas.'));
+    if(c.servico!=='video')B.push(cl('Entrega das Fotos','O Fotógrafo entregará fotos ilimitadas e editadas em alta resolução em até '+(c.prazoFotos||15)+' dias após o evento.'));
+    if(c.servico!=='foto')B.push(cl('Entrega do Vídeo','O vídeo'+(c.servNome?' ('+esc(c.servNome)+')':'')+' será entregue em até '+(c.prazoVideo||30)+' dias após o evento'+(c.duracaoVideo?', com edição de vídeo de '+esc(c.duracaoVideo):'')+'. Após a entrega do vídeo, o cliente tem prazo de 7 dias para pedir troca de clipes sem custo adicional; passados os 7 dias, será cobrada a taxa de '+$(c.taxaClip)+' por clipe editado.'));
+    B.push(cl('Uso das Fotos e da Filmagem','O cliente concorda que o Fotógrafo pode usar as '+fv[1]+' feitas durante o evento para fins promocionais, incluindo, mas não se limitando a publicações em sites e em redes sociais. O cliente também concorda em permitir que o Fotógrafo use seus nomes e imagens em conexão com o uso promocional das '+fv[1]+'.'));
+    B.push(cl('Autorização de Imagem','O cliente concorda em autorizar o Fotógrafo a fazer '+(c.servico==='foto'?'fotos':c.servico==='video'?'filmagens':'fotos e filmagens')+' dele e de seus convidados durante o evento. O cliente concorda em garantir que seus convidados estejam cientes de que podem ser '+(c.servico==='foto'?'fotografados':c.servico==='video'?'filmados':'fotografados e filmados')+' durante o evento.'));
+    if(c.obs)B.push(cl('Condições adicionais',esc(c.obs).split(/\n+/)));
+    B.push(cl('Acordo integral','Este Contrato constitui o acordo integral entre o Fotógrafo e o cliente e substitui todas as discussões anteriores, correspondências e acordos anteriores entre as partes. Este Contrato só pode ser modificado por escrito e assinado por ambas as partes.'));
+  } else {
+    const it=[c.sConteudo&&'produção de fotos e vídeos',c.sRedes&&'gestão de publicações nas redes sociais da empresa',c.sTrafego&&'gestão de anúncios'].filter(Boolean);
+    B.push(sec('Objetivo do contrato','<div class="cbox">Este contrato tem como objetivo a prestação de serviços de mídias sociais'+(it.length?', incluindo '+(it.length>1?it.slice(0,-1).join(', ')+' e '+it[it.length-1]:it[0]):'')+', conforme os termos a seguir:</div>'));
+    let n=0;const N=t=>(++n)+'. '+t;
+    B.push(cl(N('Prestação de Serviços'),[c.sConteudo&&'<b>Produção de Conteúdo:</b> fotos e vídeos (reels) para divulgação e promoção nas redes sociais.',c.sRedes&&'<b>Postagens e Gerenciamento de Redes Sociais:</b> planejamento e publicação de conteúdo nas redes sociais do contratante com foco em engajamento e venda.',c.sTrafego&&'<b>Gestão de Tráfego:</b> criação, acompanhamento e otimização de anúncios pagos nas plataformas do Meta (Facebook e Instagram). O valor investido nos anúncios não está incluso neste contrato e é pago pelo contratante diretamente à plataforma.',c.pacote&&'<b>Pacote:</b> '+esc(c.pacote)+'.','<b>Periodicidade:</b> o contratado se compromete a entregar o conteúdo e realizar as postagens conforme cronograma acordado.'].filter(Boolean)));
+    B.push(cl(N('Vigência do Contrato'),'O contrato terá duração de '+c.meses+' ('+numExt(+c.meses||0)+') '+(c.meses==1?'mês':'meses')+', com início em <b>'+dBR(c.ini)+'</b> e término em <b>'+dBR(c.fim)+'</b>.'));
+    B.push('<div class="ccl"><h4>'+N('Valor e Condições de Pagamento')+'</h4><p>O valor do contrato é de <b>'+$(c.mensal)+'</b> ('+esc(extenso(c.mensal||0))+') mensais. O pagamento será realizado mensalmente até o dia '+(c.diaVenc||'')+' de cada mês, via '+esc(c.forma||'Pix')+'. Em caso de atraso no pagamento, será cobrada uma multa de '+$(c.multaDia)+' por dia de atraso.</p></div>');
+    B.push(sec('Condições de pagamento',pagBox));
+    B.push(cl(N('Cancelamento e Rescisão'),['Em caso de rescisão antecipada por qualquer das partes, deverá ser feito aviso prévio de '+(c.avisoPrevio||30)+' dias.','Caso o cancelamento ocorra antes do fim do contrato, o contratante deverá pagar proporcionalmente pelos serviços prestados até o momento do cancelamento.']));
+    B.push(cl(N('Direitos de Uso das Imagens e Conteúdos'),['O contratante terá o direito de uso dos conteúdos produzidos exclusivamente para as redes sociais e canais de marketing digital durante o período contratado.','O contratado reserva o direito de utilizar o material produzido para fins de portfólio, salvo acordo específico contrário com o contratante.']));
+    B.push(cl(N('Obrigações das Partes'),['<b>Contratante:</b> fornecer acesso e informações necessárias para o gerenciamento das redes sociais'+(c.sTrafego?' e das contas de anúncio':'')+' e disponibilizar os demais elementos a serem fotografados/filmados.','<b>Contratado:</b> produzir o conteúdo conforme solicitado e publicar nas redes sociais do contratante, respeitando o calendário e as diretrizes estabelecidas em reunião.']));
+    if(c.obs)B.push(cl(N('Condições adicionais'),esc(c.obs).split(/\n+/)));
+    B.push(cl('Acordo integral','Este Contrato constitui o acordo integral entre o contratado e o contratante e substitui todas as discussões anteriores, correspondências e acordos anteriores entre as partes. Este Contrato só pode ser modificado por escrito e assinado por ambas as partes.'));
+  }
+  const ass=c.assinar&&e.assinatura?'<img class="cassimg" src="'+e.assinatura+'" alt="">':'';
+  B.push('<div class="csig"><p>Ao assinar abaixo, o cliente concorda com os termos e condições estabelecidos neste Contrato.</p><p class="cdt">'+esc(cidadeDe(e)?cidadeDe(e)+', ':'')+dataExtC(c.dataAss||hoje())+'.</p><div class="clns"><div>'+ass+'<span class="ln"></span><b>'+esc(e.resp||e.nome)+'</b><small>'+esc(e.nome)+' · CONTRATADA</small></div><div><span class="ln"></span><b>'+esc(c.nome)+'</b><small>'+(c.doc?'CPF/CNPJ '+esc(c.doc)+' · ':'')+'CONTRATANTE</small></div></div></div>');
+  return B}
+async function ctPaginas(c){
+  try{await document.fonts.ready}catch(_){}
+  const blocos=ctBlocos(c),W=794,H=1123,TOP=52,BOT=84,LIM=H-TOP-BOT;
+  const m=document.createElement('div');m.className='cpage '+c.empresa;m.style.cssText='position:fixed;left:-10000px;top:0;height:auto;visibility:hidden';
+  m.innerHTML=blocos.map(b=>'<div class="cb">'+b+'</div>').join('');document.body.appendChild(m);
+  await Promise.all([...m.querySelectorAll('img')].map(i=>i.complete?1:new Promise(o=>{i.onload=i.onerror=o})));
+  const hs=[...m.children].map(x=>x.offsetHeight);m.remove();
+  const pags=[[]];let usado=0;
+  blocos.forEach((b,i)=>{const h=hs[i];const ehTitulo=/class="csub"/.test(b);
+    if(usado+h>LIM&&pags[pags.length-1].length){pags.push([]);usado=0}
+    pags[pags.length-1].push(b);usado+=h;
+    if(ehTitulo&&i+1<blocos.length&&usado+hs[i+1]>LIM){pags[pags.length-1].pop();pags.push([b]);usado=h}});
+  const e=emissor(c.empresa),n=pags.length;
+  return pags.map((p,i)=>'<div class="cpage '+c.empresa+'">'+p.map(b=>'<div class="cb">'+b+'</div>').join('')+'<div class="cfoot"><span>'+esc(e.nome)+' · Contrato '+esc(c.numero||'')+'</span>'+(i<n-1?'<span>Rubrica: ____________</span>':'')+'<span>Página '+(i+1)+' de '+n+'</span></div></div>')}
+
+/* ---- lista ---- */
+function renderContratos(){
+  const L=document.getElementById('ctList');if(!L)return;
+  segs('fCt','fCt',[['todas','Todos'],['duraes','Durães'],['elite','Elite']]);if(!S.fCt)S.fCt='todas';
+  const q=(document.getElementById('ctBusca').value||'').toLowerCase();
+  const cs=(S.contratos||[]).filter(c=>(S.fCt==='todas'||c.empresa===S.fCt)&&(!q||((c.nome||'')+' '+(c.numero||'')+' '+(c.empCli||'')+' '+(c.n1||'')+' '+(c.n2||'')).toLowerCase().includes(q))).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  L.innerHTML=cs.length?cs.map(c=>{const st=CT_ST[c.status]||CT_ST.rascunho;
+    const sub=c.modelo==='marketing'?(c.empCli?esc(c.empCli)+' · ':'')+c.meses+' '+(c.meses==1?'mês':'meses')+' · '+$(c.mensal)+'/mês':(CT_EVT[c.tipoEvt]||'Evento')+(c.data?' · '+dCurta(c.data):'')+' · '+esc(CT_SERV[c.servico]||'');
+    return '<div class="row">'+dBox(c.modelo==='marketing'?c.ini:c.data,c.empresa)+'<div style="min-width:0"><div class="t">'+esc(c.nome)+'</div><div class="s"><span>'+esc(c.numero)+'</span>'+chipEmp(c.empresa)+'<span class="chip '+st[0]+'">'+st[1]+'</span><span>'+sub+'</span>'+(c.caixa?'<span class="hint">no Caixa</span>':'')+'</div></div><div class="v num">'+$(ctTotal(c))+'</div>'+
+      '<div class="acts"><button class="btn sm primary" data-ct="ver" data-id="'+c.id+'">Ver / enviar</button><button class="btn sm ghost" data-ct="editar" data-id="'+c.id+'">Editar</button><button class="btn sm ghost" data-ct="mais" data-id="'+c.id+'">Mais…</button></div></div>'}).join('')
+    :emptyMsg('Nenhum contrato ainda','Toque em "Novo contrato" e escolha Durães (evento) ou Elite (marketing). Antes, confira em "Dados das empresas" o CNPJ, endereço e quem assina.');
+}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='ctBusca')renderContratos()});
+
+/* ---- formulário ---- */
+function formContrato(c,base){
+  const novo=!c;
+  c=JSON.parse(JSON.stringify(c||Object.assign({},CT_PADRAO[(base&&base.modelo)||'evento'],{nome:'',doc:'',email:'',tel:'',end:'',parcelas:[],dataAss:hoje(),assinar:true,status:'rascunho'},base||{})));
+  const ts=S.tar.filter(t=>t.empresa!=='elite').slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const st={modelo:c.modelo||'evento'};let parc=(c.parcelas||[]).map(x=>Object.assign({},x));
+  const v=x=>x==null||x===''?'':String(x).replace('.',','),I=(id,lab,val,extra)=>'<div class="fld"><label for="'+id+'">'+lab+'</label><input id="'+id+'" value="'+esc(val==null?'':val)+'"'+(extra||'')+'></div>';
+  const P=c.modelo==='marketing'?CT_PADRAO.marketing:CT_PADRAO.evento;
+  sheet.innerHTML='<form id="fCt" novalidate style="max-width:760px"><h2>'+(novo?'Novo contrato':'Editar contrato '+esc(c.numero))+'</h2>'+
+  (novo?'<div class="seg" id="ctMod"><button type="button" data-v="evento" aria-pressed="'+(st.modelo==='evento')+'">Durães · Evento</button><button type="button" data-v="marketing" aria-pressed="'+(st.modelo==='marketing')+'">Elite · Marketing</button></div>':'')+
+  '<div class="pushbox"><b>Contratante</b>'+
+    '<div id="ctEvPre" class="fld"><label for="ctTar">Puxar dados de um trabalho (opcional)</label><select id="ctTar">'+opts([['','—']].concat(ts.map(t=>[t.id,t.titulo+(t.data?' · '+dCurta(t.data):'')])),c.tar||'')+'</select></div>'+
+    '<div id="ctMkPre" class="fld"><label for="ctLoja">Loja (opcional)</label><select id="ctLoja">'+opts([['','—']].concat(lojasOrd().map(l=>[l.id,l.nome])),c.loja||'')+'</select></div>'+
+    '<div class="two">'+I('ctNome','Nome completo de quem assina',c.nome,' placeholder="Ex.: Jhociny Silva de Morais"')+I('ctDoc','CPF / CNPJ',c.doc)+'</div>'+
+    '<div id="ctEmpWrap">'+I('ctEmpCli','Empresa do cliente',c.empCli,' placeholder="Ex.: Barão Express Distribuidora de Bebidas"')+'</div>'+
+    '<div class="two">'+I('ctEmail','E-mail',c.email,' type="email"')+I('ctTel','Telefone / WhatsApp',c.tel,' inputmode="tel"')+'</div>'+
+    I('ctEnd','Endereço (opcional)',c.end)+'</div>'+
+  /* evento */
+  '<div id="ctEv" class="pushbox"><b>Evento</b>'+
+    '<div class="two"><div class="fld"><label for="ctTipo">Tipo</label><select id="ctTipo">'+opts(Object.entries(CT_EVT),c.tipoEvt||'casamento')+'</select></div>'+I('ctOutro','Qual? (se “Outro”)',c.outro,' placeholder="Ex.: Formatura"')+'</div>'+
+    '<div class="two">'+I('ctN1','<span id="ctN1l">Nome do noivo</span>',c.n1)+'<div id="ctN2w">'+I('ctN2','Nome da noiva',c.n2)+'</div></div>'+
+    '<div class="two">'+I('ctData','Data do evento',c.data,' type="date"')+I('ctHora','Horário',c.hora,' placeholder="Ex.: 16:00"')+'</div>'+
+    I('ctLocal','Local / cidade da cerimônia e festa',c.local)+
+    '<div class="two"><div class="fld"><label for="ctServ">Serviço</label><select id="ctServ">'+opts(Object.entries(CT_SERV),c.servico||'foto_video')+'</select></div>'+I('ctServNome','Nome do pacote',c.servNome,' placeholder="Ex.: Fotografia e Filmagem Completa"')+'</div>'+
+    I('ctCob','O que a cobertura inclui',c.cobertura,' placeholder="Ex.: Making of (noiva/noivo), Cerimônia e Festa"')+
+    '<div class="three">'+I('ctHoras','Duração (horas)',c.horas,' type="number" min="1"')+I('ctPF','Entrega fotos (dias)',c.prazoFotos,' type="number" min="1"')+I('ctPV','Entrega vídeo (dias)',c.prazoVideo,' type="number" min="1"')+'</div>'+
+    I('ctDV','Duração do vídeo editado',c.duracaoVideo,' placeholder="Ex.: 10 a 20 minutos"')+'</div>'+
+  /* marketing */
+  '<div id="ctMk" class="pushbox"><b>Serviços e vigência</b>'+
+    '<div class="checks"><label><input type="checkbox" id="ctS1" '+(c.sConteudo?'checked':'')+'> Produção de fotos e vídeos</label><label><input type="checkbox" id="ctS2" '+(c.sRedes?'checked':'')+'> Postagens / redes sociais</label><label><input type="checkbox" id="ctS3" '+(c.sTrafego?'checked':'')+'> Gestão de tráfego (anúncios)</label></div>'+
+    I('ctPacote','O que está incluso por mês (opcional)',c.pacote,' placeholder="Ex.: 4 reels + 8 posts + 1 visita de captação por semana"')+
+    '<div class="three">'+I('ctMeses','Duração (meses)',c.meses,' type="number" min="1" max="36"')+I('ctIni','Início',c.ini,' type="date"')+I('ctFim','Término',c.fim,' type="date"')+'</div>'+
+    '<div class="three">'+I('ctMensal','Valor mensal (R$)',v(c.mensal),' inputmode="decimal"')+I('ctDia','Vence todo dia',c.diaVenc,' type="number" min="1" max="31"')+I('ctPri1','1º vencimento',c.pri||'',' type="date"')+'</div></div>'+
+  /* pagamento */
+  '<div class="pushbox"><b>Pagamento</b>'+
+    '<div id="ctEvPag"><div class="three">'+I('ctTotal','Valor total (R$)',v(c.total),' inputmode="decimal"')+I('ctEntV','Entrada (R$)',v(c.entV),' inputmode="decimal"')+I('ctEntD','Data da entrada',c.entD,' type="date"')+'</div>'+
+      '<div class="three"><div class="fld"><label for="ctFreq">Restante</label><select id="ctFreq">'+opts(Object.entries(CT_FREQ),c.freq||'semanal')+'</select></div>'+I('ctN','Nº de parcelas',parc.length||1,' type="number" min="1" max="36"')+I('ctPri','1ª parcela em',c.pri||'',' type="date"')+'</div>'+
+      '<button type="button" class="btn sm" id="ctGer" style="align-self:flex-start">Calcular parcelas</button></div>'+
+    '<div id="ctLista" style="display:flex;flex-direction:column;gap:6px"></div><span class="hint" id="ctSoma"></span>'+
+    '<div id="ctRestW">'+I('ctRest','Observação sobre o pagamento (opcional)',c.restTx,' placeholder="Ex.: 500,00 por semana até 12/09/2026"')+'</div>'+
+    I('ctForma','Forma de pagamento',c.forma)+'</div>'+
+  '<details class="pushbox"><summary><b>Multas, prazos e cláusulas extras</b></summary>'+
+    '<div class="three" style="margin-top:8px">'+I('ctMulta','Multa por dia de atraso (R$)',v(c.multaDia),' inputmode="decimal"')+'<div id="ctEvM">'+I('ctAtr','Multa após (dias)',c.diasAtraso,' type="number"')+'</div>'+'<div id="ctEvC">'+I('ctCanc','Cancelamento integral (dias antes)',c.cancelDias,' type="number"')+'</div>'+'<div id="ctMkA">'+I('ctAviso','Aviso prévio (dias)',c.avisoPrevio,' type="number"')+'</div></div>'+
+    '<div id="ctEvT">'+I('ctClip','Taxa por clipe reeditado (R$)',v(c.taxaClip),' inputmode="decimal"')+'</div>'+
+    '<div class="fld"><label for="ctObs">Cláusulas / condições adicionais (opcional)</label><textarea id="ctObs" rows="3" placeholder="Uma condição por linha">'+esc(c.obs||'')+'</textarea></div></details>'+
+  '<div class="two">'+I('ctDAss','Data do contrato',c.dataAss||hoje(),' type="date"')+'<label style="display:flex;gap:8px;align-items:center;font-size:14px;align-self:end;padding-bottom:10px"><input type="checkbox" id="ctAss" '+(c.assinar!==false?'checked':'')+' style="width:18px;height:18px"> Colocar minha assinatura digitalizada</label></div>'+
+  '<div class="err" id="ctErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">'+(novo?'Criar contrato':'Salvar')+'</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x),num=id=>parseValor(q(id).value),int=id=>parseInt(q(id).value,10)||0;
+  const ehMk=()=>st.modelo==='marketing';
+  const vis=()=>{const m=ehMk();['#ctMk','#ctMkPre','#ctEmpWrap','#ctMkA'].forEach(s=>q(s).hidden=!m);['#ctEv','#ctEvPre','#ctEvPag','#ctEvM','#ctEvC','#ctEvT','#ctRestW'].forEach(s=>q(s).hidden=m);
+    const t=q('#ctTipo').value;q('#ctN2w').hidden=t!=='casamento';q('#ctN1l').textContent=t==='casamento'?'Nome do noivo':t==='outro'?'Homenageado(s) / evento':'Aniversariante';q('#ctOutro').closest('.fld').hidden=t!=='outro';
+    const sv=q('#ctServ').value;q('#ctPV').closest('.fld').hidden=sv==='foto';q('#ctDV').closest('.fld').hidden=sv==='foto';q('#ctPF').closest('.fld').hidden=sv==='video';
+    const e=emissor(ehMk()?'elite':'duraes');q('#ctAss').disabled=!e.assinatura;q('#ctAss').parentElement.title=e.assinatura?'':'Envie a imagem da assinatura em "Dados das empresas"';q('#ctAss').parentElement.style.opacity=e.assinatura?1:.5};
+  const soma=()=>{const s=parc.reduce((a,p)=>a+(p.valor||0),0);
+    if(ehMk()){q('#ctSoma').textContent=parc.length?parc.length+' mensalidades · total '+$(s):'';return}
+    const tot=num('#ctTotal')||0,ent=num('#ctEntV')||0,dif=Math.round((tot-ent-s)*100)/100;
+    q('#ctSoma').innerHTML=tot?'Entrada '+$(ent)+' + parcelas '+$(s)+' = '+$(ent+s)+(Math.abs(dif)>=0.01?' · <b style="color:var(--neg)">'+(dif>0?'faltam ':'passou ')+$(Math.abs(dif))+'</b>':' ✓'):''};
+  const desenha=()=>{q('#ctLista').innerHTML=parc.map((p,i)=>'<div class="parc"><b>'+(i+1)+'ª</b><input type="date" data-pi="'+i+'" data-pk="data" value="'+esc(p.data||'')+'" aria-label="Vencimento"><input inputmode="decimal" data-pi="'+i+'" data-pk="valor" value="'+v(p.valor)+'" aria-label="Valor"><button type="button" class="btn sm ghost danger" data-prm="'+i+'" aria-label="Remover">✕</button></div>').join('');soma()};
+  const gerarEv=()=>{const tot=num('#ctTotal'),ent=num('#ctEntV')||0;if(!(tot>0)){q('#ctErr').textContent='Informe o valor total.';return}q('#ctErr').textContent='';
+    const fr=q('#ctFreq').value,n=fr==='avista'?1:Math.max(1,Math.min(36,int('#ctN')||1));const rest=Math.round((tot-ent)*100)/100;if(rest<=0){parc=[];desenha();return}
+    const ini=q('#ctPri').value||addDias(q('#ctEntD').value||hoje(),fr==='mensal'?30:7);if(!q('#ctPri').value)q('#ctPri').value=ini;
+    const ds=gerarDatas(ini,n,fr),vs=dividir(rest,n);parc=ds.map((d,i)=>({data:d,valor:vs[i]}));q('#ctN').value=n;desenha()};
+  const gerarMk=()=>{const meses=Math.max(1,Math.min(36,int('#ctMeses')||1)),men=num('#ctMensal')||0,ini=q('#ctIni').value;
+    if(ini){q('#ctFim').value=fimVigencia(ini,meses)}
+    let p1=q('#ctPri1').value;if(!p1&&ini){const d=new Date(ini+'T12:00:00');const dia=int('#ctDia');if(dia){d.setDate(Math.min(dia,28));if(iso(d)<ini)d.setMonth(d.getMonth()+1)}p1=iso(d)}
+    parc=p1&&men>0?gerarDatas(p1,meses,'mensal').map(d=>({data:d,valor:men})):[];desenha()};
+  if(novo)q('#ctMod').onclick=e=>{const b=e.target.closest('[data-v]');if(!b||b.dataset.v===st.modelo)return;st.modelo=b.dataset.v;q('#ctMod').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    const keep={};['nome','doc','email','tel','end'].forEach(k=>keep[k]=q('#ct'+k.charAt(0).toUpperCase()+k.slice(1)).value);formContrato(null,Object.assign({},CT_PADRAO[b.dataset.v],keep))};
+  q('#ctTipo').onchange=vis;q('#ctServ').onchange=()=>{const sv=q('#ctServ').value;const atual=q('#ctServNome').value.trim();if(!atual||Object.values(CT_SERV).some(x=>atual.startsWith(x)))q('#ctServNome').value=CT_SERV[sv]+(sv==='foto_video'?' Completa':'');vis()};
+  q('#ctGer').onclick=gerarEv;['#ctFreq'].forEach(s=>q(s).onchange=()=>{if(q('#ctFreq').value==='avista')q('#ctN').value=1;if(parc.length)gerarEv()});
+  ['#ctTotal','#ctEntV'].forEach(s=>q(s).oninput=soma);
+  q('#ctEntD').onchange=()=>{if(!parc.length)return};
+  ['#ctMeses','#ctIni','#ctMensal','#ctDia','#ctPri1'].forEach(s=>q(s).onchange=gerarMk);
+  q('#ctLista').oninput=e=>{const el=e.target.closest('[data-pi]');if(!el)return;const p=parc[+el.dataset.pi];if(el.dataset.pk==='valor')p.valor=parseValor(el.value)||0;else p.data=el.value;soma()};
+  q('#ctLista').onclick=e=>{const b=e.target.closest('[data-prm]');if(!b)return;parc.splice(+b.dataset.prm,1);desenha()};
+  q('#ctTar').onchange=()=>{const T=S.tar.find(t=>t.id===q('#ctTar').value);if(!T)return;if(T.data&&!q('#ctData').value)q('#ctData').value=T.data;if(T.hora&&!q('#ctHora').value)q('#ctHora').value=T.hora;if(T.local&&!q('#ctLocal').value)q('#ctLocal').value=T.local;
+    if(T.tipo&&CT_EVT[T.tipo]){q('#ctTipo').value=T.tipo}else if(T.tipo==='evento'||T.tipo==='ensaio'){q('#ctTipo').value='outro';if(!q('#ctOutro').value)q('#ctOutro').value=T.titulo}
+    const vv=valOf(T.id);if(vv&&vv.valor&&!q('#ctTotal').value)q('#ctTotal').value=v(vv.valor);vis()};
+  q('#ctLoja').onchange=()=>{const l=S.lojas.find(x=>x.id===q('#ctLoja').value);if(l&&!q('#ctEmpCli').value)q('#ctEmpCli').value=l.nome};
+  vis();desenha();if(novo&&!parc.length&&ehMk())gerarMk();
+  q('#fCt').onsubmit=async e=>{e.preventDefault();const err=m=>{q('#ctErr').textContent=m;q('#ctErr').scrollIntoView({block:'nearest'})};
+    const mk=ehMk(),nome=q('#ctNome').value.trim();
+    if(!nome){err('Escreva o nome de quem assina pelo cliente.');return}
+    const d={empresa:mk?'elite':'duraes',modelo:mk?'marketing':'evento',nome:nome.slice(0,120),doc:q('#ctDoc').value.trim().slice(0,30),email:q('#ctEmail').value.trim().slice(0,120),tel:q('#ctTel').value.trim().slice(0,40),end:q('#ctEnd').value.trim().slice(0,200),
+      forma:q('#ctForma').value.trim().slice(0,60),multaDia:num('#ctMulta')||0,obs:q('#ctObs').value.trim().slice(0,1500),dataAss:q('#ctDAss').value||hoje(),assinar:q('#ctAss').checked,
+      parcelas:parc.filter(p=>p.valor>0).map(p=>({data:p.data||'',valor:Math.round(p.valor*100)/100}))};
+    if(mk){Object.assign(d,{loja:q('#ctLoja').value,empCli:q('#ctEmpCli').value.trim().slice(0,120),sConteudo:q('#ctS1').checked,sRedes:q('#ctS2').checked,sTrafego:q('#ctS3').checked,pacote:q('#ctPacote').value.trim().slice(0,300),
+        meses:int('#ctMeses'),ini:q('#ctIni').value,fim:q('#ctFim').value,mensal:num('#ctMensal')||0,diaVenc:int('#ctDia'),pri:q('#ctPri1').value,avisoPrevio:int('#ctAviso')||30});
+      if(!(d.mensal>0)){err('Informe o valor mensal.');return}if(!d.meses){err('Informe a duração em meses.');return}if(!d.ini){err('Informe a data de início.');return}
+      if(!d.fim)d.fim=fimVigencia(d.ini,d.meses);if(!d.parcelas.length){err('Confira o 1º vencimento para gerar as mensalidades.');return}}
+    else{Object.assign(d,{tar:q('#ctTar').value,tipoEvt:q('#ctTipo').value,outro:q('#ctOutro').value.trim().slice(0,60),n1:q('#ctN1').value.trim().slice(0,120),n2:q('#ctN2').value.trim().slice(0,120),data:q('#ctData').value,hora:q('#ctHora').value.trim().slice(0,20),local:q('#ctLocal').value.trim().slice(0,200),
+        servico:q('#ctServ').value,servNome:q('#ctServNome').value.trim().slice(0,100),cobertura:q('#ctCob').value.trim().slice(0,200),horas:int('#ctHoras'),prazoFotos:int('#ctPF'),prazoVideo:int('#ctPV'),duracaoVideo:q('#ctDV').value.trim().slice(0,60),
+        total:num('#ctTotal')||0,entV:num('#ctEntV')||0,entD:q('#ctEntD').value,freq:q('#ctFreq').value,pri:q('#ctPri').value,restTx:q('#ctRest').value.trim().slice(0,200),diasAtraso:int('#ctAtr')||10,cancelDias:int('#ctCanc')||2,taxaClip:num('#ctClip')||0});
+      if(!d.data){err('Informe a data do evento.');return}if(!(d.total>0)){err('Informe o valor total.');return}
+      if(d.total-d.entV>0.009&&!d.parcelas.length&&!d.restTx){err('Toque em "Calcular parcelas" para dividir o restante (ou escreva a condição na observação).');return}}
+    try{
+      if(novo){d.numero=ctNumero(d.empresa);d.criadoEm=agoraLocal();d.status='rascunho';const id=await write(()=>store.add('contratos',d));closeSheet();toast('Contrato '+d.numero+' criado');verContrato(Object.assign({id},d))}
+      else{d.numero=c.numero;d.criadoEm=c.criadoEm||agoraLocal();d.status=c.status||'rascunho';if(c.caixa)d.caixa=c.caixa;await write(()=>store.set('contratos',c.id,d));closeSheet();toast('Contrato atualizado')}
+    }catch(_){}};
+  q('#ctNome').focus()}
+
+/* ---- ver / gerar PDF ---- */
+async function verContrato(c){S._ctAtual=c;
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:880px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Contrato '+esc(c.numero)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="recwrap cpwrap" id="ctPrev"><p class="hint" style="padding:20px">Montando o contrato…</p></div>'+
+    '<div class="formacts"><button type="button" class="btn ghost" data-ct="editar" data-id="'+(c.id||'')+'">Editar</button><button type="button" class="btn" data-ct="pdf" data-id="'+(c.id||'')+'">Baixar PDF</button><button type="button" class="btn primary" data-ct="enviar" data-id="'+(c.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p></form>';
+  sheet.hidden=false;const pgs=await ctPaginas(c);const el=document.getElementById('ctPrev');if(el)el.innerHTML=pgs.join('')}
+async function gerarContratoPdf(c){
+  await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  const pgs=await ctPaginas(c);const box=document.createElement('div');box.style.cssText='position:fixed;left:-10000px;top:0;width:794px';box.innerHTML=pgs.join('');document.body.appendChild(box);
+  await Promise.all([...box.querySelectorAll('img')].map(i=>i.complete?1:new Promise(o=>{i.onload=i.onerror=o})));
+  try{const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});const ps=[...box.querySelectorAll('.cpage')];
+    for(let i=0;i<ps.length;i++){const cv=await html2canvas(ps[i],{scale:2,backgroundColor:'#ffffff',useCORS:true,width:794,height:1123});if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.9),'JPEG',0,0,210,297)}
+    const nome='Contrato '+c.numero+' - '+(c.nome||'').replace(/[\\/:*?"<>|]/g,'');
+    return new File([pdf.output('blob')],nome+'.pdf',{type:'application/pdf'})}
+  finally{box.remove()}}
+function maisContrato(c){
+  sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(c.nome)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><p class="hint" style="margin:0">'+esc(c.numero)+' · '+$(ctTotal(c))+'</p><div class="morenav">'+
+    '<button type="button" data-ct="status" data-v="'+(c.status==='assinado'?'enviado':'assinado')+'" data-id="'+c.id+'">'+ico('i-check')+(c.status==='assinado'?'Desmarcar assinado':'Marcar como assinado')+'</button>'+
+    '<button type="button" data-ct="caixa" data-id="'+c.id+'"'+(c.caixa?' disabled':'')+'>'+ico('i-wallet')+(c.caixa?'Já lançado no Caixa':'Lançar pagamentos no Caixa')+'</button>'+
+    '<button type="button" data-ct="recibo" data-id="'+c.id+'">'+ico('i-receipt')+'Emitir recibo deste contrato</button>'+
+    '<button type="button" data-ct="duplicar" data-id="'+c.id+'">'+ico('i-plus')+'Duplicar (novo contrato parecido)</button>'+
+    '<button type="button" data-ct="apagar" data-id="'+c.id+'" style="color:var(--neg)">'+ico('i-x')+'Apagar contrato</button></div></form>';sheet.hidden=false}
+async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.contratos||[]).find(x=>x.id===id)||(S._ctAtual&&(!id||S._ctAtual.id===id)?S._ctAtual:null);
+  try{
+    if(k==='novo'){formContrato();return}
+    if(!c)return;
+    if(k==='ver'){verContrato(c);return}
+    if(k==='editar'){formContrato(c);return}
+    if(k==='mais'){maisContrato(c);return}
+    if(k==='duplicar'){const base=JSON.parse(JSON.stringify(c));['id','numero','criadoEm','status','caixa','nome','doc','email','tel','end','n1','n2','data','hora','local','tar','entD','pri','ini','fim','loja','empCli'].forEach(x=>delete base[x]);base.parcelas=[];base.dataAss=hoje();formContrato(null,base);return}
+    if(k==='status'){await write(()=>store.update('contratos',c.id,{status:b.dataset.v}));closeSheet();toast(b.dataset.v==='assinado'?'Contrato marcado como assinado':'Pronto');return}
+    if(k==='apagar'){if(!armed['c'+id]){armed['c'+id]=b.innerHTML;b.textContent='Toque de novo para apagar';setTimeout(()=>{if(armed['c'+id]){b.innerHTML=armed['c'+id];delete armed['c'+id]}},3000);return}delete armed['c'+id];await write(()=>store.del('contratos',id));closeSheet();toast('Contrato apagado');return}
+    if(k==='caixa'){if(c.caixa)return;const pg=ctPagamentos(c);if(!pg.length){toast('Esse contrato não tem pagamentos com data');return}
+      for(const p of pg)await write(()=>store.add('lanc',{tipo:'entrada',valor:p.valor,data:p.data||hoje(),empresa:c.empresa,categoria:c.modelo==='marketing'?'Mensalidade cliente':p.rot==='Entrada'?'Sinal de evento':'Contrato / serviço',resp:'',descricao:('Contrato '+c.numero+' · '+c.nome+' · '+p.rot).slice(0,200),pago:false}));
+      await write(()=>store.update('contratos',c.id,{caixa:agoraLocal()}));closeSheet();toast(pg.length+' pagamento'+(pg.length>1?'s lançados':' lançado')+' no Caixa como "a receber"');return}
+    if(k==='recibo'){const pg=ctPagamentos(c);closeSheet();
+      const ref=c.modelo==='marketing'?'serviços de mídias sociais'+(c.empCli?' para '+c.empCli:'')+' (contrato '+c.numero+')':'cobertura '+(CT_SERV[c.servico]||'').toLowerCase()+' – '+(CT_EVT[c.tipoEvt]||'evento').toLowerCase()+(c.data?' em '+dBR(c.data):'')+' (contrato '+c.numero+')';
+      const base={empresa:c.empresa,cliente:c.nome,docCli:c.doc,ref,tar:c.tar||''};
+      if(c.modelo==='marketing')Object.assign(base,{tipo:'mensal',valor:c.mensal,mes:(c.ini||hoje()).slice(0,7),venc:(pg[0]||{}).data||''});
+      else if(pg.length>1)Object.assign(base,{tipo:'parcelado',total:c.total,parcelas:pg.map((p,i)=>({data:p.data,valor:p.valor,paga:i===0})),parcAtual:1,valor:pg[0].valor});
+      else Object.assign(base,{tipo:'unico',valor:c.total});
+      formRecibo(null,base);return}
+    if(k==='pdf'||k==='enviar'){b.disabled=true;const t=b.textContent;b.textContent='Gerando…';
+      try{const f=await gerarContratoPdf(c);
+        if(k==='enviar'&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Contrato '+c.numero,text:'Olá! Segue o contrato '+c.numero+' para conferência e assinatura.'})}catch(_){}}
+        else{baixarArquivo(f);if(k==='enviar')toast('PDF baixado. Agora é só anexar no WhatsApp ou e-mail.')}
+        if(k==='enviar'&&c.id&&(c.status||'rascunho')==='rascunho'){try{await store.update('contratos',c.id,{status:'enviado'})}catch(_){}}}
+      finally{b.disabled=false;b.textContent=t}}
+  }catch(er){toast(er.message||'Não deu certo')}}
+
+function imgReduzida(f,max){return new Promise((ok,er)=>{const r=new FileReader();r.onerror=er;r.onload=()=>{const im=new Image();im.onerror=er;im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);ok(cv.toDataURL('image/png'))};im.src=r.result};r.readAsDataURL(f)})}
 
 /* ---------- Álbuns (seleção de fotos pelo cliente) ---------- */
 const ALB_ST={aberto:['eq','Aguardando cliente'],enviado:['rec','Seleção recebida'],baixado:['ok','Baixado · em montagem'],producao:['ok','Enviado p/ produção']};
@@ -1698,7 +2019,7 @@ async function hashPin(pin){const b=await crypto.subtle.digest('SHA-256',new Tex
 const LEMB_KEY=()=>'cofreAberto_'+S.uid;
 function lembrado(){try{return localStorage.getItem(LEMB_KEY())==='1'}catch(_){return false}}
 function lerPin(){try{return localStorage.getItem(PIN_KEY())}catch(_){return null}}
-function trancar(avisar){if(!S.unlocked)return;if(avisar){try{localStorage.removeItem(LEMB_KEY())}catch(_){}}else if(lembrado())return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa'||S.tab==='recibos')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
+function trancar(avisar){if(!S.unlocked)return;if(avisar){try{localStorage.removeItem(LEMB_KEY())}catch(_){}}else if(lembrado())return;S.unlocked=false;if(S.tab==='resumo'||S.tab==='caixa'||S.tab==='recibos'||S.tab==='contratos')setTab('producao');closeSheet();render();if(avisar)toast('Área financeira trancada')}
 function destrancar(lembrar){S.unlocked=true;try{if(lembrar)localStorage.setItem(LEMB_KEY(),'1');else localStorage.removeItem(LEMB_KEY())}catch(_){}ultimoUso=Date.now();closeSheet();render();setTab('resumo');toast('Área financeira aberta')}
 function abrirCofre(modo){
   const tem=!!lerPin();modo=modo||(tem?'entrar':'criar');
@@ -1996,7 +2317,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){S.ads=[];S.anuncios=[];S.recibos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){S.ads=[];S.anuncios=[];S.recibos=[];S.contratos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}
@@ -2025,10 +2346,10 @@ function iniciarApp(adm,finOk,dono){
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
   store.sub('albuns');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
-  if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('valores');store.sub('recibos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
+  if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
-  S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa'||t==='recibos')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
+  S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa'||t==='recibos'||t==='contratos')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
 }
 
 /* ---------- início ---------- */

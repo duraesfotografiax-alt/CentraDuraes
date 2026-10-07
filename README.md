@@ -285,6 +285,23 @@ Cole de novo o `firestore.rules` no Firebase, porque ele ganhou as regras dos re
 
 ---
 
+## Aba Contratos (fica no cadeado, junto com Recibos)
+
+Gera o contrato preenchido em PDF, no padrão de vocês: **Durães · Evento** (casamento, aniversário, debutante, outro) e **Elite · Marketing** (mídias sociais, conteúdo e tráfego), cada um com a sua logo.
+
+**Antes do primeiro contrato (uma vez só):**
+1. No Firebase, publique as regras novas (arquivo `firestore.rules`, que agora tem a linha de `contratos`).
+2. Na aba Contratos, toque em **Dados das empresas** e preencha, para a Durães e para a Elite: CNPJ, endereço, CEP, cidade, quem assina e o **CPF de quem assina**. Esses dados ficam guardados no banco (só sócios veem) e **não** no GitHub, que é público.
+3. Ainda ali, em **Assinatura digitalizada**, envie a imagem da sua assinatura (PNG). Ela aparece no contrato quando a opção "Colocar minha assinatura digitalizada" estiver marcada.
+
+**No dia a dia:**
+1. **Novo contrato** e escolha Durães · Evento ou Elite · Marketing.
+2. Preencha os dados do cliente. No evento dá para puxar data, horário e local de um trabalho da Produção; no marketing, escolher a loja.
+3. Pagamento: no evento, coloque total + entrada e toque em **Calcular parcelas** (à vista, semanal, quinzenal ou mensal). Dá para mudar datas e valores de cada parcela. No marketing, as mensalidades saem sozinhas a partir do valor mensal, da duração e do início.
+4. Em "Multas, prazos e cláusulas extras" ficam multa, prazos e qualquer condição especial daquele cliente.
+5. **Criar contrato** e depois **Enviar**: no celular abre o WhatsApp com o PDF; no PC baixa o PDF.
+6. Em **Mais…**: marcar como assinado, lançar os pagamentos no Caixa (entram como "a receber"), emitir recibo já preenchido e duplicar para um contrato parecido.
+
 ## Fotos ou vídeo
 Cada trabalho tem o campo **Material**: **Fotos**, **Vídeo** ou **Fotos + vídeo**. Ele já vem sugerido pelo tipo (loja e casamento: fotos + vídeo; conteúdo para redes: vídeo; ensaio, evento e aniversário: fotos) e pode ser trocado.
 - Nos cartões aparece uma etiqueta: dourada com câmera para **Fotos** e lilás com câmera de vídeo para **Vídeo**.
