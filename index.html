@@ -447,6 +447,8 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
 .st.bad{color:var(--neg)} .st.bad i{background:var(--neg)}
 .st.wait{color:var(--warn)} .st.wait i{background:var(--warn)}
 #adsBusca{width:240px}
+.adres{display:block;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.ctab td b{font-weight:700}
 .adsHoje{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .adH{display:flex;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0;color:inherit;text-decoration:none}
 .adH:hover{border-color:var(--line2)}
@@ -1130,7 +1132,7 @@ function formTar(t,preset){
 /* ---------- eventos ---------- */
 const armed={};
 document.addEventListener('click',async e=>{
-  if(e.target.closest('[data-logout]')){try{localStorage.removeItem('gtok');localStorage.removeItem('gConectou')}catch(_){}gTok=null;gExp=0;auth.signOut();return}
+  if(e.target.closest('[data-logout]')){try{localStorage.removeItem('gtokEmp');localStorage.removeItem('gConectou')}catch(_){}gTok=null;gExp=0;auth.signOut();return}
   const dv=e.target.closest('[data-dv]');if(dv){driveClique(dv,e);return}
   if(e.target.closest('[data-mais]')){const ts=tabs().slice(4);sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Mais</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+ts.map(n=>'<button type="button" data-tabm="'+n[0]+'">'+ico(n[2])+n[1]+'</button>').join('')+'</div></form>';sheet.hidden=false;return}
   const tm=e.target.closest('[data-tabm]');if(tm){closeSheet();setTab(tm.dataset.tabm);return}
@@ -1210,18 +1212,25 @@ const DAPI='https://www.googleapis.com/drive/v3';
 const FOLDER='application/vnd.google-apps.folder';
 const DF='nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,shortcutDetails)';
 let gTok=null,gExp=0,tokenClient=null;
-try{const x=JSON.parse(localStorage.getItem('gtok')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
+try{const x=JSON.parse(localStorage.getItem('gtokEmp')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
 const sheet2=document.getElementById('sheet2');
 function fecharSheet2(){sheet2.hidden=true;sheet2.innerHTML=''}
 function driveOk(){return GID&&!/COLE_AQUI/.test(GID)}
 function driveConectado(){return !!gTok&&Date.now()<gExp}
 function driveId(link){const m=String(link||'').match(/\/folders\/([\w-]+)|[?&]id=([\w-]+)|\/d\/([\w-]+)/);return m?(m[1]||m[2]||m[3]):''}
+/* O Drive é sempre a conta da empresa (a mesma para todo mundo), não a conta pessoal de quem está usando a Central */
+function gEmail(){return ((S.driveCfg||{}).conta||ADMIN_EMAIL||'').toLowerCase()}
+async function contaDoToken(t){try{const r=await fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)',{headers:{Authorization:'Bearer '+t}});const j=await r.json();return ((j&&j.user&&j.user.emailAddress)||'').toLowerCase()}catch(_){return ''}}
 function pedirToken(prompt){return new Promise((res,rej)=>{
   if(!(window.google&&google.accounts&&google.accounts.oauth2))return rej(new Error('O Google ainda está carregando. Tente de novo em alguns segundos.'));
   if(!tokenClient)tokenClient=google.accounts.oauth2.initTokenClient({client_id:GID,scope:DSCOPE,callback:()=>{}});
-  tokenClient.callback=r=>{if(r.error)return rej(new Error(r.error_description||r.error));gTok=r.access_token;gExp=Date.now()+((r.expires_in||3600)-120)*1000;try{localStorage.setItem('gtok',JSON.stringify([gTok,gExp]));localStorage.setItem('gConectou','1')}catch(_){}res(gTok)};
+  tokenClient.callback=async r=>{if(r.error)return rej(new Error(r.error_description||r.error));
+    const quem=await contaDoToken(r.access_token),certa=gEmail();
+    if(quem&&certa&&quem!==certa){try{google.accounts.oauth2.revoke(r.access_token,()=>{})}catch(_){}try{localStorage.removeItem('gtokEmp');localStorage.removeItem('gConectou')}catch(_){}gTok=null;gExp=0;
+      return rej(new Error('Você entrou com '+quem+'. O Drive da Central é o da empresa: '+certa+'. Toque em Conectar e escolha essa conta.'))}
+    gTok=r.access_token;gExp=Date.now()+((r.expires_in||3600)-120)*1000;try{localStorage.setItem('gtokEmp',JSON.stringify([gTok,gExp]));localStorage.setItem('gConectou','1')}catch(_){}res(gTok)};
   tokenClient.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'A janela do Google foi fechada.':'Não consegui conectar ao Google.'));
-  tokenClient.requestAccessToken({prompt:prompt||'',login_hint:(S.me&&S.me.email)||''});
+  tokenClient.requestAccessToken({prompt:prompt||'',login_hint:gEmail()});
 })}
 async function token(){if(driveConectado())return gTok;return pedirToken('')}
 async function gfetch(url,opt,tentou){opt=opt||{};const t=await token();
@@ -1350,7 +1359,7 @@ async function renderDrive(){
   if(!driveOk()){acts.innerHTML='';roots.innerHTML='';body.innerHTML='<div class="panel">'+emptyMsg('Falta configurar o Google Drive','O Thiago precisa colocar o "ID do cliente OAuth" no arquivo firebase-config.js (passo a passo no LEIA-ME).')+'</div>';return}
   const cfg=S.driveCfg||{};
   roots.innerHTML=[['duraes','Durães Fotografia','Casamentos, eventos e aniversários',logoTile('duraes')],['clientes','Clientes · Elite','Uma pasta para cada loja',logoTile('elite')]].map(([k,n,d,tile])=>'<button data-dv="root" data-k="'+k+'" aria-pressed="'+(S.dRoot===k)+'">'+tile+'<div><b>'+n+'</b><small>'+(cfg[k]?esc(cfg[k].nome):'Pasta ainda não escolhida')+' · '+d+'</small></div></button>').join('');
-  if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">'+(localStorage.getItem('gConectou')==='1'?'Reconectando ao Google…':'Conecte sua conta Google')+'</p><p class="muted" style="margin:0 0 16px;font-size:14px">Use a conta que tem acesso às pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
+  if(!driveConectado()){acts.innerHTML='';body.innerHTML='<div class="panel" style="text-align:center;padding:32px 18px"><p style="margin:0 0 6px;font-weight:800;font-size:16px">'+(localStorage.getItem('gConectou')==='1'?'Reconectando ao Google…':'Conecte o Drive da empresa')+'</p><p class="muted" style="margin:0 0 16px;font-size:14px">Entre com a conta <b style="color:var(--ink)">'+esc(gEmail())+'</b>, que é onde ficam as pastas da Durães e dos clientes.</p><button class="btn primary" data-dv="conectar">'+ico('i-drive')+'Conectar Google Drive</button>'+(S.dErr?'<p class="err" style="margin-top:12px">'+esc(S.dErr)+'</p>':'')+'</div>';return}
   const raiz=dRootCur();
   if(!raiz){acts.innerHTML='<button class="btn ghost" data-dv="desconectar">Desconectar Drive</button>';body.innerHTML='<div class="panel">'+emptyMsg('Escolha a pasta '+(S.dRoot==='duraes'?'da Durães Fotografia':'Clientes (Elite)'),S.adm?'<button class="btn primary sm" style="margin-top:10px" data-dv="cfg">Escolher pasta no Drive</button>':'Peça ao Thiago para escolher a pasta.')+'</div>';return}
   if(!S.dPath.length||S.dPath[0].id!==raiz.id)S.dPath=[{id:raiz.id,name:S.dRoot==='duraes'?'Durães Fotografia':'Clientes'}];
@@ -1373,10 +1382,10 @@ function escolherUpload(tipo){if(!driveConectado()){setTab('drive');return}const
   try{const r=await dSubir(fs,cur.id);toast('Enviado: '+r.name);S.dItems=null;renderDrive()}catch(er){toast(er.message)}}));
 async function driveClique(b,e){const k=b.dataset.dv;e.stopPropagation&&e.stopPropagation();
   try{
-    if(k==='desconectar'){const t=gTok;gTok=null;gExp=0;try{localStorage.removeItem('gtok');localStorage.removeItem('gConectou')}catch(_){}
+    if(k==='desconectar'){const t=gTok;gTok=null;gExp=0;try{localStorage.removeItem('gtokEmp');localStorage.removeItem('gConectou')}catch(_){}
       try{if(t&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(t,()=>{})}catch(_){}
       S.dItems=null;S.dPath=[];renderDrive();toast('Drive desconectado deste aparelho');return}
-    if(k==='conectar'){S.dErr='';await pedirToken('select_account consent');S.dItems=null;renderDrive();return}
+    if(k==='conectar'){S.dErr='';await pedirToken('select_account');S.dItems=null;renderDrive();return}
     if(k==='root'){S.dRoot=b.dataset.k;S.dPath=[];S.dItems=null;renderDrive();return}
     if(k==='crumb'){S.dPath=S.dPath.slice(0,+b.dataset.i+1);renderDrive();return}
     if(k==='cfg'){abrirSeletor(null,async f=>{const nv=Object.assign({},S.driveCfg||{});nv[S.dRoot]={id:f.id,nome:f.name};
@@ -1420,10 +1429,10 @@ function renderTrafego(){
   if(!todasC.length){document.getElementById('adsKpis').innerHTML='';
     body.innerHTML='<div class="panel">'+(est.atualizadoEm&&!est.erro?emptyMsg('Meta ligado, mas nenhuma conta liberada','A chave está funcionando, só que o usuário do sistema "Central" ainda não tem contas de anúncio. No Gerenciador de Negócios da Elite MKT, vá em Usuários do sistema → Central → Atribuir ativos → Contas de anúncios, marque as contas com "Ver desempenho" e rode o robô no modo "meta" de novo.'):emptyMsg(est.erro?'O Meta recusou a conexão':'Falta ligar o Meta',est.erro?esc(est.erro)+'<br>Confira a chave META_TOKEN no GitHub (passo a passo no LEIA-ME).':'Crie a chave do Meta (usuário do sistema) e salve no GitHub como META_TOKEN. Depois rode o robô no modo "meta". O passo a passo está no LEIA-ME.'))+'</div>';return}
   const q=(document.getElementById('adsBusca').value||'').toLowerCase();
-  let ativas=0,hojeT=0,mesT=0,prob=0,saldoT=0,temSaldo=false;
-  for(const a of contas){if(a.saldoDisp!=null){saldoT+=a.saldoDisp;temSaldo=true}if(contaProblema(a))prob++;for(const k of a.campanhas||[]){if(k.status==='ACTIVE')ativas++;hojeT+=k.gastoHoje||0;mesT+=k.gastoMes||0}}
+  let ontemT=0,ativas=0,hojeT=0,mesT=0,prob=0,saldoT=0,temSaldo=false;
+  for(const a of contas){if(a.saldoDisp!=null){saldoT+=a.saldoDisp;temSaldo=true}if(contaProblema(a))prob++;for(const k of a.campanhas||[]){if(k.status==='ACTIVE')ativas++;hojeT+=k.gastoHoje||0;ontemT+=k.gastoOntem||0;mesT+=k.gastoMes||0}}
   document.getElementById('adsKpis').innerHTML='<div class="kpi"><div class="l">Campanhas ativas</div><div class="v num">'+ativas+'</div><div class="s">'+(n=>'em '+n+(n===1?' conta':' contas'))(contas.filter(a=>(a.campanhas||[]).some(k=>k.status==='ACTIVE')).length)+'</div></div>'+
-    '<div class="kpi"><div class="l">Gasto hoje</div><div class="v num">'+$(hojeT)+'</div><div class="s">todas as contas</div></div>'+
+    '<div class="kpi"><div class="l">Gasto hoje</div><div class="v num">'+$(hojeT)+'</div><div class="s">ontem: '+$(ontemT)+'</div></div>'+
     '<div class="kpi"><div class="l">Gasto no mês</div><div class="v num">'+$(mesT)+'</div><div class="s">'+mesLabel(ym(new Date()))+'</div></div>'+
     (temSaldo?'<div class="kpi"><div class="l">Saldo nas contas</div><div class="v num">'+$(saldoT)+'</div><div class="s">contas pré-pagas</div></div>':'')+
     '<div class="kpi'+(prob?' hero':'')+'"'+(prob?' style="border-color:rgba(255,107,107,.5);background:var(--neg-bg)"':'')+'><div class="l">Com problema</div><div class="v num'+(prob?' neg':'')+'">'+prob+'</div><div class="s">'+(prob?'confira abaixo':'tudo rodando')+'</div></div>';
@@ -1442,11 +1451,13 @@ function renderTrafego(){
       (S.adm?'<select class="search" style="width:auto;padding:5px 8px" data-ads-loja="'+a.conta+'" aria-label="Vincular à loja"><option value="">Vincular à loja…</option>'+lojasOrd().map(l=>'<option value="'+l.id+'"'+(l.id===a.loja?' selected':'')+'>'+esc(l.nome)+'</option>').join('')+'<option value="_nova">+ Cadastrar nova loja…</option></select>':'')+
       '<a class="btn sm" href="https://adsmanager.facebook.com/adsmanager/manage/campaigns?act='+encodeURIComponent(a.conta)+'" target="_blank" rel="noopener">Abrir no Gerenciador</a></div>'+
       (hojeV?(a.ads.length?'<div class="adsHoje">'+a.ads.map(adHoje(a)).join('')+'</div>':'<p class="hint" style="margin:0">'+(a.hoje?'Nenhum anúncio rodou hoje nessa conta.':'Aparece na próxima atualização do robô.')+'</p>'):
-      a.camps.length?'<div class="tscroll"><table class="ctab"><thead><tr><th>Campanha</th><th>Situação</th><th>Orçamento</th><th>Hoje</th><th>7 dias</th><th>Mês</th><th>Resultados (7d)</th><th>Termina</th></tr></thead><tbody>'+
-        a.camps.map(k=>'<tr><td>'+esc(k.nome)+'</td><td>'+adsSt(k.status)+'</td><td>'+(k.orcDia?$(k.orcDia)+'/dia':k.orcTotal?$(k.orcTotal)+' total':'<span class="hint">no conjunto</span>')+'</td><td>'+$(k.gastoHoje)+'</td><td>'+$(k.gasto7)+'</td><td>'+$(k.gastoMes)+'</td><td>'+(k.res7?k.res7+' <span class="hint">'+esc(k.resTipo)+'</span>':'—')+'</td><td>'+(k.fim?dCurta(k.fim.slice(0,10)):'<span class="hint">sem data</span>')+'</td></tr>').join('')+'</tbody></table></div>'
+      a.camps.length?'<div class="tscroll"><table class="ctab"><thead><tr><th>Campanha</th><th>Situação</th><th>Hoje</th><th>Ontem</th><th>7 dias</th><th>Mês</th></tr></thead><tbody>'+
+        a.camps.map(k=>'<tr><td>'+esc(k.nome)+'<span class="adres" style="font-weight:500;white-space:normal">'+[k.orcDia?$(k.orcDia)+'/dia':k.orcTotal?$(k.orcTotal)+' total':'orçamento no conjunto',k.fim?'termina '+dCurta(k.fim.slice(0,10)):'',k.resTipo?'resultado: '+esc(k.resTipo):''].filter(Boolean).join(' · ')+'</span></td><td>'+adsSt(k.status)+'</td><td>'+celAds(k.gastoHoje,k.resHoje,k)+'</td><td>'+celAds(k.gastoOntem,k.resOntem,k)+'</td><td>'+celAds(k.gasto7,k.res7,k)+'</td><td>'+$(k.gastoMes)+'</td></tr>').join('')+'</tbody></table></div>'
         :'<p class="hint" style="margin:0">'+(S.fAds==='ativas'?'Nenhuma campanha ativa.':'Nada aqui.')+'</p>')+'</div>'}).join('')
     :'<div class="panel">'+emptyMsg(S.fAds==='problema'?'Nenhum problema':hojeV?'Nenhum anúncio rodou hoje':'Nada encontrado',S.fAds==='problema'?'Todas as contas e campanhas estão rodando normalmente.':hojeV?'Ainda não teve gasto hoje'+(S.fAdsLoja?' nessa loja':'')+'. Os números atualizam a cada hora.':'Troque o filtro ou a busca.')+'</div>';
 }
+const RES_CURTO={'conversas':'conv.','visualizações de vídeo':'views','cliques no link':'cliques','engajamentos':'engaj.','cadastros no site':'cadastros'};
+function celAds(g,r,k){if(g==null)return '<span class="hint">—</span>';const t=RES_CURTO[k.resTipo]||k.resTipo;return '<b>'+$(g)+'</b>'+(k.resTipo?'<span class="adres">'+(r||0)+' '+esc(t)+(r>0&&g>0?' · '+$(g/r):'')+'</span>':'')}
 function saldoChip(a){
   if(a.prepago&&a.saldoDisp!=null){const porDia=(a.campanhas||[]).filter(k=>k.status==='ACTIVE').reduce((s,k)=>s+(k.orcDia||0),0),baixo=a.saldoDisp<Math.max(30,porDia*2);
     return '<span class="chip '+(baixo?'late':'money')+'" title="'+esc(a.pagamentoTx||'')+'">Saldo '+$(a.saldoDisp)+(porDia>0?' · ~'+Math.max(0,Math.floor(a.saldoDisp/porDia))+' dia'+(Math.floor(a.saldoDisp/porDia)===1?'':'s'):'')+'</span>'}

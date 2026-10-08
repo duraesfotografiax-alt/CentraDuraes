@@ -33,10 +33,16 @@ async function todos(caminho, token) {
   }
   return out;
 }
+// conta o mesmo tipo de resultado (ex.: conversas) num outro período
+function contar(actions, chave) {
+  if (!chave) return resultado(actions).n;
+  const x = (actions || []).find((y) => y.action_type === chave);
+  return x ? Number(x.value) || 0 : 0;
+}
 function resultado(actions) {
   const a = Object.fromEntries((actions || []).map((x) => [x.action_type, Number(x.value) || 0]));
-  for (const [k, nome] of RESULTADOS) if (a[k]) return { n: a[k], tipo: nome };
-  return { n: 0, tipo: '' };
+  for (const [k, nome] of RESULTADOS) if (a[k]) return { n: a[k], tipo: nome, chave: k };
+  return { n: 0, tipo: '', chave: '' };
 }
 const centavos = (v) => (v == null || v === '' ? null : Math.round(Number(v)) / 100);
 // "Saldo disponível (R$1.234,56 BRL)" / "Available balance (R$1,234.56 BRL)" -> 1234.56
@@ -65,18 +71,20 @@ module.exports = async function sincronizarMeta({ db, usuarios, enviar, jaFoi, m
     try {
       const camp = await todos(`act_${id}/campaigns?fields=id,name,effective_status,daily_budget,lifetime_budget,start_time,stop_time,objective,updated_time&limit=200&effective_status=${encodeURIComponent(JSON.stringify(['ACTIVE', 'PAUSED', 'WITH_ISSUES', 'DISAPPROVED', 'PENDING_REVIEW', 'IN_PROCESS', 'PENDING_BILLING_INFO', 'PREAPPROVED', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED']))}`, token);
       const ins = async (preset, campos) => Object.fromEntries((await todos(`act_${id}/insights?level=campaign&date_preset=${preset}&fields=campaign_id,${campos}&limit=500`, token)).map((x) => [x.campaign_id, x]));
-      const [hojeI, semI, mesI] = await Promise.all([ins('today', 'spend'), ins('last_7d', 'spend,actions,impressions,clicks,reach'), ins('this_month', 'spend')]);
+      const [hojeI, ontemI, semI, mesI] = await Promise.all([ins('today', 'spend,actions'), ins('yesterday', 'spend,actions'), ins('last_7d', 'spend,actions,impressions,clicks,reach'), ins('this_month', 'spend')]);
       // guarda só campanhas ativas, com problema, ou que gastaram no mês/semana (as pausadas antigas não interessam)
       const lista = camp.map((k) => {
         const r7 = resultado((semI[k.id] || {}).actions);
+        const rH = r7.chave ? { n: contar((hojeI[k.id] || {}).actions, r7.chave) } : resultado((hojeI[k.id] || {}).actions);
+        const rO = r7.chave ? { n: contar((ontemI[k.id] || {}).actions, r7.chave) } : resultado((ontemI[k.id] || {}).actions);
         return {
           id: k.id, nome: k.name, status: k.effective_status, objetivo: k.objective || '',
           orcDia: centavos(k.daily_budget), orcTotal: centavos(k.lifetime_budget),
           inicio: k.start_time || '', fim: k.stop_time || '',
-          gastoHoje: Number((hojeI[k.id] || {}).spend || 0), gasto7: Number((semI[k.id] || {}).spend || 0), gastoMes: Number((mesI[k.id] || {}).spend || 0),
+          gastoHoje: Number((hojeI[k.id] || {}).spend || 0), gastoOntem: Number((ontemI[k.id] || {}).spend || 0), resHoje: rH.n, resOntem: rO.n, gasto7: Number((semI[k.id] || {}).spend || 0), gastoMes: Number((mesI[k.id] || {}).spend || 0),
           res7: r7.n, resTipo: r7.tipo, alcance7: Number((semI[k.id] || {}).reach || 0), cliques7: Number((semI[k.id] || {}).clicks || 0),
         };
-      }).filter((k) => k.status === 'ACTIVE' || PROBLEMA.includes(k.status) || k.gastoMes > 0 || k.gasto7 > 0 || k.status === 'PENDING_REVIEW' || k.status === 'IN_PROCESS')
+      }).filter((k) => k.status === 'ACTIVE' || k.gastoOntem > 0 || PROBLEMA.includes(k.status) || k.gastoMes > 0 || k.gasto7 > 0 || k.status === 'PENDING_REVIEW' || k.status === 'IN_PROCESS')
         .sort((a, b) => (a.status === 'ACTIVE' ? 0 : 1) - (b.status === 'ACTIVE' ? 0 : 1) || b.gastoMes - a.gastoMes);
 
       const ref = db.collection('anuncios').doc(id);
