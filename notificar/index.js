@@ -165,6 +165,22 @@ async function enviar(u, title, body) {
     }
   }
 
+  // 4) Eventos da Durães (casamentos, aniversários...): aviso 7 dias, 3 dias e 1 dia antes (a partir das 9h)
+  if (min >= 9 * 60) {
+    const ANTES = [[7, 'Falta 1 semana'], [3, 'Faltam 3 dias'], [1, 'É amanhã']];
+    for (const [n, tx] of ANTES) {
+      const dia = addDias(hoje, n);
+      for (const t of tarefas.filter((x) => x.empresa === 'duraes' && x.data === dia && !emEdicao(x))) {
+        const chave = `evento_${t.id}_${t.data}_${n}d`;
+        if (await jaFoi(chave)) continue;
+        const equipe = arr(t.captacao).filter((k) => !String(k).startsWith('f:'));
+        const para = usuarios.filter((u) => naCaptacao(u, t) || ehAdm(u));
+        for (const u of para) await enviar(u, `${tx}: ${t.titulo}`, `${TIPOS[t.tipo] || 'Evento'} em ${dm(t.data)}${t.hora ? ' às ' + t.hora : ''}${t.local ? ' · ' + t.local : ''}. Equipe: ${equipe.join(', ') || 'ninguém marcado ainda'}.`);
+        await marcar(chave);
+      }
+    }
+  }
+
   // 3) "Daqui a pouco": até ~2h30 antes da captação
   for (const t of tarefas.filter((x) => x.data === hoje && x.hora && !emEdicao(x))) {
     const [hh, mm] = t.hora.split(':').map(Number);

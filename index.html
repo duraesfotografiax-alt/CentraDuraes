@@ -426,6 +426,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
 /* fotos x vídeo */
 .mid{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;padding:2px 8px 2px 6px;border-radius:999px;white-space:nowrap}
 .mid svg.i{width:13px;height:13px;stroke-width:2.2}
+.mid.albm{background:rgba(167,139,250,.14);color:#b9a4ff}
 .mid.foto{background:var(--gold-bg);color:var(--gold)}
 .mid.video{background:rgba(183,156,255,.16);color:#B79CFF}
 .mid.ambos{background:linear-gradient(90deg,var(--gold-bg),rgba(183,156,255,.16));color:var(--ink)}
@@ -760,6 +761,7 @@ const TIPOS = {
 };
 const MIDIA={foto:['foto','Fotos','i-cam'],video:['video','Vídeo','i-video'],ambos:['ambos','Fotos + vídeo','i-video']};
 function midiaDe(t){return MIDIA[t.midia]?t.midia:((TIPOS[t.tipo]||{}).midia||'foto')}
+function albChip(t){return t.album==='com'?'<span class="mid albm" title="Com álbum">'+ico('i-album')+'Álbum</span>':''}
 function midChip(t){const m=MIDIA[midiaDe(t)];return '<span class="mid '+m[0]+'" title="'+m[1]+'">'+(m[0]==='ambos'?ico('i-cam')+ico('i-video'):ico(m[2]))+m[1]+'</span>'}
 const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DFF'],['captado','Captado','#E2B24C'],['edicao','Em edição','#FF6A1F'],['entregue','Entregue','#34D399']];
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
@@ -929,7 +931,7 @@ function drawChart(e){
 function emptyMsg(a,b){return '<div class="empty"><b>'+a+'</b>'+b+'</div>'}
 function tRow(t,prazo){
   const tipo=(TIPOS[t.tipo]||TIPOS.outro).nome;
-  return '<div class="row click" data-open="'+t.id+'">'+dBox(prazo?t.prazo:t.data,t.empresa)+'<div style="min-width:0"><div class="t">'+esc(t.titulo)+'</div><div class="s">'+chipEmp(t.empresa)+midChip(t)+'<span>'+tipo+(t.hora&&!prazo?' · '+esc(t.hora):'')+'</span></div></div>'+
+  return '<div class="row click" data-open="'+t.id+'">'+dBox(prazo?t.prazo:t.data,t.empresa)+'<div style="min-width:0"><div class="t">'+esc(t.titulo)+'</div><div class="s">'+chipEmp(t.empresa)+midChip(t)+albChip(t)+'<span>'+tipo+(t.hora&&!prazo?' · '+esc(t.hora):'')+'</span></div></div>'+
     '<div class="v">'+(prazo?prazoChip(t):avs(t.captacao))+'</div>'+(prazo?'<div class="acts" style="justify-content:flex-start"><span class="teamline">'+ico('i-edit')+esc(nomes(t.edicao))+'</span></div>':'')+'</div>';
 }
 function lRow(l,acts){
@@ -970,7 +972,7 @@ function card(t,i){
   const tipo=(TIPOS[t.tipo]||TIPOS.outro).nome,w=S.canWrite,v=fin()?valOf(t.id):null;
   return '<div class="card '+(t.empresa||'')+'" data-open="'+t.id+'"'+(w?' draggable="true"':'')+'>'+
     '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(t.titulo)+'</div>'+chipEmp(t.empresa)+'</div>'+
-    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+midChip(t)+'</div><div class="meta">'+(t.loja&&lojaNome(t.loja)?'<span style="color:var(--ink);font-weight:700">'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+midChip(t)+albChip(t)+'</div><div class="meta">'+(t.loja&&lojaNome(t.loja)?'<span style="color:var(--ink);font-weight:700">'+esc(lojaNome(t.loja))+'</span>':'')+'<span>'+tipo+' · '+dCurta(t.data)+(t.hora?' '+esc(t.hora):'')+'</span>'+(t.local?'<span>'+esc(t.local)+'</span>':'')+'</div>'+
     '<div class="foot"><span class="teamline" title="Captação: '+esc(nomes(t.captacao))+'">'+ico('i-cam')+avs(t.captacao)+'</span><span class="teamline" title="Edição: '+esc(nomes(t.edicao))+'">'+ico('i-edit')+avs(t.edicao)+'</span></div>'+
     '<div class="foot">'+(prazoChip(t)||'<span></span>')+(v&&v.valor?'<span class="money num">'+$(v.valor)+'</span>':'')+'</div>'+
     (w?'<div class="foot"><div class="mv">'+(i>0?'<button class="btn sm" data-act="back" data-id="'+t.id+'" aria-label="Voltar etapa">←</button>':'')+'</div><div class="mv">'+(i<ETAPAS.length-1?'<button class="btn sm" data-act="fwd" data-id="'+t.id+'">'+ETAPAS[i+1][1]+' →</button>':'')+'</div></div>':'')+'</div>';
@@ -1079,10 +1081,12 @@ function formTar(t,preset){
   '<div class="two"><div class="fld"><label for="tTipo">Tipo</label><select id="tTipo">'+opts(Object.entries(TIPOS).map(([k,x])=>[k,x.nome]),t.tipo)+'</select></div>'+
   '<div class="fld"><label for="tEmp">Empresa</label><select id="tEmp">'+opts([['elite','Elite Marketing'],['duraes','Durães Fotografia']],t.empresa)+'</select></div></div>'+
   '<div class="fld"><span class="l">Material</span><div class="seg" id="tMid">'+Object.values(MIDIA).map(m=>'<button type="button" data-v="'+m[0]+'" aria-pressed="'+(midiaDe(t)===m[0])+'">'+m[1]+'</button>').join('')+'</div></div>'+
+  '<div class="fld" id="tAlbF"><span class="l">Álbum</span><div class="seg" id="tAlb"><button type="button" data-v="sem" aria-pressed="'+(t.album!=='com')+'">Sem álbum</button><button type="button" data-v="com" aria-pressed="'+(t.album==='com')+'">Com álbum</button></div></div>'+
   '<div class="fld" id="tLojaF"><label for="tLoja">Cliente (loja)</label><select id="tLoja">'+opts([['','— nenhum —']].concat(lojasOrd().map(l=>[l.id,l.nome])),t.loja||'')+'</select><span class="hint">Ao marcar como Entregue, o material vai para a aba Clientes para a Vanessa programar.</span></div>'+
   '<div class="two"><div class="fld"><label for="tData">Data da captação</label><input id="tData" type="date" value="'+esc(t.data)+'"></div>'+
   '<div class="fld"><label for="tHora">Horário</label><input id="tHora" type="time" value="'+esc(t.hora)+'"></div></div>'+
   '<div class="two"><div class="fld"><label for="tLocal">Local / endereço</label><input id="tLocal" value="'+esc(t.local)+'"></div><div class="fld"><label for="tContato">Contato do cliente</label><input id="tContato" inputmode="tel" placeholder="WhatsApp" value="'+esc(t.contato||'')+'"></div></div>'+
+  '<div class="pushbox" id="tPreW" hidden></div>'+
   '<div class="fld"><span class="l">Quem vai captar</span><div id="pkCap">'+pickHtml('pCap',sel.captacao)+'</div></div>'+
   '<div class="fld"><span class="l">Quem vai editar</span><div id="pkEd">'+pickHtml('pEd',sel.edicao)+'</div></div>'+
   '<div class="fld"><span class="l">Freelancer novo</span><div class="addfr"><input id="tFr" placeholder="Nome do freelancer"><button type="button" class="btn sm" id="tFrAdd">'+ico('i-plus')+'Adicionar</button></div><span class="hint">Ele entra na lista da Equipe e fica marcado na captação.</span></div>'+
@@ -1107,12 +1111,28 @@ function formTar(t,preset){
   const autoPrazo=()=>{if(prazoManual)return;const d=q('#tData').value;if(d)q('#tPrazo').value=addDias(d,(TIPOS[q('#tTipo').value]||TIPOS.outro).dias)};
   let midSel=midiaDe(t),midManual=!novo;
   const pintaMid=()=>q('#tMid').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===midSel));
+  let albSel=t.album==='com'?'com':'sem';
+  q('#tAlb').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;albSel=b.dataset.v;q('#tAlb').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))};
+  const albVis=()=>{q('#tAlbF').hidden=q('#tEmp').value!=='duraes'};
   q('#tMid').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;midSel=b.dataset.v;midManual=true;pintaMid()};
   q('#tTipo').addEventListener('change',()=>{if(!midManual){midSel=(TIPOS[q('#tTipo').value]||{}).midia||'foto';pintaMid()}});
   q('#tTipo').onchange=()=>{const x=TIPOS[q('#tTipo').value];if(x.emp)q('#tEmp').value=x.emp;if(novo&&x.todos&&!sel.captacao.length){sel.captacao=TEAM.slice();q('#pkCap').innerHTML=pickHtml('pCap',sel.captacao)}autoPrazo()};
   q('#tData').onchange=autoPrazo;q('#tPrazo').oninput=()=>{prazoManual=true};
   const lojaVis=()=>{q('#tLojaF').hidden=q('#tEmp').value!=='elite'};lojaVis();q('#tEmp').addEventListener('change',lojaVis);
   q('#tTit').addEventListener('change',()=>{if(q('#tLoja').value)return;const v=q('#tTit').value.trim().toLowerCase();const l=S.lojas.find(x=>v.includes((x.nome||'').toLowerCase()));if(l){q('#tLoja').value=l.id}});
+  /* pré-wedding (casamento) / pré-ensaio de 15 anos (aniversário) */
+  const preT=t.pre&&S.tar.find(x=>x.id===t.pre);
+  const preNome=()=>q('#tTipo').value==='casamento'?'Pré-wedding':'Pré-ensaio de 15 anos';
+  const preVis=()=>{const tp=q('#tTipo').value,box=q('#tPreW');const ok=(tp==='casamento'||tp==='aniversario')&&!t.preDe;box.hidden=!ok;if(!ok)return;
+    if(preT){box.innerHTML='<b>'+esc(preNome())+'</b><span class="muted" style="font-size:14px">Já está na agenda: <b style="color:var(--ink)">'+esc(preT.titulo)+'</b> · '+(preT.data?dCurta(preT.data)+(preT.hora?' às '+esc(preT.hora):''):'data a combinar')+'</span><button type="button" class="btn sm" id="tPreAbrir" style="align-self:flex-start">Abrir '+esc(preNome().toLowerCase())+'</button>';
+      q('#tPreAbrir').onclick=()=>formTar(preT);return}
+    const marc=q('#tPre')&&q('#tPre').checked,vals=['tPreD','tPreH','tPreL'].map(i=>q('#'+i)?q('#'+i).value:'');
+    box.innerHTML='<label style="display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700"><input type="checkbox" id="tPre" '+(marc?'checked':'')+' style="width:18px;height:18px"> '+(tp==='casamento'?'Tem pré-wedding':'É 15 anos com pré-ensaio')+'</label>'+
+      '<div id="tPreF"'+(marc?'':' hidden')+'><div class="two"><div class="fld"><label for="tPreD">Data do '+(tp==='casamento'?'pré-wedding':'pré-ensaio')+'</label><input id="tPreD" type="date" value="'+esc(vals[0])+'"></div><div class="fld"><label for="tPreH">Horário</label><input id="tPreH" type="time" value="'+esc(vals[1])+'"></div></div>'+
+      '<div class="fld"><label for="tPreL">Local do ensaio</label><input id="tPreL" value="'+esc(vals[2])+'" placeholder="Ex.: Parque, praia, estúdio…"></div><span class="hint">Vira um trabalho separado (tipo Ensaio) na Produção e na Agenda, com a mesma equipe. Sem data, fica em "A agendar".</span></div>';
+    q('#tPre').onchange=()=>{q('#tPreF').hidden=!q('#tPre').checked}};
+  q('#tTipo').addEventListener('change',preVis);preVis();
+  q('#tTipo').addEventListener('change',()=>setTimeout(albVis,0));q('#tEmp').addEventListener('change',albVis);albVis();
   q('#fT').onsubmit=async e=>{e.preventDefault();
     const titulo=q('#tTit').value.trim();if(!titulo){q('#tErr').textContent='Dê um nome ao trabalho (cliente ou evento).';return}
     let valor=0,custo=0;
@@ -1120,13 +1140,19 @@ function formTar(t,preset){
       if(!(valor>=0)||!(custo>=0)){q('#tErr').textContent='Valor inválido. Use por exemplo 1500,00.';return}}
     const doc={titulo:titulo.slice(0,120),tipo:q('#tTipo').value,empresa:q('#tEmp').value,data:q('#tData').value,hora:q('#tHora').value,local:q('#tLocal').value.trim().slice(0,200),
       captacao:sel.captacao,edicao:sel.edicao,prazo:q('#tPrazo').value,etapa:q('#tEtapa').value,obs:q('#tObs').value.slice(0,1000),
-      midia:midSel,loja:q('#tEmp').value==='elite'?q('#tLoja').value:'',drive:t.drive||'',contato:q('#tContato').value.trim().slice(0,40),
+      midia:midSel,album:q('#tEmp').value==='duraes'?albSel:'',loja:q('#tEmp').value==='elite'?q('#tLoja').value:'',drive:t.drive||'',contato:q('#tContato').value.trim().slice(0,40),
       entregaStatus:t.entregaStatus||'',prontoEm:t.prontoEm||'',enviadoEm:t.enviadoEm||''};
+    if(t.pre)doc.pre=t.pre;if(t.preDe)doc.preDe=t.preDe;
     if(doc.etapa==='entregue')doc.entregueEm=t.entregueEm||hoje();
     let tid=t.id;
     try{await write(async()=>{if(novo)tid=await store.add('tar',doc);else await store.set('tar',t.id,doc)})}catch(_){return}
     if(fin()&&tid&&((v.valor||0)!==valor||(v.custo||0)!==custo)){try{await write(()=>store.set('valores',tid,{valor,custo}))}catch(_){}}
-    closeSheet();toast(novo?'Trabalho cadastrado':'Trabalho atualizado');
+    let preMsg='';
+    if(tid&&!preT&&q('#tPre')&&q('#tPre').checked&&!q('#tPreW').hidden){const nm=preNome(),pd=q('#tPreD').value;
+      const pre={titulo:(nm+' – '+titulo.replace(/^(casamento( civil)?|anivers[áa]rio|15 anos|debutante)\s*[–-]?\s*/i,'')).slice(0,120),tipo:'ensaio',empresa:'duraes',data:pd,hora:q('#tPreH').value,local:q('#tPreL').value.trim().slice(0,200),
+        captacao:sel.captacao.slice(),edicao:sel.edicao.slice(),prazo:pd?addDias(pd,TIPOS.ensaio.dias):'',etapa:pd?'agendado':'agendar',obs:'Ensaio de '+titulo,midia:'foto',loja:'',drive:'',contato:q('#tContato').value.trim().slice(0,40),entregaStatus:'',prontoEm:'',enviadoEm:'',preDe:tid};
+      try{const pid=await write(()=>store.add('tar',pre));if(pid){await store.update('tar',tid,{pre:pid});preMsg=' · '+nm+(pd?' em '+dCurta(pd):' a agendar')}}catch(_){}}
+    closeSheet();toast((novo?'Trabalho cadastrado':'Trabalho atualizado')+preMsg);
   };
   q('#tTit').focus();
 }
@@ -1784,7 +1810,8 @@ function formContrato(c,base){
     '<div class="fld"><span class="l">O que será entregue</span><div class="pick" id="ctEnt"></div><div class="addit"><input id="ctEntN" placeholder="Outra entrega (ex.: Pen drive personalizado)"><button type="button" class="btn sm" data-addit="ent">Adicionar</button></div></div>'+
     '<div class="fld"><label for="ctDesc">Descrição dos serviços, escrita do seu jeito (opcional)</label><textarea id="ctDesc" rows="3" placeholder="Ex.: Cobertura do casamento civil no cartório às 10h e do almoço no restaurante até as 15h.">'+esc(c.descServ||'')+'</textarea></div>'+
     '<div class="three">'+I('ctHoras','Duração (horas)',c.horas,' type="number" min="1"')+I('ctPF','Entrega fotos (dias)',c.prazoFotos,' type="number" min="1"')+I('ctPV','Entrega vídeo (dias)',c.prazoVideo,' type="number" min="1"')+'</div>'+
-    I('ctDV','Duração do vídeo editado',c.duracaoVideo,' placeholder="Ex.: 10 a 20 minutos"')+'</div>'+
+    I('ctDV','Duração do vídeo editado',c.duracaoVideo,' placeholder="Ex.: 10 a 20 minutos"')+
+    '<label id="ctAgW" style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="ctAgendar" '+(c.agendar===false?'':'checked')+' style="width:18px;height:18px"> <span id="ctAgTx">Agendar automaticamente na Produção e na Agenda</span></label></div>'+
   /* marketing */
   '<div id="ctMk" class="pushbox"><b>Serviços e vigência</b>'+
     '<div class="checks"><label><input type="checkbox" id="ctS1" '+(c.sConteudo?'checked':'')+'> Produção de fotos e vídeos</label><label><input type="checkbox" id="ctS2" '+(c.sRedes?'checked':'')+'> Postagens / redes sociais</label><label><input type="checkbox" id="ctS3" '+(c.sTrafego?'checked':'')+'> Gestão de tráfego (anúncios)</label></div>'+
@@ -1840,6 +1867,7 @@ function formContrato(c,base){
   ['#ctMeses','#ctIni','#ctMensal','#ctDia','#ctPri1'].forEach(s=>q(s).onchange=gerarMk);
   q('#ctLista').oninput=e=>{const el=e.target.closest('[data-pi]');if(!el)return;const p=parc[+el.dataset.pi];if(el.dataset.pk==='valor')p.valor=parseValor(el.value)||0;else p.data=el.value;soma()};
   q('#ctLista').onclick=e=>{const b=e.target.closest('[data-prm]');if(!b)return;parc.splice(+b.dataset.prm,1);desenha()};
+  const agTx=()=>{const T=S.tar.find(t=>t.id===q('#ctTar').value);q('#ctAgTx').textContent=T?'Atualizar data, horário e local do trabalho "'+T.titulo+'"':'Agendar automaticamente na Produção e na Agenda'};q('#ctTar').addEventListener('change',agTx);agTx();
   q('#ctTar').onchange=()=>{const T=S.tar.find(t=>t.id===q('#ctTar').value);if(!T)return;if(T.data&&!q('#ctData').value)q('#ctData').value=T.data;if(T.hora&&!q('#ctHora').value)q('#ctHora').value=T.hora;if(T.local&&!q('#ctLocal').value)q('#ctLocal').value=T.local;
     if(T.tipo&&CT_EVT[T.tipo]){q('#ctTipo').value=T.tipo}else if(T.tipo==='evento'||T.tipo==='ensaio'){q('#ctTipo').value='outro';if(!q('#ctOutro').value)q('#ctOutro').value=T.titulo}
     const vv=valOf(T.id);if(vv&&vv.valor&&!q('#ctTotal').value)q('#ctTotal').value=v(vv.valor);vis()};
@@ -1857,14 +1885,40 @@ function formContrato(c,base){
       if(!d.fim)d.fim=fimVigencia(d.ini,d.meses);if(!d.parcelas.length){err('Confira o 1º vencimento para gerar as mensalidades.');return}}
     else{Object.assign(d,{tar:q('#ctTar').value,tipoEvt:q('#ctTipo').value,outro:q('#ctOutro').value.trim().slice(0,60),n1:q('#ctN1').value.trim().slice(0,120),n2:q('#ctN2').value.trim().slice(0,120),data:q('#ctData').value,hora:q('#ctHora').value.trim().slice(0,20),local:q('#ctLocal').value.trim().slice(0,200),
         servico:q('#ctServ').value,servNome:q('#ctServNome').value.trim().slice(0,100),momentos:lista.mom.filter(x=>sel.mom.has(x)),entregas:lista.ent.filter(x=>sel.ent.has(x)),descServ:q('#ctDesc').value.trim().slice(0,1000),cobertura:'',horas:int('#ctHoras'),prazoFotos:int('#ctPF'),prazoVideo:int('#ctPV'),duracaoVideo:q('#ctDV').value.trim().slice(0,60),
-        total:num('#ctTotal')||0,entV:num('#ctEntV')||0,entD:q('#ctEntD').value,freq:q('#ctFreq').value,pri:q('#ctPri').value,restTx:q('#ctRest').value.trim().slice(0,200),diasAtraso:int('#ctAtr')||10,cancelDias:int('#ctCanc')||2,taxaClip:num('#ctClip')||0});
+        total:num('#ctTotal')||0,entV:num('#ctEntV')||0,entD:q('#ctEntD').value,freq:q('#ctFreq').value,pri:q('#ctPri').value,restTx:q('#ctRest').value.trim().slice(0,200),agendar:q('#ctAgendar').checked,diasAtraso:int('#ctAtr')||10,cancelDias:int('#ctCanc')||2,taxaClip:num('#ctClip')||0});
       if(!d.data){err('Informe a data do evento.');return}if(!d.momentos.length&&!d.entregas.length&&!d.descServ){err('Marque o que será coberto e entregue (ou escreva a descrição dos serviços).');return}if(!(d.total>0)){err('Informe o valor total.');return}
       if(d.total-d.entV>0.009&&!d.parcelas.length&&!d.restTx){err('Toque em "Calcular parcelas" para dividir o restante (ou escreva a condição na observação).');return}}
     try{
-      if(novo){d.numero=ctNumero(d.empresa);d.criadoEm=agoraLocal();d.status='rascunho';const id=await write(()=>store.add('contratos',d));closeSheet();toast('Contrato '+d.numero+' criado');verContrato(Object.assign({id},d))}
-      else{d.numero=c.numero;d.criadoEm=c.criadoEm||agoraLocal();d.status=c.status||'rascunho';if(c.caixa)d.caixa=c.caixa;await write(()=>store.set('contratos',c.id,d));closeSheet();toast('Contrato atualizado')}
+      if(novo){d.numero=ctNumero(d.empresa);d.criadoEm=agoraLocal();d.status='rascunho';const id=await write(()=>store.add('contratos',d));
+        const ag=!mk&&d.agendar?await agendarContrato(Object.assign({id},d)):'';closeSheet();toast('Contrato '+d.numero+' criado'+(ag?' · '+ag:''));verContrato(Object.assign({id},d))}
+      else{d.numero=c.numero;d.criadoEm=c.criadoEm||agoraLocal();d.status=c.status||'rascunho';if(c.caixa)d.caixa=c.caixa;if(c.zapLink)d.zapLink=c.zapLink;await write(()=>store.set('contratos',c.id,d));
+        const ag=!mk&&d.agendar?await agendarContrato(Object.assign({id:c.id},d)):'';closeSheet();toast('Contrato atualizado'+(ag?' · '+ag:''))}
     }catch(_){}};
   q('#ctNome').focus()}
+
+/* ---- contrato de evento -> trabalho na Produção/Agenda ---- */
+function tituloEvento(c){const p=s=>(s||'').trim().split(/\s+/)[0]||'';
+  if(casam(c.tipoEvt)){const ns=[p(c.n1),p(c.n2)].filter(Boolean).join(' & ')||p(c.nome);return (c.tipoEvt==='civil'?'Casamento civil':'Casamento')+(ns?' – '+ns:'')}
+  if(c.tipoEvt==='aniversario')return 'Aniversário – '+(c.n1||c.nome);
+  if(c.tipoEvt==='debutante')return 'Debutante – '+(c.n1||c.nome);
+  return (c.outro||'Evento')+' – '+(c.n1||c.nome)}
+async function agendarContrato(c){
+  if(!c.data)return '';
+  const tipo=casam(c.tipoEvt)?'casamento':(c.tipoEvt==='aniversario'||c.tipoEvt==='debutante')?'aniversario':'evento';
+  const dias=Math.max(c.servico!=='video'?(c.prazoFotos||0):0,c.servico!=='foto'?(c.prazoVideo||0):0)||(TIPOS[tipo]||{}).dias||15;
+  const servTx=[(c.momentos||[]).length?'Cobertura: '+c.momentos.join(', '):'',(c.entregas||[]).length?'Entrega: '+c.entregas.join(', '):'',c.descServ||''].filter(Boolean).join('\n');
+  const campos={data:c.data,hora:(c.hora||'').match(/\d{1,2}[:h]\d{2}/)?(c.hora.match(/(\d{1,2})[:h](\d{2})/).slice(1).map(x=>x.padStart(2,'0')).join(':')):'',local:(c.local||'').slice(0,200),prazo:addDias(c.data,dias),midia:c.servico==='foto'?'foto':c.servico==='video'?'video':'ambos',album:(c.entregas||[]).some(x=>/[áa]lbum/i.test(x))?'com':'sem',contato:(c.tel||'').slice(0,40)};
+  try{
+    const T=c.tar&&S.tar.find(t=>t.id===c.tar);
+    if(T){await write(()=>store.update('tar',T.id,campos));return 'Trabalho atualizado na Agenda'}
+    const doc=Object.assign({titulo:tituloEvento(c).slice(0,120),tipo,empresa:'duraes',captacao:tipo==='casamento'?TEAM.slice():['Thiago'],edicao:[],etapa:'agendado',
+      obs:('Contrato '+c.numero+(servTx?'\n'+servTx:'')).slice(0,1000),loja:'',drive:'',entregaStatus:'',prontoEm:'',enviadoEm:''},campos);
+    const tid=await write(()=>store.add('tar',doc));
+    if(tid&&(c.momentos||[]).some(m=>/pr[ée]-wedding/i.test(m))){try{const pid=await store.add('tar',{titulo:('Pré-wedding – '+doc.titulo.replace(/^Casamento( civil)? – /,'')).slice(0,120),tipo:'ensaio',empresa:'duraes',data:'',hora:'',local:'',captacao:doc.captacao.slice(),edicao:[],prazo:'',etapa:'agendar',obs:'Ensaio do contrato '+c.numero,midia:'foto',loja:'',drive:'',contato:doc.contato,entregaStatus:'',prontoEm:'',enviadoEm:'',preDe:tid});await store.update('tar',tid,{pre:pid})}catch(_){}}
+    if(tid){if(c.total>0)try{await store.set('valores',tid,{valor:c.total,custo:0})}catch(_){}
+      try{await store.update('contratos',c.id,{tar:tid})}catch(_){}}
+    return 'Agendado em '+dCurta(c.data)}
+  catch(_){return ''}}
 
 /* ---- ver / gerar PDF ---- */
 async function verContrato(c){S._ctAtual=c;
@@ -2049,7 +2103,7 @@ function renderDuraes(){
   const env=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus==='enviado'&&(t.enviadoEm||'')>=lim).sort((a,b)=>(b.enviadoEm||'').localeCompare(a.enviadoEm||''));
   const tp=t=>(TIPOS[t.tipo]||TIPOS.outro).nome;
   const ct=t=>t.contato?'<span>Contato: <span style="user-select:all">'+esc(t.contato)+'</span></span>':'';
-  const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div>'+midChip(t)+'</div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
+  const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+midChip(t)+albChip(t)+'</div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
   const col=(tit,cor,arr_,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+arr_.length+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
   const w=S.canWrite;
   document.getElementById('lojaBody').innerHTML='<div class="pipe">'+
