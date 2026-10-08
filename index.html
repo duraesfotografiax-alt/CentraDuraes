@@ -1348,7 +1348,7 @@ function ligarBotoesDrive(root,inputSel,ctx){
   box.addEventListener('click',async e=>{const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
     if(x==='esc'){try{await token()}catch(er){st.textContent=er.message;return}
       let ini=null;try{ini=await pastaDestino(ctx)}catch(er){st.textContent=er.message}
-      abrirSeletor(ini,f=>{inp.value=f.webViewLink;st.textContent='Pasta escolhida: '+f.name});return}
+      abrirSeletor(ini,f=>{inp.value=f.webViewLink;st.textContent=(f.mimeType===FOLDER?'Pasta escolhida: ':'Arquivo escolhido: ')+f.name});return}
     if(x==='pasta'||x==='arq'){modo=x;try{await token()}catch(er){st.textContent=er.message;return}
       if(x==='pasta'){fp.setAttribute('webkitdirectory','');fp.setAttribute('directory','')}else{fp.removeAttribute('webkitdirectory');fp.removeAttribute('directory')}
       fp.value='';fp.click()}});
@@ -1366,7 +1366,7 @@ async function abrirSeletor(iniId,onEscolher){
   let path=iniId?[{id:iniId,name:'Pasta do cliente'}]:[raizes[0]];
   if(iniId){try{const i=await dInfo(iniId);path=[{id:i.id,name:i.name}]}catch(_){}}
   const pinta=async()=>{const cur=path[path.length-1];
-    sheet2.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Escolher pasta</h2><button type="button" class="btn sm ghost" data-close2>Fechar</button></div>'+
+    sheet2.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Escolher no Drive</h2><button type="button" class="btn sm ghost" data-close2>Fechar</button></div>'+
       '<div class="seg">'+raizes.map(r=>'<button type="button" data-r="'+r.id+'">'+esc(r.name)+'</button>').join('')+'</div>'+
       '<div class="crumbs">'+path.map((p,i)=>(i?'<span>›</span>':'')+'<button type="button" data-i="'+i+'">'+esc(p.name)+'</button>').join('')+'</div>'+
       '<div class="list" id="selL"><div class="spinner"></div></div>'+
@@ -1375,9 +1375,13 @@ async function abrirSeletor(iniId,onEscolher){
     sheet2.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const r=raizes.find(x=>x.id===b.dataset.r);path=[r];pinta()});
     sheet2.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{path=path.slice(0,+b.dataset.i+1);pinta()});
     const u=sheet2.querySelector('[data-usar]');if(u)u.onclick=async()=>{try{const i=await dInfo(cur.id);fecharSheet2();onEscolher(i)}catch(e){toast(e.message)}};
-    try{const fs=await dListar(cur.id,true);const L=sheet2.querySelector('#selL');if(!L)return;
-      L.innerHTML=fs.length?fs.map(f=>'<div class="row click" data-f="'+f.id+'" data-n="'+esc(f.name)+'">'+'<span style="color:var(--gold)">'+ico('i-folder')+'</span><div class="t">'+esc(f.name)+'</div><span class="muted">›</span></div>').join(''):emptyMsg('Sem subpastas','Use esta pasta ou volte.');
-      L.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{path.push({id:r.dataset.f,name:r.dataset.n});pinta()})}
+    try{const todos=cur.id==='shared'?await dListar(cur.id,true):await dListar(cur.id);const L=sheet2.querySelector('#selL');if(!L)return;
+      const ehP=f=>f.mimeType===FOLDER||f.mimeType==='application/vnd.google-apps.shortcut',ps=todos.filter(ehP),as=todos.filter(f=>!ehP(f));
+      L.innerHTML=(ps.length||as.length)?ps.map(f=>'<div class="row click" data-f="'+f.id+'" data-n="'+esc(f.name)+'">'+'<span style="color:var(--gold)">'+ico('i-folder')+'</span><div class="t">'+esc(f.name)+'</div><span class="muted">›</span></div>').join('')+
+        as.map(f=>'<div class="row click" data-arq="'+f.id+'">'+(f.thumbnailLink?'<img src="'+esc(f.thumbnailLink)+'" alt="" referrerpolicy="no-referrer" style="width:40px;height:40px;object-fit:cover;border-radius:8px">':'<span class="muted">'+ico(/^video\//.test(f.mimeType)?'i-video':'i-file')+'</span>')+'<div class="t">'+esc(f.name)+'</div><span class="btn sm">Usar este arquivo</span></div>').join('')
+        :emptyMsg('Pasta vazia','Use esta pasta ou volte.');
+      L.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{path.push({id:r.dataset.f,name:r.dataset.n});pinta()});
+      L.querySelectorAll('[data-arq]').forEach(r=>r.onclick=async()=>{try{const i=await dInfo(r.dataset.arq);fecharSheet2();onEscolher(i)}catch(e){toast(e.message)}})}
     catch(e){const L=sheet2.querySelector('#selL');if(L)L.innerHTML='<p class="err">'+esc(e.message)+'</p>'}};
   pinta()}
 // Aba Drive
@@ -2266,6 +2270,7 @@ function formPost(pst,lojaId){const novo=!pst;pst=pst||{titulo:'',tipo:'reels',d
   '<div class="fld"><label for="poObs">Observação</label><input id="poObs" value="'+esc(pst.obs)+'"></div>'+
   '<div class="err" id="poErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-pact="apagar" data-id="'+pst.id+'">Apagar</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  ligarBotoesDrive(sheet,'#poDrive',{tipo:'elite',get loja(){return q('#poLoja').value},get titulo(){return q('#poTit').value.trim()||'Conteúdo'}});
   q('#fPo').onsubmit=async e=>{e.preventDefault();const titulo=q('#poTit').value.trim();if(!titulo){q('#poErr').textContent='Escreva o nome do conteúdo.';return}
     const st=q('#poSt').value,qd=q('#poQ').value;if(st==='programado'&&!qd){q('#poErr').textContent='Informe a data e a hora em que vai sair.';return}
     const doc=Object.assign({},pst,{loja:q('#poLoja').value,tipo:q('#poTipo').value,titulo:titulo.slice(0,100),drive:q('#poDrive').value.trim(),status:st,quando:qd,link:q('#poLink').value.trim(),obs:q('#poObs').value.slice(0,300)});
