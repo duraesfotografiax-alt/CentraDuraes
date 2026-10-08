@@ -66,7 +66,13 @@ async function enviar(u, title, body) {
     try { await require('./meta')({ db, usuarios, enviar, jaFoi, marcar, ehAdm, hoje, agoraIso: agoraIso0 }); }
     catch (e) { console.error('Meta:', e.message); await db.collection('anunciosMeta').doc('estado').set({ atualizadoEm: agoraIso0, erro: String(e.message).slice(0, 300) }, { merge: true }); }
   }
-  if (MODO === 'meta') return;
+  // Postagens: publica o que está agendado (toda vez) e atualiza a lista de páginas/Instagram (de hora em hora)
+  const pub = require('./publicar');
+  try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
+  if (process.env.META_TOKEN && ((min % 60) < 10 || MODO === 'meta' || MODO === 'paginas')) {
+    try { await pub.sincronizarPaginas({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens (páginas):', e.message); }
+  }
+  if (MODO === 'meta' || MODO === 'paginas') return;
 
   const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
   const emEdicao = (t) => t.etapa === 'captado' || t.etapa === 'edicao';
@@ -97,7 +103,7 @@ async function enviar(u, title, body) {
     }
   }
   // 0b) Programado há mais de 2h e ainda não marcado como no ar: pedir conferência
-  for (const p of posts.filter((x) => x.status === 'programado' && x.quando && minutosEntre(agoraIso, x.quando) >= 120)) {
+  for (const p of posts.filter((x) => x.status === 'programado' && !x.pubStatus && x.quando && minutosEntre(agoraIso, x.quando) >= 120)) {
     const chave = `conferir_${p.id}_${p.quando.replace(/[^0-9]/g, '')}`;
     if (await jaFoi(chave)) continue;
     const lj = lojas[p.loja]; if (!lj) continue;

@@ -6,15 +6,19 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'teste = notificação de teste; auto = roda normal; meta = atualiza o tráfego pago agora'
+        description: 'teste = notificação de teste; auto = roda normal (e publica o que estiver na hora); meta = atualiza tráfego e Instagram agora; paginas = só a lista de páginas/Instagram'
         default: 'teste'
         type: choice
-        options: [teste, auto, meta]
+        options: [teste, auto, meta, paginas]
+
+concurrency:
+  group: central-robo
+  cancel-in-progress: false
 
 jobs:
   notificar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

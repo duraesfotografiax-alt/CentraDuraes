@@ -302,6 +302,29 @@ Gera o contrato preenchido em PDF, no padrão de vocês: **Durães · Evento** (
 5. **Criar contrato** e depois **Enviar**: no celular abre o WhatsApp com o PDF; no PC baixa o PDF.
 6. Em **Mais…**: marcar como assinado, lançar os pagamentos no Caixa (entram como "a receber"), emitir recibo já preenchido e duplicar para um contrato parecido.
 
+## Postagens automáticas (Instagram + Facebook dos clientes)
+
+Na aba **Clientes → Elite**, cada conteúdo "Para programar" ganha o botão **Agendar na Central**: escolhe onde (Instagram, Facebook ou os dois), o formato (Reels, Feed, Carrossel, Stories), a legenda, a data/hora e os arquivos do Drive. Na hora marcada o robô publica sozinho (no máximo uns 10 minutos depois), marca "No ar" com o link e avisa no celular. Se der erro, o cartão mostra o motivo e o botão **Tentar de novo**.
+
+No topo de cada loja aparece o Instagram dela (seguidores e os últimos posts).
+
+**Configuração no Meta (uma vez):**
+1. **developers.facebook.com → app "Central Elite" → Casos de uso → Adicionar caso de uso**: adicione o de **Páginas** ("Gerenciar tudo na sua Página") e o de **Instagram** ("API do Instagram com Login do Facebook"/"Gerenciar mensagens e conteúdo"). Em cada um, clique em **Personalizar** e adicione as permissões: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
+2. **Em cada portfólio de cliente** (igual fizemos com a conta de anúncios): **Usuários → Parceiros → Elite MKT → Atribuir ativos** → **Páginas** (marque a página, permissão de **Conteúdo**) e **Contas do Instagram** (permissão de **Conteúdo**).
+3. **No portfólio Elite MKT → Usuários do sistema → Central → Atribuir ativos**: marque as **Páginas** e as **Contas do Instagram** dos clientes com permissão de **Conteúdo** (ou Controle total).
+4. **Ainda no Central → Gerar token** → escolha o app → marque as permissões do passo 1 **e** as que já tinha (`ads_read`, `read_insights`) → validade **Nunca** → copie a chave.
+5. **GitHub → Settings → Secrets → Actions → META_TOKEN → Update** e cole a chave nova (ela substitui a antiga; o Tráfego continua funcionando).
+6. **GitHub → Actions → Notificações da Central → Run workflow → modo `paginas`**. No log deve aparecer "Postagens: N página(s), N com Instagram".
+7. Na Central, abra cada loja → **Editar cliente** → escolha a Página/Instagram (se o @ do Instagram já estiver certo, ela liga sozinha).
+
+**Se aparecer erro de permissão** (ex.: "(#10)" ou "(#200) ... permission") nas páginas dos clientes: o Meta pede **Acesso Avançado**. Vá em **developers.facebook.com → app → Análise do app → Permissões e recursos**, peça **Acesso avançado** para as permissões do passo 1 (o Meta exige a **verificação da empresa** e um vídeo curto mostrando a tela de agendar). Enquanto não sai, dá para testar com as páginas da própria Elite/Durães.
+
+**Bom saber:**
+- Os arquivos escolhidos ficam com "Qualquer pessoa com o link" no Drive (o Meta precisa baixar).
+- Fotos PNG são convertidas para JPG automaticamente. O Instagram só aceita fotos de feed entre 4:5 (vertical) e 1.91:1 (horizontal); Reels e Stories em 9:16.
+- Carrossel: 2 a 10 arquivos. No Facebook, carrossel só com fotos.
+- Instagram: no máximo 30 hashtags e 2.200 caracteres de legenda.
+
 ## Fotos ou vídeo
 Cada trabalho tem o campo **Material**: **Fotos**, **Vídeo** ou **Fotos + vídeo**. Ele já vem sugerido pelo tipo (loja e casamento: fotos + vídeo; conteúdo para redes: vídeo; ensaio, evento e aniversário: fotos) e pode ser trocado.
 - Nos cartões aparece uma etiqueta: dourada com câmera para **Fotos** e lilás com câmera de vídeo para **Vídeo**.

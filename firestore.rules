@@ -72,6 +72,9 @@ service cloud.firestore {
     match /valores/{id} { allow read, write: if financeiro(); }
     match /recibos/{id} { allow read, write: if financeiro(); }
     match /contratos/{id} { allow read, write: if financeiro(); }
+    // Postagens: lista de páginas/Instagram e últimos posts (quem grava é o robô)
+    match /metaPaginas/{id} { allow read: if ativo(); allow write: if false; }
+    match /metaIG/{id} { allow read: if ativo(); allow write: if false; }
     // Tráfego pago: o robô grava; sócios leem; Adm só pode vincular a conta a uma loja
     match /anuncios/{id} { allow read: if financeiro(); allow update: if adm() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['loja']); }
     match /anunciosMeta/{id} { allow read: if financeiro(); }

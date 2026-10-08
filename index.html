@@ -353,11 +353,26 @@ details.panel[open] summary{margin-bottom:12px}
 .ditem .mini .del{color:#ff8a8a}.ditem .mini .del svg{width:14px;height:14px}
 .btn.danger-solid{background:var(--neg);border-color:var(--neg);color:#fff}
 .btn.zap{background:#1d4ed8;border-color:#1d4ed8;color:#fff}.btn.zap:hover{background:#2563eb}
+.igbox{margin-bottom:14px;padding:12px 14px}
+.ighd{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.ighd img{width:42px;height:42px;border-radius:50%;object-fit:cover}.ighd b{display:block}.ighd .sp{flex:1}
+.iggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px}
+.iggrid a{position:relative;display:block;border-radius:10px;overflow:hidden;background:var(--panel2);aspect-ratio:1;color:#fff;text-decoration:none}
+.iggrid .im{position:absolute;inset:0;background:center/cover no-repeat}
+.iggrid .tp{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 4px;font-size:11px}.iggrid .tp svg{width:13px;height:13px}
+.iggrid .nm{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:10.5px;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.aupick{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.aupick button{position:relative;border:2px solid var(--line2);background:var(--panel2);border-radius:10px;padding:0 0 4px;color:var(--ink);text-align:left;overflow:hidden}
+.aupick button[aria-pressed="true"]{border-color:var(--gold)}
+.aupick .im{display:flex;align-items:center;justify-content:center;aspect-ratio:1;background:var(--hover) center/cover no-repeat;color:var(--muted)}
+.aupick small{display:block;font-size:10.5px;padding:3px 5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aupick .nb{position:absolute;top:5px;left:5px;background:var(--gold);color:#111;border-radius:999px;min-width:20px;height:20px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.aupick .vd{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.6);border-radius:6px;padding:1px 3px}.aupick .vd svg{width:13px;height:13px}
 .pick .pk{border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
 .pick .pk[aria-pressed="true"]{background:var(--pos-bg);border-color:var(--pos);color:var(--ink)}
 .pick .pk[aria-pressed="true"]::before{content:"✓ ";color:var(--pos)}
 .addit{display:flex;gap:6px}.addit input{flex:1;min-width:0}
 .cul{margin:2px 0 0;padding-left:18px;columns:2;column-gap:24px}.cul li{break-inside:avoid}
+.checks label{text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:600;cursor:pointer}
 .checks{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}.checks label{display:flex;gap:8px;align-items:center}.checks input{width:18px;height:18px}
 details.pushbox summary{cursor:pointer}
 .cpwrap{background:#d9d9de;padding:12px}
@@ -2203,17 +2218,23 @@ function renderClientes(){
   const pub=ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
   const ig=(l.instagram||'').replace(/^@/,'');
   const col=(tit,cor,n,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+n+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
-  const pc=p=>{const atras=p.status==='programado'&&p.quando&&minDiff(ag,p.quando)>=120;
+  const pc=p=>{const atras=p.status==='programado'&&!p.pubStatus&&p.quando&&minDiff(ag,p.quando)>=120;
     let a='';
-    if(p.status==='pronto')a='<button class="btn sm primary" data-pact="programar" data-id="'+p.id+'">Programei</button>';
+    const ps_=PUB_ST[p.pubStatus];
+    if(p.pubStatus==='aguardando')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar agendamento</button>';
+    else if(p.pubStatus==='erro')a='<button class="btn sm primary" data-pact="autoRetry" data-id="'+p.id+'">Tentar de novo</button><button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar</button>';
+    else if(p.pubStatus==='publicando')a='';
+    else if(p.status==='pronto')a='<button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>';
+    else if(p.status==='publicado'&&p.pubFeito&&(p.pubFeito.ig||p.pubFeito.fb))a=(p.pubFeito.ig?'<a class="btn sm" href="'+esc(p.pubFeito.ig)+'" target="_blank" rel="noopener">Ver no Instagram</a>':'')+(p.pubFeito.fb?'<a class="btn sm" href="'+esc(p.pubFeito.fb)+'" target="_blank" rel="noopener">Ver no Facebook</a>':'');
     else if(p.status==='programado')a='<button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">Saiu ✓</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
     return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="mid '+(p.tipo==='reels'||p.tipo==='stories'?'video':'foto')+'">'+ico(p.tipo==='reels'||p.tipo==='stories'?'i-video':'i-cam')+(TPOST[p.tipo]||'Post')+'</span></div>'+
       '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
-      (p.status==='programado'?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
-      (p.status==='publicado'?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      (ps_&&p.pubStatus!=='publicado'?'<span class="chip '+ps_[0]+'" style="align-self:flex-start;white-space:normal">'+ps_[1]+(p.pubStatus==='aguardando'?' · '+fmtQuando(p.quando):'')+'</span><span>'+esc(ondePub(p))+' · '+(p.arquivos||[]).length+' arquivo'+((p.arquivos||[]).length===1?'':'s')+'</span>'+(p.pubStatus==='erro'?'<span style="color:var(--neg)">'+esc(p.pubErro||'')+'</span>':''):'')+
+      (p.status==='programado'&&!p.pubStatus?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
+      (p.status==='publicado'?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
       '<div class="acts">'+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
-  body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button>':'')+'</div>'+
+  body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button>':'')+'</div>'+blocoIG(l)+
     '<div class="pipe">'+
     col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
     col('Para programar','#E2B24C',pronto.length,pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
@@ -2228,10 +2249,13 @@ function formLoja(l,depois,nomeSug){const novo=!l;l=l||{nome:nomeSug||'',instagr
   '<div class="fld"><label for="ljNome">Nome da loja</label><input id="ljNome" value="'+esc(l.nome)+'" placeholder="Ex.: Tratos Cabelo"></div>'+
   '<div class="two"><div class="fld"><label for="ljIg">Instagram</label><input id="ljIg" value="'+esc(l.instagram)+'" placeholder="@usuario"></div>'+
   '<div class="fld"><label for="ljResp">Quem programa os posts</label><select id="ljResp">'+opts(TEAM,l.postagem||'Vanessa')+'</select></div></div>'+
+  '<div class="fld"><label for="ljPag">Instagram / Facebook (para a Central publicar)</label><select id="ljPag">'+opts([['','— automático pelo @ do Instagram —']].concat(paginasMeta().map(p=>[p.id,p.nome+(p.igUser?' · @'+p.igUser:' · sem Instagram')])),l.fbPage||'')+'</select><span class="hint">'+(paginasMeta().length?'Lista das Páginas liberadas para o usuário "Central" no Meta.':'Nenhuma Página liberada ainda: atribua as Páginas ao usuário "Central" no Meta (passo a passo no LEIA-ME).')+'</span></div>'+
   '<div class="err" id="ljErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-pact="arquivarLoja" data-id="'+l.id+'">Arquivar cliente</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fLj').onsubmit=async e=>{e.preventDefault();const nome=q('#ljNome').value.trim();if(!nome){q('#ljErr').textContent='Escreva o nome da loja.';return}
-    const doc={nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true};
+    const pgS=paginasMeta().find(p=>p.id===q('#ljPag').value);
+    const doc={nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true,fbPage:pgS?pgS.id:'',igId:pgS?pgS.ig||'':''};
+    if(pgS&&pgS.igUser&&!doc.instagram)doc.instagram=pgS.igUser;
     try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id;if(depois)depois(id)}}catch(_){return}
     closeSheet();toast(novo?'Cliente cadastrado':'Cliente atualizado')};
   q('#ljNome').focus()}
@@ -2297,11 +2321,81 @@ function formSaiu(pst){
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fSa').onsubmit=async e=>{e.preventDefault();try{await write(()=>store.update('posts',pst.id,{status:'publicado',publicadoEm:pst.quando||agoraLocal(),link:q('#saLink').value.trim()}))}catch(_){return}closeSheet();toast('Marcado como no ar')}}
 async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find(x=>x.id===id);
+  if(k==='auto'&&P){formAuto(P);return}
+  if((k==='autoRetry'||k==='autoCancel')&&P){
+    const up=k==='autoRetry'?{pubStatus:'aguardando',pubErro:'',quando:P.quando&&P.quando>agoraLocal()?P.quando:agoraLocal()}:{pubStatus:'',pubErro:'',status:(P.pubFeito&&(P.pubFeito.ig||P.pubFeito.fb))?'publicado':'pronto'};
+    try{await write(()=>store.update('posts',id,up))}catch(_){return}toast(k==='autoRetry'?'A Central vai tentar de novo nos próximos minutos':'Agendamento cancelado');return}
   if(k==='programar'&&P)formProgramar(P);
   else if(k==='saiu'&&P)formSaiu(P);
   else if(k==='editar'&&P)formPost(P);
   else if(k==='apagar'||k==='arquivarLoja'){if(!armed['p'+id]){armed['p'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['p'+id]){b.textContent=armed['p'+id];delete armed['p'+id]}},3000);return}delete armed['p'+id];
     try{if(k==='apagar')await write(()=>store.del('posts',id));else await write(()=>store.update('lojas',id,{ativo:false}))}catch(_){return}closeSheet();toast(k==='apagar'?'Apagado':'Cliente arquivado')}
+}
+
+/* ---------- Postagens automáticas (Instagram + Facebook) ---------- */
+function paginasMeta(){return ((S.metaPag||{}).paginas)||[]}
+function pagDaLoja(l){if(!l)return null;const ps=paginasMeta(),ig=String(l.instagram||'').replace(/^@/,'').toLowerCase();
+  return ps.find(p=>l.fbPage&&p.id===l.fbPage)||ps.find(p=>l.igId&&p.ig===l.igId)||(ig?ps.find(p=>(p.igUser||'').toLowerCase()===ig):null)||null}
+function igDaLoja(l){const p=pagDaLoja(l);return p&&p.ig?(S.metaIG||[]).find(x=>x.id===p.ig)||null:null}
+const PUB_ST={aguardando:['eq','Agendado na Central'],publicando:['soon','Publicando agora…'],publicado:['rec','Publicado pela Central'],erro:['late','Não publicou']};
+function ondePub(p){return [p.pubIG&&'Instagram',p.pubFB&&'Facebook'].filter(Boolean).join(' + ')}
+function blocoIG(l){const pg=pagDaLoja(l),m=igDaLoja(l);
+  if(!pg)return '<div class="panel igbox"><div class="hint">Instagram/Facebook desta loja ainda não está ligado à Central. '+(S.adm?'Toque em <b>Editar cliente</b> e escolha a página.':'Peça ao Thiago para ligar.')+((S.metaPag||{}).erro?'<br><span style="color:var(--neg)">Meta: '+esc(S.metaPag.erro)+'</span>':'')+'</div></div>';
+  const head='<div class="ighd">'+(pg.igFoto||pg.foto?'<img src="'+esc(pg.igFoto||pg.foto)+'" alt="" referrerpolicy="no-referrer">':'')+'<div style="min-width:0"><b>'+(pg.igUser?'@'+esc(pg.igUser):esc(pg.nome))+'</b><span class="hint">'+(pg.igUser?(pg.seguidores?Number(pg.seguidores).toLocaleString('pt-BR')+' seguidores · ':'')+'Facebook: '+esc(pg.nome):'Página sem Instagram comercial ligado')+'</span></div>'+
+    '<span class="sp"></span>'+(pg.igUser?'<a class="btn sm" href="https://instagram.com/'+encodeURIComponent(pg.igUser)+'" target="_blank" rel="noopener">Abrir Instagram</a>':'')+'<button class="btn sm ghost" data-verig>'+(S.verIG?'Esconder posts':'Últimos posts')+'</button></div>';
+  if(!S.verIG)return '<div class="panel igbox">'+head+'</div>';
+  const ps=(m&&m.posts)||[];
+  return '<div class="panel igbox">'+head+(ps.length?'<div class="iggrid">'+ps.map(x=>'<a href="'+esc(x.link)+'" target="_blank" rel="noopener" title="'+esc(x.legenda)+'"><span class="im" style="background-image:url(\''+esc(x.img).replace(/'/g,'%27')+'\')"></span>'+(x.tipo!=='foto'?'<span class="tp">'+(x.tipo==='reels'||x.tipo==='video'?ico('i-video'):'▦')+'</span>':'')+'<span class="nm">♥ '+x.curtidas+' · 💬 '+x.coment+'<br>'+(x.quando?dCurta(x.quando.slice(0,10)):'')+'</span></a>').join('')+'</div>':'<p class="hint" style="margin:10px 0 0">'+(m&&m.erro?'Meta: '+esc(m.erro):'Os posts aparecem na próxima atualização do robô (de hora em hora).')+'</p>')+'</div>'}
+document.addEventListener('click',e=>{if(e.target.closest('[data-verig]')){S.verIG=!S.verIG;renderClientes()}});
+
+async function arquivosDoLink(link){const id=driveId(link);if(!id)return [];
+  const i=await dInfo(id);if(i.mimeType!==FOLDER)return [i];
+  const fs=await dListar(id);return fs.filter(f=>/^(image|video)\//.test(f.mimeType||''))}
+async function deixarPublico(id){try{await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}catch(e){throw new Error('Não consegui liberar o arquivo no Drive: '+e.message)}}
+
+function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
+  const agora=agoraLocal(),quando=pst.quando&&pst.quando>agora?pst.quando:'';
+  let escolhidos=(pst.arquivos||[]).map(a=>a.id),lista=[];
+  sheet.innerHTML='<form id="fAu" novalidate style="max-width:720px"><h2>Agendar na Central</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(pst.titulo)+'</b> · '+esc(lojaNome(pst.loja))+'</p>'+
+    (pg?'':'<div class="pushbox" style="color:var(--warn);font-size:14px">Esta loja ainda não está ligada a uma Página/Instagram. '+(S.adm?'Feche e use "Editar cliente" para escolher.':'Peça ao Thiago para ligar.')+'</div>')+
+    '<div class="fld"><span class="l">Onde publicar</span><div class="checks"><label><input type="checkbox" id="auIG" '+(pg&&pg.ig&&pst.pubIG!==false?'checked':'')+(pg&&pg.ig?'':' disabled')+'> Instagram'+(pg&&pg.igUser?' (@'+esc(pg.igUser)+')':'')+'</label><label><input type="checkbox" id="auFB" '+(pg&&pst.pubFB?'checked':'')+(pg?'':' disabled')+'> Facebook'+(pg?' ('+esc(pg.nome)+')':'')+'</label></div></div>'+
+    '<div class="two"><div class="fld"><label for="auTipo">Formato</label><select id="auTipo">'+opts(Object.entries(TPOST),pst.tipo||'reels')+'</select></div>'+
+    '<div class="fld"><label for="auQ">Data e hora</label><input id="auQ" type="datetime-local" value="'+esc(quando)+'"><div class="checks" style="margin-top:6px"><label><input type="checkbox" id="auJa"> Publicar agora (em até 10 min)</label></div></div></div>'+
+    '<div class="fld" id="auLegW"><label for="auLeg">Legenda</label><textarea id="auLeg" rows="5" maxlength="2200" placeholder="Texto do post, emojis e #hashtags">'+esc(pst.legenda||'')+'</textarea><span class="hint" id="auCont"></span></div>'+
+    '<div class="fld"><span class="l">Arquivos do Drive</span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
+    '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#auErr').textContent=m};
+  const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';q('#auLegW').hidden=q('#auTipo').value==='stories'};
+  const dica=()=>{const t=q('#auTipo').value;q('#auDica').textContent=t==='carrossel'?'Escolha de 2 a 10 arquivos, na ordem em que vão aparecer.':t==='reels'?'Escolha 1 vídeo (vertical 9:16).':t==='stories'?'Escolha 1 foto ou vídeo vertical.':'Escolha 1 foto (ou 1 vídeo, que sai como Reels no Instagram).'};
+  q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{cont();dica();pinta()};cont();dica();
+  q('#auJa').onchange=()=>{q('#auQ').disabled=q('#auJa').checked};
+  const pinta=()=>{const box=q('#auArqs');if(!lista.length)return;
+    box.innerHTML='<div class="aupick">'+lista.map(f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'}).join('')+'</div>'};
+  q('#auArqs').onclick=e=>{const b=e.target.closest('[data-auf]');if(!b)return;const id=b.dataset.auf,i=escolhidos.indexOf(id);
+    if(i>=0)escolhidos.splice(i,1);else{if(q('#auTipo').value!=='carrossel')escolhidos=[];escolhidos.push(id)}pinta()};
+  (async()=>{const box=q('#auArqs');
+    if(!pst.drive){box.innerHTML='<p class="hint" style="margin:0">Este conteúdo não tem link do Drive. Feche, toque em Editar e escolha a pasta ou o arquivo.</p>';return}
+    try{await token();lista=await arquivosDoLink(pst.drive);if(!lista.length){box.innerHTML='<p class="hint" style="margin:0">Nenhuma foto ou vídeo nesse link do Drive.</p>';return}
+      if(!escolhidos.length&&lista.length===1)escolhidos=[lista[0].id];pinta()}
+    catch(er){box.innerHTML='<p class="err" style="margin:0">'+esc(er.message)+'</p><button type="button" class="btn sm" id="auCon">Conectar o Drive</button>';const c=q('#auCon');if(c)c.onclick=async()=>{try{await pedirToken('');formAuto(pst)}catch(e2){toast(e2.message)}}}})();
+  q('#fAu').onsubmit=async e=>{e.preventDefault();
+    const ig=q('#auIG').checked,fb=q('#auFB').checked,tipo=q('#auTipo').value,ja=q('#auJa').checked,qd=ja?agoraLocal():q('#auQ').value,leg=q('#auLeg').value;
+    if(!pg)return err('Ligue a loja a uma Página/Instagram antes (Editar cliente).');
+    if(!ig&&!fb)return err('Marque Instagram, Facebook ou os dois.');
+    if(!qd)return err('Escolha a data e a hora (ou marque "Publicar agora").');
+    if(!ja&&qd<agoraLocal())return err('Essa data/hora já passou.');
+    const sel=escolhidos.map(id=>lista.find(f=>f.id===id)).filter(Boolean),vid=sel.filter(f=>/^video/.test(f.mimeType)).length;
+    if(!sel.length)return err('Escolha o arquivo que vai ser publicado.');
+    if(tipo==='carrossel'&&(sel.length<2||sel.length>10))return err('Carrossel precisa de 2 a 10 arquivos.');
+    if(tipo==='carrossel'&&fb&&vid)return err('No Facebook, carrossel só com fotos. Desmarque o Facebook ou tire os vídeos.');
+    if(tipo==='reels'&&!vid)return err('Reels precisa de um vídeo.');
+    if(tipo!=='carrossel'&&sel.length>1)return err('Escolha só 1 arquivo para '+TPOST[tipo]+'.');
+    if((leg.match(/#[\wÀ-ÿ]+/g)||[]).length>30)return err('O Instagram aceita no máximo 30 hashtags.');
+    const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
+    try{for(const f of sel)await deixarPublico(f.id);
+      const doc={tipo,legenda:leg.slice(0,2200),quando:qd,pubIG:ig,pubFB:fb,arquivos:sel.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal()};
+      await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook'].filter(Boolean).join(' + '))}
+    catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};
 }
 
 /* ---------- avisos na hora (app aberto) ---------- */
@@ -2466,7 +2560,7 @@ function iniciarApp(adm,finOk,dono){
   pararDados();
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
-  store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');
+  store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
   store.sub('albuns');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
