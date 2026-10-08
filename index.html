@@ -350,6 +350,8 @@ details.panel[open] summary{margin-bottom:12px}
 @media (max-width:560px){.three{grid-template-columns:1fr 1fr}}
 .pick{display:flex;flex-wrap:wrap;gap:6px}
 #zapBox .addit input{background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;color:var(--ink);font:inherit;font-size:14px}
+.ditem .mini .del{color:#ff8a8a}.ditem .mini .del svg{width:14px;height:14px}
+.btn.danger-solid{background:var(--neg);border-color:var(--neg);color:#fff}
 .btn.zap{background:#1d4ed8;border-color:#1d4ed8;color:#fff}.btn.zap:hover{background:#2563eb}
 .pick .pk{border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
 .pick .pk[aria-pressed="true"]{background:var(--pos-bg);border-color:var(--pos);color:var(--ink)}
@@ -1372,7 +1374,7 @@ async function renderDrive(){
       return '<div class="ditem'+(pasta?' folder':'')+'" data-dv="item" data-id="'+f.id+'" tabindex="0">'+
         '<div class="th">'+(!pasta&&f.thumbnailLink?'<img src="'+esc(f.thumbnailLink)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(\'<svg class=&quot;i&quot;><use href=&quot;#i-file&quot;/></svg>\'))">':ico(pasta?'i-folder':vid?'i-video':'i-file'))+'</div>'+
         '<div class="nm">'+esc(f.name)+'</div><div class="mt">'+(pasta?'Pasta':(f.size?Math.max(1,Math.round(f.size/1e6))+' MB':''))+(f.modifiedTime?' · '+dCurta(f.modifiedTime.slice(0,10)):'')+'</div>'+
-        '<div class="mini"><button data-dv="copiar" data-id="'+f.id+'" aria-label="Copiar link">Link</button>'+(pasta?'<button data-dv="usar" data-id="'+f.id+'">Usar no fluxo</button>':'')+'</div></div>'}).join('')+'</div>'
+        '<div class="mini"><button data-dv="copiar" data-id="'+f.id+'" aria-label="Copiar link">Link</button>'+(pasta?'<button data-dv="usar" data-id="'+f.id+'">Usar no fluxo</button>':'')+'<button data-dv="excluir" data-id="'+f.id+'" class="del" aria-label="Excluir">'+ico('i-x')+'</button></div></div>'}).join('')+'</div>'
       :'<div class="panel">'+emptyMsg('Pasta vazia','Use "Subir pasta" para enviar o material do computador.')+'</div>'}
   catch(e){const L=document.getElementById('dList');if(L)L.innerHTML='<div class="panel"><p class="err" style="margin:0">'+esc(e.message)+'</p></div>'}
 }
@@ -1396,6 +1398,15 @@ async function driveClique(b,e){const k=b.dataset.dv;e.stopPropagation&&e.stopPr
     if(k==='copiar'){const i=await dInfo(b.dataset.id);dCopiar(i.webViewLink);return}
     if(k==='abrir'){const i=await dInfo(b.dataset.id);window.open(i.webViewLink,'_blank','noopener');return}
     if(k==='usar'){const i=await dInfo(b.dataset.id);usarNoFluxo(i);return}
+    if(k==='excluir'){const f=(S.dItems||[]).find(x=>x.id===b.dataset.id);if(!f)return;const pasta=f.mimeType===FOLDER;
+      sheet2.innerHTML='<form novalidate onsubmit="return false" style="max-width:440px"><h2>Excluir '+(pasta?'pasta':/^video\//.test(f.mimeType)?'vídeo':/^image\//.test(f.mimeType)?'foto':'arquivo')+'?</h2>'+
+        '<p style="margin:0;font-size:15px"><b>'+esc(f.name)+'</b></p><p class="muted" style="margin:0;font-size:14px">'+(pasta?'A pasta e <b>tudo o que tem dentro</b> vão para a lixeira do Google Drive.':'Vai para a lixeira do Google Drive.')+' Fica lá por 30 dias, dá para recuperar em drive.google.com → Lixeira.</p>'+
+        '<div class="formacts"><button type="button" class="btn ghost" data-x2="fechar">Cancelar</button><button type="button" class="btn danger-solid" data-dv="excluirOk" data-id="'+f.id+'">Excluir</button></div></form>';
+      sheet2.hidden=false;sheet2.querySelector('[data-x2="fechar"]').onclick=fecharSheet2;return}
+    if(k==='excluirOk'){b.disabled=true;b.textContent='Excluindo…';const id=b.dataset.id;
+      try{await gfetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+'?supportsAllDrives=true',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({trashed:true})})}
+      catch(er){fecharSheet2();throw new Error(/insufficient|permission|403/i.test(er.message)?'Sem permissão para excluir esse item (ele é de outra conta).':er.message)}
+      fecharSheet2();S.dItems=(S.dItems||[]).filter(x=>x.id!==id);const el=document.querySelector('.ditem[data-id="'+id+'"]');if(el)el.remove();toast('Movido para a lixeira do Drive');return}
     if(k==='item'){const f=(S.dItems||[]).find(x=>x.id===b.dataset.id);if(!f)return;
       if(f.mimeType===FOLDER){S.dPath.push({id:f.id,name:f.name});renderDrive()}else window.open(f.webViewLink,'_blank','noopener');return}
   }catch(er){if(k==='conectar'){S.dErr=er.message;renderDrive()}else toast(er.message)}
