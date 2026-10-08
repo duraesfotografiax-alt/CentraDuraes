@@ -91,6 +91,7 @@ async function enviar(u, title, body) {
   // 0a) Material entregue: avisa quem programa (agrupado por loja). Chave por pessoa:
   //     se o app dela estava aberto e já mostrou o aviso na hora, o robô não repete.
   for (const lj of Object.values(lojas)) {
+    if (lj.ativo === false) continue;
     const ps = posts.filter((x) => x.status === 'pronto' && x.loja === lj.id);
     if (!ps.length) continue;
     for (const u of respDe(lj)) {
@@ -106,7 +107,7 @@ async function enviar(u, title, body) {
   for (const p of posts.filter((x) => x.status === 'programado' && !x.pubStatus && x.quando && minutosEntre(agoraIso, x.quando) >= 120)) {
     const chave = `conferir_${p.id}_${p.quando.replace(/[^0-9]/g, '')}`;
     if (await jaFoi(chave)) continue;
-    const lj = lojas[p.loja]; if (!lj) continue;
+    const lj = lojas[p.loja]; if (!lj || lj.ativo === false) continue;
     const para = [...new Set([...respDe(lj), ...usuarios.filter(ehAdm)])];
     for (const u of para) await enviar(u, `Confira se saiu: ${lj.nome}`, `${p.titulo} (${TPOST[p.tipo] || 'post'}) estava programado para ${dm(p.quando.slice(0, 10))} às ${p.quando.slice(11, 16)}. Se saiu, marque "Saiu" no app.`);
     await marcar(chave);
