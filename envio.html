@@ -161,7 +161,7 @@ let tx=null;view.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{pas
 function passo(d){if(cur<0)return;const pos=LISTA.findIndex(a=>a.i===cur);const nx=LISTA[pos+d];if(nx)abrir(nx.i)}
 function abrir(i){const a=ARQ[i];if(!a)return;cur=i;const so=!!E.soVer,pos=LISTA.findIndex(x=>x.i===i);
   view.innerHTML='<div class="vt"><b>'+esc(a.nome)+'</b><span>'+(pos+1)+'/'+LISTA.length+'</span>'+(so?'':'<a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou>'+ico('dl')+'Baixar</a>')+'<button class="x" data-fechar aria-label="Fechar">'+ico('xx')+'</button></div>'+
-    '<div class="vb'+(ehVid(a)?' vid':'')+'">'+(ehVid(a)?(so?iframeDrive(a):'<video controls playsinline preload="metadata" poster="'+thumb(a.id,1280)+'" src="'+baixarUrl(a.id)+'" data-vid="'+esc(a.id)+'"></video>'):
+    '<div class="vb'+(ehVid(a)?' vid':'')+'">'+(ehVid(a)?'<video controls playsinline preload="metadata"'+(so?' controlslist="nodownload noremoteplayback" disablepictureinpicture oncontextmenu="return false"':'')+' poster="'+thumb(a.id,1280)+'" src="'+baixarUrl(a.id)+'" data-vid="'+esc(a.id)+'"></video>':
       '<img src="'+(so?thumb(a.id,1600):'https://lh3.googleusercontent.com/d/'+encodeURIComponent(a.id)+'=w2400')+'" alt="'+esc(a.nome)+'" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=\''+thumb(a.id,1600)+'\'">')+
     (pos>0?'<button class="nav p" data-nav="-1" aria-label="Anterior">'+ico('lt')+'</button>':'')+(pos<LISTA.length-1?'<button class="nav n" data-nav="1" aria-label="Próximo">'+ico('rt')+'</button>':'')+'</div>';
   view.hidden=false;document.body.style.overflow='hidden'}

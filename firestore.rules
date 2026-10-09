@@ -82,6 +82,7 @@ service cloud.firestore {
 
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
+    match /recorrentes/{id} { allow read, write: if financeiro(); }
     match /valores/{id} { allow read, write: if financeiro(); }
     match /recibos/{id} { allow read, write: if financeiro(); }
     match /contratos/{id} { allow read, write: if financeiro(); }

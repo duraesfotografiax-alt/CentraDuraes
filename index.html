@@ -370,6 +370,17 @@ details.panel[open] summary{margin-bottom:12px}
 .serie{display:flex;flex-direction:column;gap:5px;color:var(--ink)}.serie .sbar{display:block;height:6px;border-radius:4px;background:var(--hover);overflow:hidden}.serie .sbar i{display:block;height:100%;background:var(--pos)}
 .pglista{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;max-height:260px;overflow:auto}
 .pglista label{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--muted)}.pglista b{min-width:26px;color:var(--ink)}
+.divs{display:flex;flex-direction:column;gap:10px}
+.divbx{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.divbx.tot{border-color:rgba(226,178,76,.35)}
+.divh{display:flex;align-items:center;gap:8px}.divh b{flex:1}.divh .tile{width:26px;height:26px;border-radius:7px}
+.divl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px}.divl span{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.divl.res span{color:var(--gold)}
+.divsub{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);margin:-4px 0 2px 30px}.divsub .neg{color:var(--neg)}
+.rech{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}.rech div{background:var(--panel2);border-radius:10px;padding:8px 10px}.rech b{display:block;font-size:11.5px;color:var(--muted);font-weight:700}.rech span{font-weight:800;font-size:16px}
+.ocs{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.ocp{border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.ocp.late{border-color:rgba(255,107,107,.5);color:var(--neg)}.ocp.ok{border-color:rgba(52,211,153,.4);background:var(--pos-bg);color:var(--pos);cursor:default}
 .tgl{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;text-transform:none;letter-spacing:0}
 .tgl input{width:18px;height:18px;margin-top:2px;flex:none}.tgl b{display:block;font-size:14px;color:var(--ink)}.tgl small{display:block;color:var(--muted);font-size:12.5px;font-weight:500}
 .dltog{border:1px solid rgba(52,211,153,.4);background:var(--pos-bg);color:var(--pos);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;cursor:pointer}
@@ -598,11 +609,13 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
             <div class="list" id="cList"></div>
           </div>
           <div class="grid" style="align-content:start">
+            <div class="panel"><div class="ph"><h3>Divisão do mês</h3><span class="hint">10% reserva · resto em 4</span></div><div id="cDiv" class="divs"></div></div>
             <div class="panel"><div class="ph"><h3>Totais do mês</h3></div><dl class="kv" id="cTot"></dl></div>
             <div class="panel"><div class="ph"><h3>Saídas por categoria</h3></div><div id="cCat"></div></div>
             <div class="panel"><div class="ph"><h3>Retiradas dos sócios</h3></div><dl class="kv" id="cRet"></dl></div>
           </div>
         </div>
+        <div class="panel" style="margin-top:16px"><div class="ph"><h3>Clientes que pagam todo mês / semana</h3><span class="sp" style="flex:1"></span><button class="btn sm primary" data-rc="novo"><svg class="i"><use href="#i-plus"/></svg>Adicionar</button></div><div id="cRec"></div></div>
       </section>
 
       <!-- RECIBOS -->
@@ -998,8 +1011,67 @@ function renderCaixa(){
   const cat={};for(const l of doMes()){if(l.tipo!=='saida'||!l.pago)continue;const p=parte(l,f);if(!p)continue;const k=l.categoria||'Outros';cat[k]=(cat[k]||0)+l.valor*p}
   const ce=Object.entries(cat).sort((a,b)=>b[1]-a[1]),mx=ce.length?ce[0][1]:1;
   document.getElementById('cCat').innerHTML=ce.length?ce.map(([k,v])=>'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;gap:10px"><span class="muted">'+esc(k)+'</span><b class="num">'+$(v)+'</b></div><div class="bar2" style="height:6px;margin-top:5px"><i style="width:'+(v/mx*100)+'%;background:var(--out);border-radius:99px"></i></div></div>').join(''):'<p class="muted" style="margin:0;font-size:14px">Sem saídas pagas neste mês.</p>';
+  renderDivisao();renderRecorrentes();
   document.getElementById('cRet').innerHTML=TEAM.map(p=>{let v=0;for(const l of doMes())if(l.tipo==='saida'&&l.categoria==='Retirada sócio'&&l.resp===p&&l.pago)v+=l.valor;return '<dt style="display:flex;align-items:center;gap:8px">'+av(p)+p+'</dt><dd class="num">'+$(v)+'</dd>'}).join('');
 }
+
+/* ---------- Divisão das entradas: 10% de reserva e o resto em 4 partes (empresa, Thiago, Vanessa, Lucas) ---------- */
+const RESERVA=0.10,PARTES=['Empresa','Thiago','Vanessa','Lucas'];
+function divisao(m){const out={};for(const emp of ['duraes','elite']){const ent=totais(doMes(m),emp).ent,res=ent*RESERVA,resto=ent-res;out[emp]={ent,res,resto,parte:resto/PARTES.length}}return out}
+function renderDivisao(){const el=document.getElementById('cDiv');if(!el)return;const d=divisao(),nome={duraes:'Durães Fotografia',elite:'Elite Marketing'};
+  const pessoa=p=>(d.duraes.parte+d.elite.parte);
+  const ret=p=>{let v=0;for(const l of doMes())if(l.tipo==='saida'&&l.categoria==='Retirada sócio'&&l.resp===p&&l.pago)v+=l.valor;return v};
+  el.innerHTML=['duraes','elite'].map(k=>{const x=d[k];return '<div class="divbx"><div class="divh">'+logoTile(k)+'<b>'+nome[k]+'</b><span class="num">'+$(x.ent)+'</span></div>'+
+      '<div class="divl res"><span>Reserva (10%)</span><b class="num">'+$(x.res)+'</b></div>'+
+      PARTES.map(p=>'<div class="divl"><span>'+(p==='Empresa'?'Caixa da empresa':av(p)+p)+'</span><b class="num">'+$(x.parte)+'</b></div>').join('')+'</div>'}).join('')+
+    '<div class="divbx tot"><div class="divh"><b>Cada sócio no mês</b><span class="hint">Durães + Elite</span></div>'+
+      TEAM.map(p=>{const v=pessoa(p),r=ret(p),f=v-r;return '<div class="divl"><span>'+av(p)+p+'</span><b class="num">'+$(v)+'</b></div><div class="divsub"><span>já retirou '+$(r)+'</span><span class="'+(f<0?'neg':'')+'">'+(f>=0?'falta '+$(f):'passou '+$(-f))+'</span></div>'}).join('')+
+      '<div class="divl res"><span>Reserva total (10%)</span><b class="num">'+$(d.duraes.res+d.elite.res)+'</b></div></div>'+
+    '<p class="hint" style="margin:6px 0 0">Conta só as entradas já recebidas no mês. Entrada "As duas" vale metade para cada empresa.</p>'}
+
+/* ---------- Clientes recorrentes (mensal, quinzenal, semanal) ---------- */
+const FREQ={mensal:'Mensal',quinzenal:'Quinzenal',semanal:'Semanal'};
+function ocorrencias(r,m){if(!r.inicio)return [];const [y,mo]=m.split('-').map(Number),ini=new Date(r.inicio+'T12:00:00'),fimMes=new Date(y,mo,0,12),comeco=new Date(y,mo-1,1,12),out=[];
+  if(r.fim&&r.fim<m+'-01')return [];
+  if(r.freq==='mensal'){const dia=Math.min(ini.getDate(),fimMes.getDate()),d=new Date(y,mo-1,dia,12);if(d>=new Date(ini.getFullYear(),ini.getMonth(),1,12))out.push(iso(d))}
+  else{const passo=r.freq==='semanal'?7:14;let d=new Date(ini);if(d<comeco){const k=Math.ceil((comeco-d)/864e5/passo);d.setDate(d.getDate()+k*passo)}
+    while(d<=fimMes){if(d>=comeco&&d>=ini)out.push(iso(d));d.setDate(d.getDate()+passo)}}
+  return out.filter(x=>!r.fim||x<=r.fim)}
+function recebida(r,data){return S.lanc.find(l=>l.recorr===r.id&&l.data===data)}
+function renderRecorrentes(){const el=document.getElementById('cRec');if(!el)return;const m=S.mes,f=S.empC;
+  const rs=(S.recorrentes||[]).filter(r=>r.ativo!==false&&(f==='todas'||r.empresa===f)).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  let prev=0,rec=0;
+  const linhas=rs.map(r=>{const oc=ocorrencias(r,m);prev+=oc.length*r.valor;
+    const chips=oc.map(d=>{const l=recebida(r,d);if(l)rec+=r.valor;return l?'<span class="ocp ok" title="Recebido">✓ '+d.slice(8,10)+'/'+d.slice(5,7)+'</span>':'<button class="ocp'+(d<hoje()?' late':'')+'" data-rc="receber" data-id="'+r.id+'" data-d="'+d+'" title="Marcar como recebido">'+d.slice(8,10)+'/'+d.slice(5,7)+'</button>'}).join('');
+    return '<div class="row"><div style="min-width:0"><div class="t">'+esc(r.nome)+'</div><div class="s">'+chipEmp(r.empresa)+'<span>'+FREQ[r.freq]+' · '+$(r.valor)+'</span>'+(r.forma?'<span>'+esc(r.forma)+'</span>':'')+'</div><div class="ocs">'+(chips||'<span class="hint">nada neste mês</span>')+'</div></div><div class="acts"><button class="btn sm ghost" data-rc="editar" data-id="'+r.id+'">Editar</button><button class="btn sm ghost danger" data-rc="remover" data-id="'+r.id+'">Remover</button></div></div>'}).join('');
+  el.innerHTML='<div class="rech"><div><b>Previsto em '+esc(mesLabel(m))+'</b><span class="num">'+$(prev)+'</span></div><div><b>Já recebido</b><span class="num pos">'+$(rec)+'</span></div><div><b>Falta receber</b><span class="num">'+$(Math.max(0,prev-rec))+'</span></div></div>'+
+    (linhas?'<div class="list">'+linhas+'</div>':emptyMsg('Nenhum cliente recorrente','Adicione as lojas que pagam todo mês, a cada 15 dias ou toda semana.'))+
+    '<p class="hint" style="margin:8px 0 0">Toque na data quando o cliente pagar: entra no Caixa como recebido. Datas em vermelho já venceram.</p>'}
+function formRecorrente(r){const novo=!r;r=r||{nome:'',loja:'',empresa:'elite',valor:'',freq:'mensal',inicio:hoje(),forma:'Pix',ativo:true};
+  sheet.innerHTML='<form id="fRcr" novalidate><h2>'+(novo?'Cliente recorrente':'Editar '+esc(r.nome))+'</h2>'+
+    '<div class="two"><div class="fld"><label for="rcrLoja">Loja (opcional)</label><select id="rcrLoja">'+opts([['','— outro cliente —']].concat(lojasOrd().map(l=>[l.id,l.nome])),r.loja||'')+'</select></div>'+
+    '<div class="fld"><label for="rcrNome">Nome que aparece</label><input id="rcrNome" value="'+esc(r.nome)+'" placeholder="Ex.: Eduardo Motors"></div></div>'+
+    '<div class="two"><div class="fld"><label for="rcrEmp">Empresa</label><select id="rcrEmp">'+opts([['elite','Elite Marketing'],['duraes','Durães Fotografia']],r.empresa)+'</select></div>'+
+    '<div class="fld"><label for="rcrVal">Valor de cada pagamento (R$)</label><input id="rcrVal" inputmode="decimal" value="'+(r.valor?String(r.valor).replace('.',','):'')+'"></div></div>'+
+    '<div class="two"><div class="fld"><label for="rcrFreq">Paga</label><select id="rcrFreq">'+opts(Object.entries(FREQ),r.freq)+'</select></div>'+
+    '<div class="fld"><label for="rcrIni">Primeiro pagamento</label><input id="rcrIni" type="date" value="'+esc(r.inicio||hoje())+'"><span class="hint">Define o dia: mensal repete no mesmo dia; semanal/quinzenal conta a partir dele.</span></div></div>'+
+    '<div class="two"><div class="fld"><label for="rcrForma">Forma</label><input id="rcrForma" value="'+esc(r.forma||'')+'" placeholder="Pix, boleto…"></div><div class="fld"><label for="rcrFim">Termina em (opcional)</label><input id="rcrFim" type="date" value="'+esc(r.fim||'')+'"></div></div>'+
+    '<div class="err" id="rcrErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  q('#rcrLoja').onchange=()=>{const l=S.lojas.find(x=>x.id===q('#rcrLoja').value);if(l){q('#rcrNome').value=l.nome;q('#rcrEmp').value='elite'}};
+  q('#fRcr').onsubmit=async e=>{e.preventDefault();const nome=q('#rcrNome').value.trim(),v=parseValor(q('#rcrVal').value);
+    if(!nome){q('#rcrErr').textContent='Escreva o nome do cliente.';return}if(!(v>0)){q('#rcrErr').textContent='Informe o valor.';return}if(!q('#rcrIni').value){q('#rcrErr').textContent='Informe o primeiro pagamento.';return}
+    const doc={nome:nome.slice(0,80),loja:q('#rcrLoja').value,empresa:q('#rcrEmp').value,valor:v,freq:q('#rcrFreq').value,inicio:q('#rcrIni').value,fim:q('#rcrFim').value,forma:q('#rcrForma').value.trim().slice(0,40),ativo:true};
+    try{await write(()=>novo?store.add('recorrentes',doc):store.set('recorrentes',r.id,doc))}catch(_){return}closeSheet();toast(novo?'Cliente recorrente adicionado':'Atualizado')};
+  q('#rcrLoja').focus()}
+async function recorrenteAcao(b){const k=b.dataset.rc,id=b.dataset.id,r=(S.recorrentes||[]).find(x=>x.id===id);
+  if(k==='novo'){formRecorrente();return}if(!r)return;
+  if(k==='editar'){formRecorrente(r);return}
+  if(k==='remover'){if(!armed['rc'+id]){armed['rc'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['rc'+id]){b.textContent=armed['rc'+id];delete armed['rc'+id]}},3000);return}delete armed['rc'+id];
+    try{await write(()=>store.del('recorrentes',id))}catch(_){return}toast(r.nome+' removido (os recebimentos já lançados continuam no Caixa)');return}
+  if(k==='receber'){const d=b.dataset.d;if(recebida(r,d))return;b.disabled=true;
+    try{await write(()=>store.add('lanc',{tipo:'entrada',valor:r.valor,data:d,empresa:r.empresa,categoria:'Mensalidade cliente',resp:'',descricao:(r.nome+' · '+FREQ[r.freq].toLowerCase()+' '+d.split('-').reverse().slice(0,2).join('/')).slice(0,200),pago:true,recorr:r.id}))}catch(_){b.disabled=false;return}
+    toast('Recebido: '+r.nome+' · '+$(r.valor))}}
 
 /* ---------- produção ---------- */
 function filtraPes(t){if(S.pes==='todos')return true;const all=arr(t.captacao).concat(arr(t.edicao));if(S.pes==='fr')return all.some(k=>String(k).startsWith('f:'));return all.includes(S.pes)}
@@ -1213,6 +1285,7 @@ document.addEventListener('click',async e=>{
   const rc=e.target.closest('[data-rec]');if(rc){reciboAcao(rc);return}
   const ctb=e.target.closest('[data-ct]');if(ctb){contratoAcao(ctb);return}
   const evb=e.target.closest('[data-env]');if(evb){envioAcao(evb);return}
+  const rcb=e.target.closest('[data-rc]');if(rcb){recorrenteAcao(rcb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
   if(e.target.closest('[data-cofre]')){if(S.unlocked)trancar(true);else abrirCofre();return}
@@ -2081,7 +2154,7 @@ function formEnvio(){
     '<div class="two"><div class="fld" id="envLojaW" hidden><label for="envLoja">Loja (opcional)</label><select id="envLoja">'+opts([['','—']].concat(L.map(l=>[l.id,l.nome])),'')+'</select></div>'+
     '<div class="fld"><label for="envTar">Trabalho (opcional)</label><select id="envTar">'+opts([['','—']].concat(ts.map(t=>[t.id,t.titulo+(t.data?' · '+dCurta(t.data):'')])),'')+'</select></div></div>'+
     '<div class="fld"><label for="envMsg">Recado na página (opcional)</label><textarea id="envMsg" rows="2" placeholder="Ex.: Foi um prazer registrar esse dia! Qualquer coisa, chama a gente."></textarea></div>'+
-    '<label class="tgl"><input type="checkbox" id="envSoVer"><span><b>Só visualizar</b><small>O cliente assiste e vê as fotos, mas não consegue baixar. Dá para liberar o download depois.</small></span></label>'+
+    '<label class="tgl"><input type="checkbox" id="envSoVer"><span><b>Só visualizar</b><small>O cliente assiste e vê as fotos, sem os botões de baixar. Dá para liberar o download depois.</small></span></label>'+
     '<div class="fld"><span class="l">Arquivos</span><div class="drvbtns"><button type="button" class="btn sm primary" id="envSubir">'+ico('i-file')+'Subir vídeos/fotos</button><button type="button" class="btn sm" id="envPasta">'+ico('i-folder')+'Subir uma pasta (com subpastas)</button><button type="button" class="btn sm ghost" id="envDrive">Escolher no Drive</button></div>'+
     '<input type="file" id="envFiles" multiple accept="video/*,image/*" hidden><input type="file" id="envDir" webkitdirectory directory multiple hidden>'+
     '<div id="envSel" class="hint">Os arquivos vão para o Drive da empresa sem compressão, na qualidade original.</div></div>'+
@@ -2112,7 +2185,7 @@ function formEnvio(){
         b.textContent='Organizando…';const c=await coletarMidia(pasta.id);arqs=c.arqs;gruposDrive=c.grupos}
       b.textContent='Liberando o link…';
       if(pasta)await dLinkPublico(pasta.id);else for(const f of arqs)await dLinkPublico(f.id);
-      const soVer=q('#envSoVer').checked;if(soVer)await protegerArquivos(arqs,true,(n,t)=>{b.textContent='Bloqueando download '+n+'/'+t+'…'});
+      const soVer=q('#envSoVer').checked;
       const doc={titulo:tit.slice(0,120),empresa:emp,loja:emp==='elite'?q('#envLoja').value:'',tar:q('#envTar').value,msg:q('#envMsg').value.trim().slice(0,600),
         pasta:pasta?{id:pasta.id,nome:pasta.name||''}:null,soVer,grupos:gruposDrive.slice(0,60),
         arquivos:arqs.slice(0,1500).map(f=>({id:f.id,nome:f.name,mime:f.mimeType||'',size:Number(f.size)||0,g:f.grupo||''})).sort((x,y)=>x.g.localeCompare(y.g,'pt')||x.nome.localeCompare(y.nome,'pt',{numeric:true})),
@@ -2135,7 +2208,7 @@ async function envioAcao(b){const k=b.dataset.env,id=b.dataset.id;const e=(S.env
       '<button type="button" data-env="ativo" data-id="'+e.id+'">'+ico(e.ativo===false?'i-check':'i-x')+(e.ativo===false?'Reativar link':'Desativar link')+'</button>'+
       '<button type="button" data-env="apagar" data-id="'+e.id+'" style="color:var(--neg)">'+ico('i-x')+'Apagar envio</button></div><p class="hint" style="margin:0">Desativar: o cliente não consegue mais abrir. Apagar: some daqui (os arquivos continuam no Drive).</p></form>';sheet.hidden=false;return}
   if(k==='download'){const novo=!e.soVer;b.disabled=true;const t0=b.textContent;
-    try{await token();await protegerArquivos(e.arquivos||[],novo,(n,t)=>{b.textContent=(novo?'Bloqueando ':'Liberando ')+n+'/'+t+'…'});await write(()=>store.update('envios',e.id,{soVer:novo}));toast(novo?'Agora o cliente só visualiza':'Download liberado para o cliente')}
+    try{if(!novo){await token();await protegerArquivos(e.arquivos||[],false,(n,t)=>{b.textContent='Liberando '+n+'/'+t+'…'})}await write(()=>store.update('envios',e.id,{soVer:novo}));toast(novo?'Agora o cliente só visualiza':'Download liberado para o cliente')}
     catch(er){toast(er.message||'Não deu certo');b.textContent=t0}finally{b.disabled=false}return}
   if(k==='ativo'){try{await write(()=>store.update('envios',e.id,{ativo:e.ativo===false}))}catch(_){return}closeSheet();toast(e.ativo===false?'Link reativado':'Link desativado');return}
   if(k==='apagar'){if(!armed['e'+id]){armed['e'+id]=b.innerHTML;b.textContent='Toque de novo para apagar';setTimeout(()=>{if(armed['e'+id]){b.innerHTML=armed['e'+id];delete armed['e'+id]}},3000);return}delete armed['e'+id];
@@ -2737,7 +2810,7 @@ function iniciarApp(adm,finOk,dono){
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
   store.sub('albuns');store.sub('envios');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
-  if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
+  if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
   S.unlocked=finOk&&lembrado();setTab(!S.unlocked&&(t==='resumo'||t==='caixa'||t==='recibos'||t==='contratos')?'producao':(t||(S.unlocked?'resumo':'producao')));render();
