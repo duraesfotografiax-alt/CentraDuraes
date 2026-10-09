@@ -59,7 +59,7 @@ section.gr{padding:14px 0 6px}
 .tip b{color:var(--ink)}
 .empty{text-align:center;color:var(--muted);padding:80px 16px}
 .empty b{display:block;font-family:var(--display);font-size:22px;color:var(--ink);margin-bottom:6px}
-.view{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.95);display:flex;flex-direction:column}
+.view{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column}
 .view .vt{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
 .view .vt b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
 .view .vt span{color:var(--faint);font-size:13px;font-weight:700}
@@ -167,7 +167,10 @@ function abrir(i){const a=ARQ[i];if(!a)return;cur=i;const so=!!E.soVer,pos=LISTA
   view.hidden=false;document.body.style.overflow='hidden'}
 function iframeDrive(a){return '<iframe src="https://drive.google.com/file/d/'+encodeURIComponent(a.id)+'/preview" allow="autoplay; fullscreen" allowfullscreen title="'+esc(a.nome)+'"></iframe>'}
 /* se o navegador não conseguir tocar direto (formato ou arquivo grande demais), usa o player do Drive */
-document.addEventListener('error',e=>{const v=e.target;if(v&&v.tagName==='VIDEO'&&v.dataset.vid){const a=ARQ.find(x=>x.id===v.dataset.vid);if(a)v.outerHTML=iframeDrive(a)}},true);
+/* tenta 2 endereços diretos do Drive no player do celular; só se os dois falharem usa o player do Drive */
+document.addEventListener('error',e=>{const v=e.target;if(!(v&&v.tagName==='VIDEO'&&v.dataset.vid))return;const a=ARQ.find(x=>x.id===v.dataset.vid);if(!a)return;
+  if(!v.dataset.tent){v.dataset.tent='1';v.src='https://drive.google.com/uc?export=download&id='+encodeURIComponent(a.id);v.load();return}
+  v.outerHTML=iframeDrive(a)},true);
 function fechar(){view.hidden=true;view.innerHTML='';cur=-1;document.body.style.overflow=''}
 </script>
 </body>
