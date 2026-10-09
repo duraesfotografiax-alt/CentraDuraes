@@ -332,6 +332,8 @@ No topo de cada loja aparece o Instagram dela (seguidores e os últimos posts).
 3. **Criar link** → **Mandar no WhatsApp**. O cliente abre a página com a logo da empresa, assiste e toca em **Baixar**: vem o arquivo original, sem compressão.
 4. No cartão aparece quando o cliente **abriu** e quantos **downloads** fez; quem criou e o Adm recebem aviso no celular na primeira vez que ele abrir.
 5. Em **Mais…**: abrir no Drive, **desativar o link** ou apagar o envio (os arquivos continuam no Drive).
+6. **Só visualizar**: marque ao criar, ou toque na etiqueta "Download liberado / Só visualizar" no cartão para trocar quando quiser. No modo só visualizar o cliente assiste e vê as fotos, mas os botões de baixar somem e o próprio Drive bloqueia o download.
+7. **Pasta com subpastas** (ex.: "Fotos" e "Vídeos"): use "Subir uma pasta (com subpastas)" ou escolha a pasta no Drive. A página do cliente separa por subpasta, com abas no topo (Tudo · Fotos · Vídeos).
 
 Os arquivos ficam no Drive da empresa (conta duraesfotografiax@gmail.com), na pasta da Durães ou na pasta da loja, em "Envio dd-mm-aaaa · título". Fique de olho no espaço do Drive: vídeos grandes enchem rápido.
 

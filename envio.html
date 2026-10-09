@@ -18,42 +18,61 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body)
 button,a{font:inherit;color:inherit}
 a{text-decoration:none}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
-header{padding:30px 0 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+body.sover img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+header{padding:30px 0 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
 header .lg{height:58px;width:58px;border-radius:14px;background:#000 center/cover no-repeat}
 header img.lg{background:none;object-fit:contain}
 h1{font-family:var(--display);font-size:clamp(24px,4.5vw,36px);line-height:1.15;margin:0;text-wrap:balance}
 .msg{color:var(--muted);max-width:620px;line-height:1.55;margin:0;white-space:pre-line}
 .meta{font-size:13px;color:var(--faint)}
-.acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.lock{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap}
 .btn.pri{background:var(--ac);border-color:var(--ac);color:var(--ac-ink)}
 .btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding:10px 0 40px}
-@media (max-width:560px){.grid{grid-template-columns:1fr}}
+.tabs{position:sticky;top:0;z-index:4;background:rgba(11,12,16,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin:6px 0 4px}
+.tabs .wrap{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+section.gr{padding:14px 0 6px}
+.grh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.grh h2{font-family:var(--display);font-size:18px;margin:0;flex:1;min-width:0}
+.grh small{color:var(--faint);font-weight:600;font-size:13px}
+.vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+@media (max-width:560px){.vids{grid-template-columns:1fr}}
 .it{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
 .th{position:relative;aspect-ratio:16/10;background:#000;cursor:pointer;display:block;border:0;padding:0;width:100%}
-.th img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}
-.th img.ok{opacity:1}
+.th img,.ph img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}
+.th img.ok,.ph img.ok{opacity:1}
 .th .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .th .play span{width:58px;height:58px;border-radius:50%;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center}
 .th .play svg{width:22px;height:22px;fill:#fff;margin-left:3px}
-.th .dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.65);border-radius:6px;padding:2px 7px;font-size:12px;font-weight:700}
 .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
 .nm{font-weight:700;overflow-wrap:anywhere}
 .nm small{display:block;color:var(--faint);font-weight:600;font-size:12px;margin-top:2px}
 .bd .row{display:flex;gap:8px;flex-wrap:wrap}
 .bd .btn{padding:9px 14px;font-size:13px}
-.tip{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 30px}
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+@media (max-width:560px){.fotos{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}}
+.ph{position:relative;aspect-ratio:1/1;background:var(--panel);border:0;padding:0;cursor:zoom-in;border-radius:6px;overflow:hidden;display:block;width:100%}
+.tip{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;color:var(--muted);font-size:13px;line-height:1.5;margin:18px 0 30px}
 .tip b{color:var(--ink)}
 .empty{text-align:center;color:var(--muted);padding:80px 16px}
 .empty b{display:block;font-family:var(--display);font-size:22px;color:var(--ink);margin-bottom:6px}
-.view{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.94);display:flex;flex-direction:column}
+.view{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.95);display:flex;flex-direction:column}
 .view .vt{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
-.view .vt b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.view .vb{flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px calc(14px + env(safe-area-inset-bottom,0px))}
+.view .vt b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.view .vt span{color:var(--faint);font-size:13px;font-weight:700}
+.view .vb{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 10px calc(14px + env(safe-area-inset-bottom,0px));position:relative}
 .view iframe{width:100%;height:100%;max-width:1200px;border:0;border-radius:10px;background:#000}
+.view video{width:100%;height:100%;max-width:1400px;object-fit:contain;background:#000;border-radius:8px}
+.view .vb.vid{padding:0 0 env(safe-area-inset-bottom,0px)}
+.vload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .view img{max-width:100%;max-height:100%;object-fit:contain}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.12);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.nav svg{width:22px;height:22px;stroke:#fff;stroke-width:2.2;fill:none}
+.nav.p{left:12px}.nav.n{right:12px}
+@media (max-width:560px){.nav{display:none}}
 .x{background:none;border:0;padding:8px;cursor:pointer}.x svg{width:24px;height:24px;stroke:#fff;stroke-width:2;fill:none}
 footer{text-align:center;color:var(--faint);font-size:12px;padding:0 0 30px}
 .spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--ac);border-radius:50%;animation:g .8s linear infinite;margin:80px auto}
@@ -67,6 +86,8 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:0 0 30px}
   <symbol id="ey" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="fd" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="xx" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="lt" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="rt" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
 </svg>
 <div id="app"><div class="spin" aria-label="Carregando"></div></div>
 <div class="view" id="view" hidden></div>
@@ -80,10 +101,11 @@ const app=document.getElementById('app'),view=document.getElementById('view');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ico=n=>'<svg><use href="#'+n+'"/></svg>';
 const tam=b=>{b=Number(b)||0;return b>=1e9?(b/1e9).toFixed(1).replace('.',',')+' GB':b>=1e6?Math.max(1,Math.round(b/1e6))+' MB':b?Math.max(1,Math.round(b/1e3))+' KB':''};
-const thumb=fid=>'https://drive.google.com/thumbnail?id='+encodeURIComponent(fid)+'&sz=w900';
+const thumb=(fid,w)=>'https://drive.google.com/thumbnail?id='+encodeURIComponent(fid)+'&sz=w'+(w||600);
 const baixarUrl=fid=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(fid)+'&export=download&confirm=t';
 const ehVid=a=>/^video\//.test(a.mime||'');
-let E=null,ref=null,contou=false;
+const plural=(n,a,b)=>n+' '+(n===1?a:b);
+let E=null,ref=null,ARQ=[],LISTA=[],cur=-1,filtro='';
 
 function vazio(t,s){app.innerHTML='<div class="empty"><b>'+t+'</b>'+s+'</div>'}
 if(!id)vazio('Link incompleto','Confira se o link foi copiado inteiro.');
@@ -94,37 +116,59 @@ else{
     if(!d.exists)return vazio('Link não encontrado','Ele pode ter sido apagado. Fale com quem te enviou.');
     E=d.data();
     if(E.ativo===false)return vazio('Link desativado','Fale com quem te enviou para receber um link novo.');
-    pinta();
-    if(!contou){contou=true;const agora=new Date().toISOString();const up={aberturas:firebase.firestore.FieldValue.increment(1),ultimoAcesso:agora};if(!E.abertoEm)up.abertoEm=agora;ref.update(up).catch(()=>{})}
+    ARQ=(E.arquivos||[]).map((a,i)=>Object.assign({i},a));pinta();
+    const agora=new Date().toISOString();const up={aberturas:firebase.firestore.FieldValue.increment(1),ultimoAcesso:agora};if(!E.abertoEm)up.abertoEm=agora;ref.update(up).catch(()=>{});
   }).catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'));
 }
-
+function rotulo(g){return g?g.split('/').join(' › '):''}
 function pinta(){
-  const el=E.empresa==='elite';document.body.className=el?'elite':'';
+  const el=E.empresa==='elite',so=!!E.soVer;document.body.className=(el?'elite ':'')+(so?'sover':'');
   document.title=(E.titulo||'Seus arquivos')+' · '+(el?'Elite Marketing Digital':'Durães Fotografia');
-  const arqs=E.arquivos||[],nv=arqs.filter(ehVid).length,nf=arqs.length-nv,total=arqs.reduce((s,a)=>s+(Number(a.size)||0),0);
-  const desc=[nv?nv+(nv===1?' vídeo':' vídeos'):'',nf?nf+(nf===1?' foto':' fotos'):''].filter(Boolean).join(' e ');
+  const nv=ARQ.filter(ehVid).length,nf=ARQ.length-nv,total=ARQ.reduce((s,a)=>s+(Number(a.size)||0),0);
+  const desc=[nv?plural(nv,'vídeo','vídeos'):'',nf?plural(nf,'foto','fotos'):''].filter(Boolean).join(' e ');
+  const grupos=[...new Set(ARQ.map(a=>a.g||''))];
   const iphone=/iPhone|iPad|iPod/.test(navigator.userAgent);
+  const pastas=Object.fromEntries((E.grupos||[]).map(g=>[g.nome,g.id]));
+  const mostrar=filtro===''?grupos:[filtro];
+  LISTA=[];
+  const secoes=mostrar.map(g=>{const its=ARQ.filter(a=>(a.g||'')===g),vs=its.filter(ehVid),fs=its.filter(a=>!ehVid(a));
+    vs.concat(fs).forEach(a=>LISTA.push(a));
+    const head=(grupos.length>1||g)?'<div class="grh"><h2>'+esc(rotulo(g)||'Arquivos')+'</h2><small>'+[vs.length?plural(vs.length,'vídeo','vídeos'):'',fs.length?plural(fs.length,'foto','fotos'):''].filter(Boolean).join(' · ')+'</small>'+(!so&&pastas[g]&&its.length>1?'<a class="btn" href="https://drive.google.com/drive/folders/'+encodeURIComponent(pastas[g])+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Baixar esta pasta</a>':'')+'</div>':'';
+    return '<section class="gr">'+head+
+      (vs.length?'<div class="vids">'+vs.map(a=>'<div class="it"><button class="th" data-ver="'+a.i+'" aria-label="Assistir '+esc(a.nome)+'"><img src="'+thumb(a.id,900)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.display=\'none\'"><span class="play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></span></button>'+
+        '<div class="bd"><div class="nm">'+esc(a.nome)+'<small>Vídeo'+(a.size?' · '+tam(a.size):'')+'</small></div><div class="row"><button class="btn" data-ver="'+a.i+'">'+ico('pl')+'Assistir</button>'+(so?'':'<a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou rel="noopener">'+ico('dl')+'Baixar</a>')+'</div></div></div>').join('')+'</div>':'')+
+      (fs.length?'<div class="fotos"'+(vs.length?' style="margin-top:14px"':'')+'>'+fs.map(a=>'<button class="ph" data-ver="'+a.i+'" aria-label="Ver '+esc(a.nome)+'"><img src="'+thumb(a.id,400)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.opacity=.2"></button>').join('')+'</div>':'')+'</section>'}).join('');
   app.innerHTML='<div class="wrap"><header>'+(el?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img class="lg" src="logos/duraes.png" alt="Durães Fotografia">')+
     '<h1>'+esc(E.titulo||'Seus arquivos')+'</h1>'+(E.msg?'<p class="msg">'+esc(E.msg)+'</p>':'')+
-    '<span class="meta">'+desc+(total?' · '+tam(total):'')+' · qualidade original</span>'+
-    (arqs.length>1&&E.pasta&&E.pasta.id?'<div class="acts"><a class="btn pri" href="https://drive.google.com/drive/folders/'+encodeURIComponent(E.pasta.id)+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Baixar todos (pasta)</a></div>':'')+'</header>'+
-    '<div class="grid">'+arqs.map((a,i)=>'<div class="it"><button class="th" data-ver="'+i+'" aria-label="Ver '+esc(a.nome)+'"><img src="'+thumb(a.id)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.display=\'none\'">'+(ehVid(a)?'<span class="play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></span>':'')+'</button>'+
-      '<div class="bd"><div class="nm">'+esc(a.nome)+'<small>'+(ehVid(a)?'Vídeo':'Foto')+(a.size?' · '+tam(a.size):'')+'</small></div><div class="row"><button class="btn" data-ver="'+i+'">'+ico(ehVid(a)?'pl':'ey')+(ehVid(a)?'Assistir':'Ver')+'</button><a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou rel="noopener">'+ico('dl')+'Baixar</a></div></div></div>').join('')+'</div>'+
-    '<p class="tip">'+(iphone?'<b>No iPhone:</b> toque em <b>Baixar</b>, depois em <b>Baixar</b> de novo na janela que abrir. O arquivo vai para o app <b>Arquivos</b> (pasta Downloads); abra ele lá e toque em <b>Compartilhar → Salvar vídeo</b> para ir para a galeria.':'<b>Dica:</b> toque em <b>Baixar</b> em cada arquivo. Ele vem na qualidade original, sem compressão, e fica na pasta <b>Downloads</b> do celular.')+(arqs.length>1?' Para baixar tudo de uma vez, use <b>Baixar todos (pasta)</b> e, no Drive, toque nos três pontinhos → <b>Fazer download</b>.':'')+'</p></div>'+
+    '<span class="meta">'+desc+(total&&!so?' · '+tam(total)+' · qualidade original':'')+'</span>'+
+    (so?'<span class="lock">🔒 Somente visualização</span>':(ARQ.length>1&&E.pasta&&E.pasta.id?'<a class="btn pri" href="https://drive.google.com/drive/folders/'+encodeURIComponent(E.pasta.id)+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Baixar tudo</a>':''))+'</header></div>'+
+    (grupos.length>1?'<nav class="tabs"><div class="wrap"><button data-f="" aria-pressed="'+(filtro==='')+'">Tudo ('+ARQ.length+')</button>'+grupos.map(g=>'<button data-f="'+esc(g)+'" aria-pressed="'+(filtro===g)+'">'+esc(rotulo(g)||'Outros')+' ('+ARQ.filter(a=>(a.g||'')===g).length+')</button>').join('')+'</div></nav>':'')+
+    '<div class="wrap">'+secoes+
+    (so?'<p class="tip">Este material está liberado <b>só para visualização</b>. Toque em um vídeo para assistir ou em uma foto para ampliar.</p>':
+      '<p class="tip">'+(iphone?'<b>No iPhone:</b> toque em <b>Baixar</b> e confirme. O arquivo vai para o app <b>Arquivos</b> (Downloads); abra ele lá e toque em <b>Compartilhar → Salvar vídeo/imagem</b> para ir para a galeria.':'<b>Dica:</b> toque em <b>Baixar</b> em cada arquivo. Ele vem na qualidade original, sem compressão, e fica na pasta <b>Downloads</b> do celular.')+(ARQ.length>1?' Para baixar várias de uma vez, use <b>Baixar tudo</b> (ou <b>Baixar esta pasta</b>) e, no Drive, toque nos três pontinhos → <b>Fazer download</b>.':'')+'</p>')+'</div>'+
     '<footer>'+(el?'Elite Marketing Digital':'Durães Fotografia')+'</footer>';
 }
 document.addEventListener('click',e=>{
+  const f=e.target.closest('[data-f]');if(f){filtro=f.dataset.f;pinta();window.scrollTo({top:0});return}
   const v=e.target.closest('[data-ver]');if(v){abrir(+v.dataset.ver);return}
   if(e.target.closest('[data-fechar]')){fechar();return}
+  const nv=e.target.closest('[data-nav]');if(nv){passo(+nv.dataset.nav);return}
   if(e.target.closest('[data-baixou]')&&ref)ref.update({baixados:firebase.firestore.FieldValue.increment(1),ultimoAcesso:new Date().toISOString()}).catch(()=>{});
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fechar()});
-function abrir(i){const a=(E.arquivos||[])[i];if(!a)return;
-  view.innerHTML='<div class="vt"><b>'+esc(a.nome)+'</b><a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou>'+ico('dl')+'Baixar</a><button class="x" data-fechar aria-label="Fechar">'+ico('xx')+'</button></div>'+
-    '<div class="vb">'+(ehVid(a)?'<iframe src="https://drive.google.com/file/d/'+encodeURIComponent(a.id)+'/preview" allow="autoplay; fullscreen" allowfullscreen title="'+esc(a.nome)+'"></iframe>':'<img src="https://lh3.googleusercontent.com/d/'+encodeURIComponent(a.id)+'=w2000" alt="'+esc(a.nome)+'" referrerpolicy="no-referrer" onerror="this.src=\'https://drive.google.com/thumbnail?id='+encodeURIComponent(a.id)+'&sz=w2000\'">')+'</div>';
+document.addEventListener('contextmenu',e=>{if(E&&E.soVer&&e.target.tagName==='IMG')e.preventDefault()});
+document.addEventListener('keydown',e=>{if(view.hidden)return;if(e.key==='Escape')fechar();if(e.key==='ArrowRight')passo(1);if(e.key==='ArrowLeft')passo(-1)});
+let tx=null;view.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});view.addEventListener('touchend',e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(d)>60)passo(d<0?1:-1)});
+function passo(d){if(cur<0)return;const pos=LISTA.findIndex(a=>a.i===cur);const nx=LISTA[pos+d];if(nx)abrir(nx.i)}
+function abrir(i){const a=ARQ[i];if(!a)return;cur=i;const so=!!E.soVer,pos=LISTA.findIndex(x=>x.i===i);
+  view.innerHTML='<div class="vt"><b>'+esc(a.nome)+'</b><span>'+(pos+1)+'/'+LISTA.length+'</span>'+(so?'':'<a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou>'+ico('dl')+'Baixar</a>')+'<button class="x" data-fechar aria-label="Fechar">'+ico('xx')+'</button></div>'+
+    '<div class="vb'+(ehVid(a)?' vid':'')+'">'+(ehVid(a)?(so?iframeDrive(a):'<video controls playsinline preload="metadata" poster="'+thumb(a.id,1280)+'" src="'+baixarUrl(a.id)+'" data-vid="'+esc(a.id)+'"></video>'):
+      '<img src="'+(so?thumb(a.id,1600):'https://lh3.googleusercontent.com/d/'+encodeURIComponent(a.id)+'=w2400')+'" alt="'+esc(a.nome)+'" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=\''+thumb(a.id,1600)+'\'">')+
+    (pos>0?'<button class="nav p" data-nav="-1" aria-label="Anterior">'+ico('lt')+'</button>':'')+(pos<LISTA.length-1?'<button class="nav n" data-nav="1" aria-label="Próximo">'+ico('rt')+'</button>':'')+'</div>';
   view.hidden=false;document.body.style.overflow='hidden'}
-function fechar(){view.hidden=true;view.innerHTML='';document.body.style.overflow=''}
+function iframeDrive(a){return '<iframe src="https://drive.google.com/file/d/'+encodeURIComponent(a.id)+'/preview" allow="autoplay; fullscreen" allowfullscreen title="'+esc(a.nome)+'"></iframe>'}
+/* se o navegador não conseguir tocar direto (formato ou arquivo grande demais), usa o player do Drive */
+document.addEventListener('error',e=>{const v=e.target;if(v&&v.tagName==='VIDEO'&&v.dataset.vid){const a=ARQ.find(x=>x.id===v.dataset.vid);if(a)v.outerHTML=iframeDrive(a)}},true);
+function fechar(){view.hidden=true;view.innerHTML='';cur=-1;document.body.style.overflow=''}
 </script>
 </body>
 </html>
