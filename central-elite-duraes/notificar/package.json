@@ -1,0 +1,6 @@
+{
+  "name": "central-notificar",
+  "private": true,
+  "description": "Robô que envia as notificações da Central (roda no GitHub Actions)",
+  "dependencies": { "firebase-admin": "^12.7.0", "sharp": "^0.33.5" }
+}
