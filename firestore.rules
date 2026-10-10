@@ -68,6 +68,11 @@ service cloud.firestore {
     }
 
     // Envios: o cliente abre pelo link (id secreto), sem login; só consegue registrar que abriu/baixou
+    // Vitrine de carros: quem tem o link (id secreto da vitrine) vê os carros; só a equipe cadastra
+    match /envios/{id}/carros/{carro} {
+      allow read: if true;
+      allow write: if ativo();
+    }
     match /envios/{id} {
       allow get: if true;
       allow list, create, delete: if ativo();

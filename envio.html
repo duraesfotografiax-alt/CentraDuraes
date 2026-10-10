@@ -74,6 +74,26 @@ section.gr{padding:14px 0 6px}
 .nav.p{left:12px}.nav.n{right:12px}
 @media (max-width:560px){.nav{display:none}}
 .x{background:none;border:0;padding:8px;cursor:pointer}.x svg{width:24px;height:24px;stroke:#fff;stroke-width:2;fill:none}
+/* vitrine de carros */
+.busca{position:relative;max-width:640px;margin:4px auto 6px}
+.busca svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round}
+.busca input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:14px 18px 14px 46px;outline:none}
+.busca input:focus{border-color:var(--ac)}
+.cars{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+@media (max-width:560px){.cars{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.car{display:flex;flex-direction:column;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;padding:0;cursor:pointer;color:inherit}
+.car:hover{border-color:var(--ac)}
+.cim{display:block;aspect-ratio:4/3;background:#000}
+.cim img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}.cim img.ok{opacity:1}
+.cbd{display:flex;flex-direction:column;gap:2px;padding:10px 12px 12px}
+.cbd b{font-size:15px;overflow-wrap:anywhere}.cbd span{color:var(--muted);font-size:13px;font-weight:600}.cbd small{color:var(--faint);font-size:12px;font-weight:600}
+.voltar{padding:18px 0 0}
+header.ch{align-items:flex-start;text-align:left;padding-top:14px}
+header.ch h1 span{color:var(--ac)}
+header.ch .row{display:flex;gap:8px;flex-wrap:wrap}
+.phw{position:relative}
+.phd{position:absolute;right:6px;bottom:6px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+.phd svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 footer{text-align:center;color:var(--faint);font-size:12px;padding:0 0 30px}
 .spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--ac);border-radius:50%;animation:g .8s linear infinite;margin:80px auto}
 @keyframes g{to{transform:rotate(360deg)}}
@@ -88,6 +108,8 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:0 0 30px}
   <symbol id="xx" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="lt" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="rt" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="lp" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="cp" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
 </svg>
 <div id="app"><div class="spin" aria-label="Carregando"></div></div>
 <div class="view" id="view" hidden></div>
@@ -116,7 +138,7 @@ else{
     if(!d.exists)return vazio('Link não encontrado','Ele pode ter sido apagado. Fale com quem te enviou.');
     E=d.data();
     if(E.ativo===false)return vazio('Link desativado','Fale com quem te enviou para receber um link novo.');
-    ARQ=(E.arquivos||[]).map((a,i)=>Object.assign({i},a));pinta();
+    if(E.tipo==='carros')carregarCarros();else{ARQ=(E.arquivos||[]).map((a,i)=>Object.assign({i},a));pinta()}
     const agora=new Date().toISOString();const up={aberturas:firebase.firestore.FieldValue.increment(1),ultimoAcesso:agora};if(!E.abertoEm)up.abertoEm=agora;ref.update(up).catch(()=>{});
   }).catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'));
 }
@@ -150,6 +172,11 @@ function pinta(){
 }
 document.addEventListener('click',e=>{
   const f=e.target.closest('[data-f]');if(f){filtro=f.dataset.f;pinta();window.scrollTo({top:0});return}
+  const mb=e.target.closest('[data-mes]');if(mb){mesF=mb.dataset.mes;lista();return}
+  const cb=e.target.closest('[data-car]');if(cb){const c=CARS.find(x=>x.id===cb.dataset.car);if(c)verCarro(c);return}
+  if(e.target.closest('[data-voltar]')){if(history.state&&history.state.c)history.back();else{history.replaceState(null,'','?e='+encodeURIComponent(id));vitrine();lista()}return}
+  const tb=e.target.closest('[data-todas]');if(tb){baixarTodas(tb);return}
+  if(e.target.closest('[data-copiar]')&&carAt){const u=location.origin+location.pathname+'?e='+encodeURIComponent(id)+'&c='+encodeURIComponent(carAt.id);(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{const b=e.target.closest('[data-copiar]');b.lastChild.textContent='Link copiado';},()=>prompt('Copie o link:',u));return}
   const v=e.target.closest('[data-ver]');if(v){abrir(+v.dataset.ver);return}
   if(e.target.closest('[data-fechar]')){fechar();return}
   const nv=e.target.closest('[data-nav]');if(nv){passo(+nv.dataset.nav);return}
@@ -172,6 +199,51 @@ document.addEventListener('error',e=>{const v=e.target;if(!(v&&v.tagName==='VIDE
   if(!v.dataset.tent){v.dataset.tent='1';v.src='https://drive.google.com/uc?export=download&id='+encodeURIComponent(a.id);v.load();return}
   v.outerHTML=iframeDrive(a)},true);
 function fechar(){view.hidden=true;view.innerHTML='';cur=-1;document.body.style.overflow=''}
+/* ---------- Vitrine de carros: busca por modelo/marca/ano, separados por mês ---------- */
+let CARS=[],busca='',mesF='',carAt=null;
+const nrm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const mesTx=m=>{if(!m)return 'Sem mês';const [y,mo]=m.split('-').map(Number);const t=MESES[mo-1]||'';return t.charAt(0).toUpperCase()+t.slice(1)+' de '+y};
+const nomeC=c=>[c.marca,c.modelo].filter(Boolean).join(' ');
+const iphone=()=>/iPhone|iPad|iPod/.test(navigator.userAgent);
+function carregarCarros(){
+  ref.collection('carros').get().then(s=>{CARS=s.docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(b.mes||'').localeCompare(a.mes||'')||nomeC(a).localeCompare(nomeC(b),'pt',{numeric:true}));
+    const c=new URLSearchParams(location.search).get('c');const car=c&&CARS.find(x=>x.id===c);if(car)verCarro(car,true);else vitrine()})
+  .catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'))}
+function filtrados(){const sq=s=>s.replace(/([a-z])\1+/g,'$1'),tk=sq(nrm(busca)).split(/\s+/).filter(Boolean);
+  return CARS.filter(c=>{const h=sq(nrm([c.marca,c.modelo,c.versao,c.ano,c.cor,c.placa].join(' ')));return tk.every(t=>h.includes(t))})}
+function vitrine(){carAt=null;document.body.className='elite';document.title=(E.titulo||'Carros')+' · Elite Marketing Digital';
+  app.innerHTML='<div class="wrap"><header><div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div><h1>'+esc(E.titulo||'Carros')+'</h1>'+(E.msg?'<p class="msg">'+esc(E.msg)+'</p>':'')+
+    '<span class="meta">'+plural(CARS.length,'carro','carros')+' · fotos e vídeos em qualidade original</span></header>'+
+    '<div class="busca">'+ico('lp')+'<input id="qc" type="search" placeholder="Modelo, marca ou ano: Sandero 2019" value="'+esc(busca)+'" autocomplete="off" aria-label="Buscar carro"></div></div>'+
+    '<nav class="tabs" id="mesT"></nav><div class="wrap" id="res"></div><footer>Elite Marketing Digital</footer>';
+  document.getElementById('qc').addEventListener('input',e=>{busca=e.target.value;lista()});lista()}
+function lista(){const fs=filtrados(),meses=[...new Set(CARS.map(c=>c.mes||''))];if(mesF&&!meses.includes(mesF))mesF='';
+  const conta=m=>fs.filter(c=>(c.mes||'')===m).length;
+  const nt=document.getElementById('mesT');nt.hidden=meses.length<2;nt.innerHTML=meses.length>1?'<div class="wrap"><button data-mes="" aria-pressed="'+(mesF==='')+'">Todos os meses ('+fs.length+')</button>'+meses.map(m=>'<button data-mes="'+esc(m)+'" aria-pressed="'+(mesF===m)+'">'+esc(mesTx(m))+' ('+conta(m)+')</button>').join('')+'</div>':'';
+  const vis=fs.filter(c=>!mesF||(c.mes||'')===mesF),ms=[...new Set(vis.map(c=>c.mes||''))];
+  const card=c=>{const nv=(c.arquivos||[]).filter(ehVid).length,nf=(c.arquivos||[]).length-nv;
+    return '<button class="car" data-car="'+c.id+'"><span class="cim">'+(c.capa?'<img src="'+thumb(c.capa,640)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.opacity=.15">':'')+'</span>'+
+      '<span class="cbd"><b>'+esc(nomeC(c)||'Carro')+'</b><span>'+esc([c.ano,c.cor,c.placa].filter(Boolean).join(' · ')||'—')+'</span><small>'+[nf?plural(nf,'foto','fotos'):'',nv?plural(nv,'vídeo','vídeos'):''].filter(Boolean).join(' · ')+'</small></span></button>'};
+  document.getElementById('res').innerHTML=!CARS.length?'<div class="empty"><b>Nenhum carro ainda</b>Os carros aparecem aqui assim que a equipe da Elite cadastrar.</div>':
+    !vis.length?'<div class="empty"><b>Nenhum carro encontrado</b>Tente só o modelo (ex.: Sandero) ou só o ano.</div>':
+    ms.map(m=>{const cs=vis.filter(c=>(c.mes||'')===m);return '<section class="gr"><div class="grh"><h2>'+esc(mesTx(m))+'</h2><small>'+plural(cs.length,'carro','carros')+'</small></div><div class="cars">'+cs.map(card).join('')+'</div></section>'}).join('')}
+function verCarro(c,inicial){carAt=c;if(!inicial)history.pushState({c:c.id},'','?e='+encodeURIComponent(id)+'&c='+encodeURIComponent(c.id));
+  document.body.className='elite';document.title=(nomeC(c)+' '+(c.ano||'')).trim()+' · '+(E.titulo||'');
+  ARQ=(c.arquivos||[]).map((a,i)=>Object.assign({i},a));const vs=ARQ.filter(ehVid),fs=ARQ.filter(a=>!ehVid(a));LISTA=fs.concat(vs);
+  const ios=iphone(),pasta=c.pasta&&c.pasta.id?'https://drive.google.com/drive/folders/'+encodeURIComponent(c.pasta.id):'';
+  app.innerHTML='<div class="wrap"><div class="voltar"><button class="btn" data-voltar>'+ico('lt')+'Todos os carros</button></div>'+
+    '<header class="ch"><h1>'+esc(nomeC(c)||'Carro')+(c.ano?' <span>'+esc(c.ano)+'</span>':'')+'</h1><span class="meta">'+esc([c.cor,c.placa,mesTx(c.mes)].filter(Boolean).join(' · '))+' · '+[fs.length?plural(fs.length,'foto','fotos'):'',vs.length?plural(vs.length,'vídeo','vídeos'):''].filter(Boolean).join(' e ')+'</span>'+
+    '<div class="row">'+(fs.length>1&&!ios?'<button class="btn pri" data-todas>'+ico('dl')+'Baixar todas as fotos ('+fs.length+')</button>':'')+(pasta?'<a class="btn'+(ios||fs.length<2?' pri':'')+'" href="'+pasta+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Abrir pasta no Drive</a>':'')+'<button class="btn" data-copiar>'+ico('cp')+'Copiar link do carro</button></div></header>'+
+    (fs.length?'<section class="gr"><div class="grh"><h2>Fotos</h2><small>'+fs.length+'</small></div><div class="fotos">'+fs.map(a=>'<div class="phw"><button class="ph" data-ver="'+a.i+'" aria-label="Ver '+esc(a.nome)+'"><img src="'+thumb(a.id,400)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.opacity=.2"></button><a class="phd" href="'+baixarUrl(a.id)+'" data-baixou aria-label="Baixar '+esc(a.nome)+'">'+ico('dl')+'</a></div>').join('')+'</div></section>':'')+
+    (vs.length?'<section class="gr"><div class="grh"><h2>Vídeos</h2><small>'+vs.length+'</small></div><div class="vids">'+vs.map(a=>'<div class="it"><button class="th" data-ver="'+a.i+'" aria-label="Assistir '+esc(a.nome)+'"><img src="'+thumb(a.id,900)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.display=\'none\'"><span class="play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></span></button>'+
+      '<div class="bd"><div class="nm">'+esc(a.nome)+'<small>Vídeo'+(a.size?' · '+tam(a.size):'')+'</small></div><div class="row"><button class="btn" data-ver="'+a.i+'">'+ico('pl')+'Assistir</button><a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou rel="noopener">'+ico('dl')+'Baixar</a></div></div></div>').join('')+'</div></section>':'')+
+    '<p class="tip">'+(ios?'<b>No iPhone:</b> para pegar todas as fotos de uma vez, toque em <b>Abrir pasta no Drive</b> → três pontinhos → <b>Fazer download</b>. Para uma foto só, toque no botão de baixar dela.':'<b>Dica:</b> <b>Baixar todas as fotos</b> baixa uma por uma, na qualidade original, para a pasta <b>Downloads</b>. Se o navegador perguntar, permita baixar vários arquivos. Pelo Drive (<b>Abrir pasta</b> → <b>Fazer download</b>) vem tudo num arquivo .zip.')+'</p></div><footer>Elite Marketing Digital</footer>';
+  window.scrollTo({top:0})}
+async function baixarTodas(b){const fs=ARQ.filter(a=>!ehVid(a));b.disabled=true;
+  for(let k=0;k<fs.length;k++){b.innerHTML=ico('dl')+'Baixando '+(k+1)+' de '+fs.length+'…';const a=document.createElement('a');a.href=baixarUrl(fs[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1100))}
+  b.innerHTML=ico('dl')+'Pronto: '+fs.length+' fotos';b.disabled=false;if(ref)ref.update({baixados:firebase.firestore.FieldValue.increment(fs.length),ultimoAcesso:new Date().toISOString()}).catch(()=>{})}
+window.addEventListener('popstate',()=>{if(!E||E.tipo!=='carros')return;fechar();const c=new URLSearchParams(location.search).get('c');const car=c&&CARS.find(x=>x.id===c);if(car)verCarro(car,true);else vitrine()});
 </script>
 </body>
 </html>

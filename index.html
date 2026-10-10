@@ -390,6 +390,10 @@ details.panel[open] summary{margin-bottom:12px}
 .envth{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;height:96px;background:var(--panel2)}
 .envth span{background:var(--hover) center/cover no-repeat}
 .envth span:only-child{grid-column:1/-1}
+.carth{width:64px;height:48px;border-radius:8px;background:var(--panel2) center/cover no-repeat;flex:none;display:block}
+.impck{display:flex;align-items:center;gap:8px;cursor:pointer}.impck input{width:18px;height:18px}
+.impf{display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr 1.4fr;gap:6px}.impf input{min-width:0;padding:8px 10px;font-size:14px}
+@media (max-width:640px){.impf{grid-template-columns:1fr 1fr}}
 .envbd{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .envbd .t{font-weight:800;overflow-wrap:anywhere}
 .envbd .meta{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
@@ -712,6 +716,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <div class="sp"></div>
           <div class="seg" id="fEnv"></div>
           <input class="search" id="envBusca" placeholder="Buscar…" aria-label="Buscar envio" style="width:200px">
+          <button class="btn" data-env="vitrine"><svg class="i"><use href="#i-store"/></svg>Vitrine de carros</button>
           <button class="btn primary" data-env="novo"><svg class="i"><use href="#i-plus"/></svg>Novo envio</button>
         </div>
         <div id="envBody"></div>
@@ -1285,6 +1290,7 @@ document.addEventListener('click',async e=>{
   const rc=e.target.closest('[data-rec]');if(rc){reciboAcao(rc);return}
   const ctb=e.target.closest('[data-ct]');if(ctb){contratoAcao(ctb);return}
   const evb=e.target.closest('[data-env]');if(evb){envioAcao(evb);return}
+  const crb=e.target.closest('[data-car]');if(crb){carroAcao(crb);return}
   const rcb=e.target.closest('[data-rc]');if(rcb){recorrenteAcao(rcb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
@@ -2133,7 +2139,7 @@ function renderEnvios(){
   if(S.fEnv==='ativos')es=es.filter(e=>e.ativo!==false);
   if(q)es=es.filter(e=>((e.titulo||'')+' '+lojaNome(e.loja)).toLowerCase().includes(q));
   if(!es.length){body.innerHTML='<div class="panel">'+emptyMsg('Nenhum envio ainda','Toque em "Novo envio", suba os vídeos ou fotos e mande o link pelo WhatsApp. O cliente assiste e baixa na qualidade original.')+'</div>';return}
-  body.innerHTML='<div class="envs">'+es.map(e=>{const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length,nf=arqs.length-nv,tot=arqs.reduce((s,a)=>s+(Number(a.size)||0),0);
+  body.innerHTML='<div class="envs">'+es.map(e=>{if(e.tipo==='carros')return cardVitrine(e);const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length,nf=arqs.length-nv,tot=arqs.reduce((s,a)=>s+(Number(a.size)||0),0);
     const dl='<button class="dltog'+(e.soVer?' off':'')+'" data-env="download" data-id="'+e.id+'" title="Tocar para mudar">'+(e.soVer?'🔒 Só visualizar':'⬇ Download liberado')+'</button>';
     const st=e.ativo===false?'<span class="chip late">Link desativado</span>':e.abertoEm?'<span class="chip rec">Cliente abriu'+(e.aberturas>1?' '+e.aberturas+'x':'')+'</span>':'<span class="chip eq">Ainda não abriu</span>';
     const th=arqs.slice(0,4).map(a=>'<span style="background-image:url(\'https://drive.google.com/thumbnail?id='+encodeURIComponent(a.id)+'&sz=w300\')"></span>').join('');
@@ -2142,8 +2148,14 @@ function renderEnvios(){
       '<span>Criado '+quandoIso(e.criadoEm)+(e.criadoPor?' por '+esc(e.criadoPor):'')+'</span>'+(e.abertoEm?'<span>Último acesso '+quandoIso(e.ultimoAcesso||e.abertoEm)+(e.baixados?' · '+e.baixados+' download'+(e.baixados===1?'':'s'):'')+'</span>':'')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+st+dl+'</div>'+
       '<div class="acts"><button class="btn sm primary" data-env="whats" data-id="'+e.id+'">WhatsApp</button><button class="btn sm" data-env="copiar" data-id="'+e.id+'">Copiar link</button><a class="btn sm ghost" href="'+esc(linkEnvio(e))+'" target="_blank" rel="noopener">Ver como o cliente</a><button class="btn sm ghost" data-env="mais" data-id="'+e.id+'">Mais…</button></div></div></div>'}).join('')+'</div>';
 }
+function cardVitrine(e){const n=e.nCarros||0;
+  const st=e.ativo===false?'<span class="chip late">Link desativado</span>':e.abertoEm?'<span class="chip rec">Loja abriu'+(e.aberturas>1?' '+e.aberturas+'x':'')+'</span>':'<span class="chip eq">Ainda não abriu</span>';
+  const th=(e.capas||[]).slice(0,4).map(id=>'<span style="background-image:url(\''+thumbPub(id,300)+'\')"></span>').join('');
+  return '<div class="env"><div class="envth">'+(th||'<span></span>')+'</div><div class="envbd"><div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><div class="t">'+esc(e.titulo)+'</div><span class="chip elite">Vitrine</span></div>'+
+    '<div class="meta"><span>'+n+(n===1?' carro':' carros')+' · '+esc(lojaNome(e.loja))+'</span><span>Link fixo: os carros novos aparecem nele sozinhos'+(e.atualizadoEm?' · atualizado '+quandoIso(e.atualizadoEm):'')+'</span>'+(e.abertoEm?'<span>Último acesso '+quandoIso(e.ultimoAcesso||e.abertoEm)+(e.baixados?' · '+e.baixados+' download'+(e.baixados===1?'':'s'):'')+'</span>':'')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+st+'</div>'+
+    '<div class="acts"><button class="btn sm primary" data-env="carros" data-id="'+e.id+'">Carros</button><button class="btn sm" data-env="whats" data-id="'+e.id+'">WhatsApp</button><button class="btn sm" data-env="copiar" data-id="'+e.id+'">Copiar link</button><a class="btn sm ghost" href="'+esc(linkEnvio(e))+'" target="_blank" rel="noopener">Ver como a loja</a><button class="btn sm ghost" data-env="mais" data-id="'+e.id+'">Mais…</button></div></div></div>'}
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='envBusca')renderEnvios()});
-function msgEnvio(e){const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length;
+function msgEnvio(e){if(e.tipo==='carros')return 'Olá! Aqui é da Elite Marketing Digital. Neste link ficam as fotos e vídeos dos carros da '+(lojaNome(e.loja)||'loja')+', separados por mês e em qualidade original. É só buscar pelo modelo, marca ou ano (ex.: Sandero 2019) e baixar:\n'+linkEnvio(e)+'\n\nO link é sempre o mesmo: os carros novos vão aparecendo nele.';const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length;
   return 'Olá! '+(e.empresa==='elite'?'Aqui é da Elite Marketing Digital. ':'Aqui é da Durães Fotografia. ')+'Seguem '+(nv?(nv===1?'o seu vídeo':'os seus vídeos'):'os seus arquivos')+' de "'+e.titulo+'" em alta qualidade. É só abrir o link para '+(e.soVer?'assistir':'assistir e baixar')+':\n'+linkEnvio(e)}
 function formEnvio(){
   const L=lojasOrd(),ts=S.tar.slice().filter(t=>t.etapa!=='agendar').sort((a,b)=>(b.data||'').localeCompare(a.data||'')).slice(0,60);
@@ -2200,7 +2212,9 @@ function mostrarEnvio(e){const link=linkEnvio(e);
   sheet.hidden=false;S._envAtual=e}
 async function envioAcao(b){const k=b.dataset.env,id=b.dataset.id;const e=(S.envios||[]).find(x=>x.id===id)||(S._envAtual&&S._envAtual.id===id?S._envAtual:null);
   if(k==='novo'){formEnvio();return}
+  if(k==='vitrine'){try{await token()}catch(er){toast(er.message);return}formVitrine();return}
   if(!e)return;
+  if(k==='carros'){gerenciarCarros(e);return}
   if(k==='copiar'){dCopiar(linkEnvio(e));return}
   if(k==='whats'){window.open('https://wa.me/?text='+encodeURIComponent(msgEnvio(e)),'_blank');return}
   if(k==='mais'){sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(e.titulo)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+
@@ -2212,7 +2226,203 @@ async function envioAcao(b){const k=b.dataset.env,id=b.dataset.id;const e=(S.env
     catch(er){toast(er.message||'Não deu certo');b.textContent=t0}finally{b.disabled=false}return}
   if(k==='ativo'){try{await write(()=>store.update('envios',e.id,{ativo:e.ativo===false}))}catch(_){return}closeSheet();toast(e.ativo===false?'Link reativado':'Link desativado');return}
   if(k==='apagar'){if(!armed['e'+id]){armed['e'+id]=b.innerHTML;b.textContent='Toque de novo para apagar';setTimeout(()=>{if(armed['e'+id]){b.innerHTML=armed['e'+id];delete armed['e'+id]}},3000);return}delete armed['e'+id];
-    try{await write(()=>store.del('envios',e.id))}catch(_){return}closeSheet();toast('Envio apagado')}}
+    try{if(e.tipo==='carros'){const s=await carrosRef(e.id).get();for(const d of s.docs)await d.ref.delete()}await write(()=>store.del('envios',e.id))}catch(_){return}closeSheet();toast('Envio apagado')}}
+
+/* ---------- Vitrine de carros (lojas de veículos): um link fixo por loja, carros separados por mês, busca por modelo/marca/ano ---------- */
+const MES_NOME=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CAR_MARCAS={Chevrolet:'onix prisma cruze tracker s10 spin cobalt celta corsa montana agile classic equinox trailblazer joy sonic captiva astra vectra zafira meriva omega blazer',
+  Volkswagen:'gol fox voyage polo virtus t-cross tcross nivus saveiro up jetta amarok golf taos tiguan spacefox crossfox parati santana passat kombi',
+  Fiat:'uno palio strada toro argo mobi siena cronos pulse fastback doblo idea punto fiorino linea bravo freemont ducato weekend titano',
+  Renault:'sandero logan duster kwid captur clio oroch stepway fluence megane symbol kardian master',
+  Ford:'ka fiesta focus ecosport ranger fusion territory maverick bronco courier edge',
+  Toyota:'corolla etios hilux yaris sw4 rav4 prius','Honda':'civic fit city hr-v hrv wr-v wrv cr-v crv accord cg biz pop bros titan fan xre cb300 cb500 pcx nxr',
+  Hyundai:'hb20 hb20s hb20x creta tucson i30 azera santa ix35 veloster',Kia:'sorento sportage cerato picanto soul carnival stonic niro',
+  Nissan:'kicks versa march sentra frontier livina tiida',Peugeot:'208 2008 207 308 3008 408 partner',Citroën:'c3 c4 aircross cactus berlingo jumpy',
+  Jeep:'compass renegade commander wrangler',Mitsubishi:'lancer l200 pajero asx outlander eclipse',Chery:'tiggo arrizo celer qq',
+  Yamaha:'fazer factor lander ybr crosser xtz nmax neo',Suzuki:'jimny vitara swift',BYD:'dolphin song seal yuan king',GWM:'haval ora',Ram:'rampage',
+  'Mercedes-Benz':'a200 c180 c200 gla sprinter',BMW:'320i x1 x3 118i',Audi:'a3 a4 q3 q5',Volvo:'xc40 xc60',Land_Rover:'evoque discovery defender'};
+const CAR_ALIAS={vw:'Volkswagen',volks:'Volkswagen',gm:'Chevrolet',chevy:'Chevrolet',mercedes:'Mercedes-Benz',mb:'Mercedes-Benz',citroen:'Citroën',landrover:'Land Rover'};
+const CAR_CORES=['branco','branca','preto','preta','prata','cinza','vermelho','vermelha','azul','verde','amarelo','amarela','marrom','bege','dourado','dourada','laranja','vinho','grafite','champagne','roxo'];
+const nrmC=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const sqC=s=>s.replace(/(.)\1+/g,'$1');
+function marcaDoModelo(modelo){const ws=nrmC(modelo).split(/[\s\/]+/).filter(Boolean);
+  for(const [m,lista] of Object.entries(CAR_MARCAS)){const L=lista.split(' ');if(ws.some(w=>L.includes(w)||L.some(x=>sqC(x)===sqC(w)&&w.length>3)))return m.replace('_',' ')}return ''}
+function marcaDaPalavra(w){const n=nrmC(w);if(CAR_ALIAS[n])return CAR_ALIAS[n];const k=Object.keys(CAR_MARCAS).find(m=>nrmC(m.replace('_',' '))===n);return k?k.replace('_',' '):''}
+function ehPastaGenerica(nome){const n=nrmC(nome).trim();
+  return !n||/^\d{1,2}[-._ ]\d{1,2}([-._ ]\d{2,4})?\b/.test(n)||/^(fotos?|v[ií]deos?|videos?|feed|stories|story|reels?|outros?( meses)?|backstage|brutos?|editad[oa]s?|tratad[oa]s?|capas?|thumbs?|arquivos?|novos?|selecionad[oa]s?)$/.test(n)||MES_NOME.some(m=>n.startsWith(nrmC(m)))}
+function lerNomeCarro(nome){let s=String(nome||'').replace(/_+/g,' ').trim();const out={marca:'',modelo:'',ano:'',cor:'',placa:''};
+  const pl=s.match(/\b[A-Za-z]{3}-?\d[A-Za-z0-9]\d{2}\b/);if(pl){out.placa=pl[0].toUpperCase();s=s.replace(pl[0],' ')}
+  const a=s.match(/\b((?:19[6-9]|20[0-4])\d)(?:\s*[\/-]\s*((?:19[6-9]|20[0-4])?\d{2}))?\b/);
+  if(a){const b=a[2]?(a[2].length===2?a[1].slice(0,2)+a[2]:a[2]):'';out.ano=b&&b!==a[1]?a[1]+'/'+b:a[1];s=s.replace(a[0],' ')}
+  const rest=[];
+  for(const w of s.split(/\s+/).filter(Boolean)){const n=nrmC(w);
+    if(!out.cor&&CAR_CORES.includes(n)){out.cor=w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();continue}
+    const mk=!out.marca&&marcaDaPalavra(w);if(mk){out.marca=mk;continue}
+    if(/^\d{4,6}$/.test(w))continue;
+    rest.push(/^[a-zà-ú]/.test(w)?w.charAt(0).toUpperCase()+w.slice(1):w)}
+  out.modelo=rest.join(' ');if(!out.marca)out.marca=marcaDoModelo(out.modelo);return out}
+function nomeCarro(c){return [c.marca,c.modelo].filter(Boolean).join(' ')+(c.ano?' '+c.ano:'')}
+function nomePastaCarro(c){return [c.modelo,c.ano,c.cor,c.placa].filter(Boolean).join(' ').slice(0,90)||'Carro'}
+function mesAtual(){return hoje().slice(0,7)}
+function mesDoCaminho(cam,arqs){const agora=new Date(),ya=agora.getFullYear(),ma=agora.getMonth()+1;
+  for(let i=cam.length-1;i>=0;i--){const n=nrmC(cam[i]),mi=MES_NOME.findIndex(m=>n.startsWith(nrmC(m)));
+    if(mi>=0){const y=(cam[i].match(/(20\d{2})/)||[])[1];const ano=y?+y:(mi+1>ma?ya-1:ya);return ano+'-'+pad(mi+1)}
+    const d=cam[i].match(/\b(\d{1,2})[-._](\d{1,2})[-._](20\d{2}|\d{2})\b/);if(d){const y=d[3].length===2?'20'+d[3]:d[3];return y+'-'+pad(+d[2])}}
+  const t=(arqs||[]).map(f=>f.modifiedTime||'').filter(Boolean).sort()[0];return t?t.slice(0,7):mesAtual()}
+function linkCarro(e,c){return linkEnvio(e)+'&c='+c.id}
+function carrosRef(vid){return db.collection('envios').doc(vid).collection('carros')}
+function arqsDoCarro(fs){return fs.filter(f=>/^(video|image)\//.test(f.mimeType||'')).slice(0,300).map(f=>({id:f.id,nome:f.name,mime:f.mimeType||'',size:Number(f.size)||0}))
+  .sort((x,y)=>(/^video/.test(x.mime)?1:0)-(/^video/.test(y.mime)?1:0)||x.nome.localeCompare(y.nome,'pt',{numeric:true}))}
+function capaDe(arqs){const f=arqs.find(a=>/^image/.test(a.mime))||arqs[0];return f?f.id:''}
+async function resumoVitrine(vid,lista){const cs=lista.slice().sort((a,b)=>(b.mes||'').localeCompare(a.mes||'')||(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  try{await store.update('envios',vid,{nCarros:cs.length,capas:cs.filter(c=>c.capa).slice(0,4).map(c=>c.capa),atualizadoEm:new Date().toISOString()})}catch(_){}}
+async function pastaMesCarros(raiz,mes){const [y,m]=mes.split('-').map(Number),nome=MES_NOME[m-1],atual=new Date().getFullYear();
+  const mp=(await dAcharPasta(nome+' '+y,raiz))||(y===atual?await dAcharPasta(nome,raiz):null)||await dCriarPasta(y===atual?nome:nome+' '+y,raiz);
+  return ((await dAcharPasta('Fotos',mp.id))||(await dCriarPasta('Fotos',mp.id))).id}
+
+/* criar a vitrine (uma por loja) */
+function formVitrine(){const L=lojasOrd();let pasta=null;
+  sheet.innerHTML='<form id="fVit" novalidate style="max-width:600px"><h2>Vitrine de carros</h2><p class="muted" style="margin:0;font-size:14px">Um link fixo para a loja achar as fotos e vídeos de cada carro, separados por mês, com busca por modelo, marca e ano. Mande uma vez; os carros novos vão aparecendo nele.</p>'+
+    '<div class="fld"><label for="vitLoja">Loja</label><select id="vitLoja">'+opts([['','— escolha —']].concat(L.map(l=>[l.id,l.nome])),'')+'</select></div>'+
+    '<div class="fld"><label for="vitTit">Título (a loja vê)</label><input id="vitTit" placeholder="Ex.: RM Veículos · fotos dos carros"></div>'+
+    '<div class="fld"><span class="l">Pasta da loja no Drive</span><div class="drvbtns"><button type="button" class="btn sm" id="vitPasta">'+ico('i-folder')+'Escolher pasta</button></div><div class="hint" id="vitPastaTx">É a pasta onde ficam os meses (Outubro, Setembro…). Os carros novos são criados dentro dela.</div></div>'+
+    '<div class="fld"><label for="vitMsg">Recado na página (opcional)</label><textarea id="vitMsg" rows="2" placeholder="Ex.: Fotos em qualidade original para subir na Revenda Mais."></textarea></div>'+
+    '<div class="err" id="vitErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Criar vitrine</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#vitErr').textContent=m};
+  const mostra=()=>{q('#vitPastaTx').innerHTML=pasta?'<b style="color:var(--ink)">'+esc(pasta.name)+'</b> · '+'<a href="https://drive.google.com/drive/folders/'+encodeURIComponent(pasta.id)+'" target="_blank" rel="noopener">abrir</a>':'É a pasta onde ficam os meses (Outubro, Setembro…). Os carros novos são criados dentro dela.'};
+  q('#vitLoja').onchange=async()=>{const l=S.lojas.find(x=>x.id===q('#vitLoja').value);if(!l)return;if(!q('#vitTit').value.trim()||/· fotos dos carros$/.test(q('#vitTit').value))q('#vitTit').value=l.nome+' · fotos dos carros';
+    const cfg=S.driveCfg||{};if(!cfg.clientes||!driveConectado())return;
+    try{const fs=await dListar(cfg.clientes.id,true),alvo=nrmC(l.nome).replace(/[^a-z0-9]/g,''),pri=nrmC(l.nome).split(/\s+/)[0];
+      const f=fs.find(x=>nrmC(x.name).replace(/[^a-z0-9]/g,'')===alvo)||fs.find(x=>nrmC(x.name).split(/\s+/)[0]===pri);if(f&&!pasta){pasta=f;mostra()}}catch(_){}};
+  q('#vitPasta').onclick=async()=>{try{await token()}catch(er){err(er.message);return}const cfg=S.driveCfg||{};abrirSeletor(pasta?pasta.id:(cfg.clientes&&cfg.clientes.id)||null,f=>{if(f.mimeType!==FOLDER){toast('Escolha uma pasta.');return}pasta=f;mostra()})};
+  q('#fVit').onsubmit=async e=>{e.preventDefault();const loja=q('#vitLoja').value,tit=q('#vitTit').value.trim();
+    if(!loja)return err('Escolha a loja.');if(!tit)return err('Dê um título.');if(!pasta)return err('Escolha a pasta da loja no Drive.');
+    if((S.envios||[]).some(x=>x.tipo==='carros'&&x.loja===loja&&x.ativo!==false))return err('Essa loja já tem uma vitrine ativa. Use a que já existe (botão Carros).');
+    const b=q('#fVit button[type=submit]');b.disabled=true;b.textContent='Criando…';
+    try{const doc={tipo:'carros',titulo:tit.slice(0,120),empresa:'elite',loja,tar:'',msg:q('#vitMsg').value.trim().slice(0,600),pasta:{id:pasta.id,nome:pasta.name||''},soVer:false,grupos:[],arquivos:[],
+        nCarros:0,capas:[],criadoEm:new Date().toISOString(),criadoPor:meuMembro()||(S.me&&S.me.nome)||'',ativo:true,aberturas:0,baixados:0};
+      const id=idAleatorio();await write(()=>db.collection('envios').doc(id).set(doc));toast('Vitrine criada. Agora cadastre ou importe os carros.');gerenciarCarros(Object.assign({id},doc))}
+    catch(er){err(er.message||'Não deu certo');b.disabled=false;b.textContent='Criar vitrine'}}}
+
+/* lista de carros da vitrine (na Central) */
+let CAR={v:null,lista:[],busca:''};
+async function gerenciarCarros(v){CAR.v=v;CAR.busca='';
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:860px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Carros · '+esc(lojaNome(v.loja)||v.titulo)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="drvbtns" style="align-items:center"><button type="button" class="btn sm primary" data-car="novo">'+ico('i-plus')+'Carro</button><button type="button" class="btn sm" data-car="importar">'+ico('i-folder')+'Importar pastas do Drive</button>'+
+    '<button type="button" class="btn sm ghost" data-car="link">Copiar link da loja</button><input class="search" id="carBusca" placeholder="Buscar modelo, ano…" aria-label="Buscar carro" style="flex:1;min-width:150px"></div>'+
+    '<div id="carLista"><div class="spinner"></div></div></form>';
+  sheet.hidden=false;sheet.querySelector('#carBusca').oninput=e=>{CAR.busca=e.target.value;pintaCarros()};
+  try{const s=await carrosRef(v.id).get();CAR.lista=s.docs.map(d=>Object.assign({id:d.id},d.data()));pintaCarros()}
+  catch(er){const L=sheet.querySelector('#carLista');if(L)L.innerHTML='<p class="err">'+esc(er.code==='permission-denied'?'Sem permissão. Publique as regras novas do Firestore (firestore.rules).':er.message)+'</p>'}}
+function pintaCarros(){const L=sheet.querySelector('#carLista');if(!L)return;
+  const tk=nrmC(CAR.busca).split(/\s+/).filter(Boolean);
+  const cs=CAR.lista.filter(c=>{const h=nrmC([c.marca,c.modelo,c.ano,c.cor,c.placa,c.versao].join(' '));return tk.every(t=>h.includes(t))})
+    .sort((a,b)=>(b.mes||'').localeCompare(a.mes||'')||nomeCarro(a).localeCompare(nomeCarro(b),'pt',{numeric:true}));
+  if(!CAR.lista.length){L.innerHTML=emptyMsg('Nenhum carro ainda','Use "Importar pastas do Drive" para trazer os carros que já estão no Drive, ou "+ Carro" para cadastrar e subir as fotos.');return}
+  if(!cs.length){L.innerHTML='<p class="hint">Nenhum carro com "'+esc(CAR.busca)+'".</p>';return}
+  const meses=[...new Set(cs.map(c=>c.mes||''))];
+  L.innerHTML=meses.map(m=>'<h3 style="margin:16px 0 4px;font-size:15px">'+esc(m?mesLabel(m):'Sem mês')+' <span class="muted" style="font-weight:600">· '+cs.filter(c=>(c.mes||'')===m).length+'</span></h3><div class="list">'+cs.filter(c=>(c.mes||'')===m).map(c=>{const nv=(c.arquivos||[]).filter(a=>/^video/.test(a.mime)).length,nf=(c.arquivos||[]).length-nv;
+    return '<div class="row"><span class="carth"'+(c.capa?' style="background-image:url(\''+thumbPub(c.capa,240)+'\')"':'')+'></span><div style="min-width:0"><div class="t">'+esc(nomeCarro(c)||'(sem nome)')+(c.marca?'':' <span class="chip soon">sem marca</span>')+(c.ano?'':' <span class="chip soon">sem ano</span>')+'</div>'+
+      '<div class="s">'+(c.cor?'<span>'+esc(c.cor)+'</span>':'')+(c.placa?'<span>'+esc(c.placa)+'</span>':'')+'<span>'+[nf?nf+(nf===1?' foto':' fotos'):'',nv?nv+(nv===1?' vídeo':' vídeos'):''].filter(Boolean).join(' · ')+'</span></div></div>'+
+      '<div class="acts"><button type="button" class="btn sm" data-car="editar" data-id="'+c.id+'">Editar</button><button type="button" class="btn sm ghost" data-car="atualizar" data-id="'+c.id+'" title="Lê de novo a pasta do Drive">Atualizar fotos</button><button type="button" class="btn sm ghost" data-car="copiar" data-id="'+c.id+'">Link</button><button type="button" class="btn sm ghost danger" data-car="remover" data-id="'+c.id+'">Remover</button></div></div>'}).join('')+'</div>').join('')}
+
+/* cadastrar / editar um carro */
+function formCarro(c){const v=CAR.v,novo=!c;c=c||{marca:'',modelo:'',ano:'',cor:'',placa:'',versao:'',mes:mesAtual()};let locais=null,pastaDrive=null;
+  const marcas=[...new Set(Object.keys(CAR_MARCAS).map(m=>m.replace('_',' ')))].sort();
+  sheet.innerHTML='<form id="fCar" novalidate style="max-width:620px"><h2>'+(novo?'Novo carro':'Editar '+esc(nomeCarro(c)))+'</h2>'+
+    '<div class="two"><div class="fld"><label for="carMod">Modelo</label><input id="carMod" value="'+esc(c.modelo)+'" placeholder="Ex.: Sandero Stepway 1.6"></div>'+
+    '<div class="fld"><label for="carMarca">Marca</label><input id="carMarca" list="carMarcas" value="'+esc(c.marca)+'" placeholder="Preenche sozinho pelo modelo"><datalist id="carMarcas">'+marcas.map(m=>'<option value="'+esc(m)+'">').join('')+'</datalist></div></div>'+
+    '<div class="two"><div class="fld"><label for="carAno">Ano</label><input id="carAno" inputmode="numeric" value="'+esc(c.ano)+'" placeholder="Ex.: 2019/2020"></div>'+
+    '<div class="fld"><label for="carCor">Cor (opcional)</label><input id="carCor" value="'+esc(c.cor)+'" placeholder="Ex.: Prata"></div></div>'+
+    '<div class="two"><div class="fld"><label for="carPlaca">Placa ou código (opcional)</label><input id="carPlaca" value="'+esc(c.placa)+'" placeholder="Ex.: final 4F21"></div>'+
+    '<div class="fld"><label for="carMes">Mês</label><input id="carMes" type="month" value="'+esc(c.mes||mesAtual())+'"></div></div>'+
+    '<div class="fld"><span class="l">Fotos e vídeos</span><div class="drvbtns"><button type="button" class="btn sm primary" id="carSubir">'+ico('i-file')+(novo?'Subir fotos/vídeos':'Adicionar fotos/vídeos')+'</button><button type="button" class="btn sm ghost" id="carDrive">'+(novo?'Escolher pasta no Drive':'Trocar a pasta')+'</button></div>'+
+    '<input type="file" id="carFiles" multiple accept="video/*,image/*" hidden><div class="hint" id="carSel">'+(novo?'As fotos vão para o Drive da empresa em qualidade original, numa pasta deste carro dentro do mês.':(c.arquivos||[]).length+' arquivos na pasta "'+esc((c.pasta&&c.pasta.nome)||'')+'"')+'</div></div>'+
+    '<div class="err" id="carErr"></div><div class="formacts"><button type="button" class="btn ghost" data-car="voltar">Voltar</button><button class="btn primary" type="submit">'+(novo?'Salvar carro':'Salvar')+'</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#carErr').textContent=m};
+  q('#carMod').addEventListener('change',()=>{const m=marcaDoModelo(q('#carMod').value);if(m&&!q('#carMarca').value.trim())q('#carMarca').value=m;
+    const p=lerNomeCarro(q('#carMod').value);if(p.ano&&p.modelo){if(!q('#carAno').value.trim())q('#carAno').value=p.ano;if(p.cor&&!q('#carCor').value.trim())q('#carCor').value=p.cor;if(p.marca&&!q('#carMarca').value.trim())q('#carMarca').value=p.marca;q('#carMod').value=p.modelo}});
+  const resumo=()=>{const n=locais?locais.length:0;q('#carSel').innerHTML=locais?'<b style="color:var(--ink)">'+n+' arquivo'+(n===1?'':'s')+'</b> · '+tamTxt(locais.reduce((s,f)=>s+f.size,0))+' · sobem ao salvar':pastaDrive?'Pasta do Drive: <b style="color:var(--ink)">'+esc(pastaDrive.name)+'</b>':q('#carSel').innerHTML};
+  q('#carSubir').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#carFiles').value='';q('#carFiles').click()};
+  q('#carFiles').onchange=e=>{const ok=[...e.target.files].filter(f=>/^(video|image)\//.test(f.type)||/\.(mp4|mov|m4v|jpe?g|png|heic|webp)$/i.test(f.name));if(!ok.length)return err('Escolha fotos ou vídeos.');err('');locais=ok;pastaDrive=null;resumo()};
+  q('#carDrive').onclick=async()=>{try{await token()}catch(er){err(er.message);return}
+    const vals={modelo:q('#carMod').value,marca:q('#carMarca').value,ano:q('#carAno').value,cor:q('#carCor').value,placa:q('#carPlaca').value,mes:q('#carMes').value};
+    abrirSeletor((c.pasta&&c.pasta.id)||(v.pasta&&v.pasta.id)||null,f=>{if(f.mimeType!==FOLDER){toast('Escolha a pasta do carro.');return}
+      pastaDrive=f;locais=null;const p=lerNomeCarro(f.name);
+      if(!vals.modelo&&p.modelo)q('#carMod').value=p.modelo;if(!vals.marca&&p.marca)q('#carMarca').value=p.marca;if(!vals.ano&&p.ano)q('#carAno').value=p.ano;if(!vals.cor&&p.cor)q('#carCor').value=p.cor;if(!vals.placa&&p.placa)q('#carPlaca').value=p.placa;resumo()})};
+  q('#fCar').onsubmit=async e=>{e.preventDefault();
+    const d={modelo:q('#carMod').value.trim().slice(0,60),marca:q('#carMarca').value.trim().slice(0,30),ano:q('#carAno').value.trim().slice(0,12),cor:q('#carCor').value.trim().slice(0,20),placa:q('#carPlaca').value.trim().slice(0,20),mes:q('#carMes').value||mesAtual()};
+    if(!d.modelo)return err('Escreva o modelo do carro.');if(!d.marca)d.marca=marcaDoModelo(d.modelo);
+    if(novo&&!locais&&!pastaDrive)return err('Suba as fotos ou escolha a pasta do carro no Drive.');
+    const b=q('#fCar button[type=submit]');b.disabled=true;b.textContent='Salvando…';
+    try{let pasta=c.pasta||null;
+      if(locais){if(novo||!pasta){b.textContent='Criando a pasta…';const pai=await pastaMesCarros(v.pasta.id,d.mes);b.textContent='Enviando…';const p=await dSubir(locais,pai,{nomePasta:nomePastaCarro(d)});pasta={id:p.id,nome:p.name||nomePastaCarro(d)}}
+        else{b.textContent='Enviando…';await dSubir(locais,pasta.id)}}
+      if(pastaDrive)pasta={id:pastaDrive.id,nome:pastaDrive.name||''};
+      if(locais||pastaDrive){b.textContent='Liberando o link…';try{await dLinkPublico(pasta.id)}catch(_){}}
+      b.textContent='Lendo as fotos…';const arqs=arqsDoCarro((await coletarMidia(pasta.id)).arqs);
+      if(!arqs.length)throw new Error('A pasta do carro está sem fotos ou vídeos.');
+      Object.assign(d,{pasta,arquivos:arqs,capa:arqs.some(a=>a.id===c.capa)?c.capa:capaDe(arqs),atualizadoEm:new Date().toISOString()});
+      if(novo){d.criadoEm=new Date().toISOString();d.criadoPor=meuMembro()||'';const r=await write(()=>carrosRef(v.id).add(d));CAR.lista.push(Object.assign({id:r.id},d))}
+      else{await write(()=>carrosRef(v.id).doc(c.id).update(d));Object.assign(CAR.lista.find(x=>x.id===c.id)||{},d)}
+      await resumoVitrine(v.id,CAR.lista);toast(novo?nomeCarro(d)+' na vitrine':'Carro atualizado');gerenciarCarros(v)}
+    catch(er){err(er.message||'Não deu certo');b.disabled=false;b.textContent='Salvar'}};
+  q('#carMod').focus()}
+
+/* importar pastas que já estão no Drive (cada pasta com fotos vira um carro) */
+async function varrerCarros(raizId,onp){const out=[];let n=0;
+  const anda=async(id,cam,prof)=>{const fs=await dListar(id);onp&&onp(++n);
+    const midia=fs.filter(f=>/^(video|image)\//.test(f.mimeType||''));
+    if(cam.length&&midia.length)out.push({id,nome:cam[cam.length-1],cam:cam.slice(),arqs:midia});
+    if(prof<5)for(const f of fs.filter(f=>f.mimeType===FOLDER))await anda(f.id,cam.concat([f.name]),prof+1)};
+  await anda(raizId,[],0);return out}
+async function importarCarros(){const v=CAR.v;
+  sheet.innerHTML='<form id="fImp" novalidate style="max-width:900px"><h2>Importar carros do Drive</h2><p class="muted" style="margin:0;font-size:14px" id="impTx">Lendo a pasta "'+esc(v.pasta.nome)+'" e as subpastas…</p><div id="impL"><div class="spinner"></div></div>'+
+    '<div class="err" id="impErr"></div><div class="formacts"><button type="button" class="btn ghost" data-car="voltar">Voltar</button><button class="btn primary" type="submit" disabled>Importar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  let cands=[];
+  try{await token();const ja=new Set(CAR.lista.map(c=>c.pasta&&c.pasta.id));
+    cands=(await varrerCarros(v.pasta.id,n=>{const t=q('#impTx');if(t)t.textContent='Lendo pastas… ('+n+')'})).filter(x=>!ja.has(x.id));
+    cands.forEach(x=>{const base=[...x.cam].reverse().find(p=>!ehPastaGenerica(p))||'';const p=lerNomeCarro(base);x.p=p;x.gen=!base;x.mes=mesDoCaminho(x.cam,x.arqs)});
+    cands.sort((a,b)=>(b.mes).localeCompare(a.mes)||a.cam.join('/').localeCompare(b.cam.join('/'),'pt',{numeric:true}))}
+  catch(er){q('#impL').innerHTML='<p class="err">'+esc(er.message)+'</p>';return}
+  if(!q('#impL'))return;
+  if(!cands.length){q('#impTx').textContent='';q('#impL').innerHTML=emptyMsg('Nada novo para importar','Todas as pastas com fotos já estão na vitrine.');return}
+  q('#impTx').innerHTML='Achei <b style="color:var(--ink)">'+cands.length+' pasta'+(cands.length===1?'':'s')+'</b> com fotos ou vídeos. Confira o modelo e o ano de cada carro e desmarque o que não é carro (feed, stories…).';
+  q('#impL').innerHTML='<div class="list imp">'+cands.map((x,i)=>{const nv=x.arqs.filter(f=>/^video/.test(f.mimeType)).length,nf=x.arqs.length-nv,img=x.arqs.find(f=>/^image/.test(f.mimeType));
+    return '<div class="row"><label class="impck"><input type="checkbox" data-i="'+i+'" '+(x.gen?'':'checked')+'><span class="carth"'+(img?' style="background-image:url(\''+thumbPub(img.id,240)+'\')"':'')+'></span></label>'+
+      '<div style="min-width:0"><div class="s" style="margin:0 0 6px"><span>'+esc(x.cam.join(' › '))+'</span><span>'+[nf?nf+' fotos':'',nv?nv+' vídeos':''].filter(Boolean).join(' · ')+'</span>'+(x.gen?'<span class="chip soon">sem nome de carro</span>':'')+'</div>'+
+      '<div class="impf"><input data-f="modelo" data-i="'+i+'" value="'+esc(x.p.modelo)+'" placeholder="Modelo"><input data-f="marca" data-i="'+i+'" value="'+esc(x.p.marca)+'" placeholder="Marca" list="carMarcas"><input data-f="ano" data-i="'+i+'" value="'+esc(x.p.ano)+'" placeholder="Ano"><input data-f="cor" data-i="'+i+'" value="'+esc(x.p.cor)+'" placeholder="Cor"><input data-f="mes" data-i="'+i+'" type="month" value="'+esc(x.mes)+'"></div></div></div>'}).join('')+'</div>'+
+    '<datalist id="carMarcas">'+[...new Set(Object.keys(CAR_MARCAS).map(m=>m.replace('_',' ')))].sort().map(m=>'<option value="'+esc(m)+'">').join('')+'</datalist>';
+  const b=q('#fImp button[type=submit]');const conta=()=>{const n=sheet.querySelectorAll('.imp input[type=checkbox]:checked').length;b.disabled=!n;b.textContent=n?'Importar '+n+' carro'+(n===1?'':'s'):'Importar'};conta();
+  q('#impL').addEventListener('change',e=>{if(e.target.type==='checkbox')conta();if(e.target.dataset.f==='modelo'){const i=+e.target.dataset.i,mk=sheet.querySelector('[data-f="marca"][data-i="'+i+'"]');if(mk&&!mk.value.trim())mk.value=marcaDoModelo(e.target.value)}});
+  q('#fImp').onsubmit=async e=>{e.preventDefault();const sel=[...sheet.querySelectorAll('.imp input[type=checkbox]:checked')].map(x=>+x.dataset.i);
+    const val=(i,f)=>(sheet.querySelector('[data-f="'+f+'"][data-i="'+i+'"]')||{}).value||'';
+    const semModelo=sel.filter(i=>!val(i,'modelo').trim());if(semModelo.length){q('#impErr').textContent='Escreva o modelo dos carros marcados ('+semModelo.length+' sem modelo) ou desmarque.';return}
+    b.disabled=true;let n=0;
+    try{for(const i of sel){const x=cands[i];b.textContent='Importando '+(++n)+'/'+sel.length+'…';
+        try{await dLinkPublico(x.id)}catch(_){}
+        const arqs=arqsDoCarro(x.arqs.map(f=>Object.assign({},f)));
+        const d={modelo:val(i,'modelo').trim().slice(0,60),marca:(val(i,'marca').trim()||marcaDoModelo(val(i,'modelo'))).slice(0,30),ano:val(i,'ano').trim().slice(0,12),cor:val(i,'cor').trim().slice(0,20),placa:x.p.placa||'',mes:val(i,'mes')||x.mes,
+          pasta:{id:x.id,nome:x.nome},arquivos:arqs,capa:capaDe(arqs),criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',importado:true};
+        const r=await write(()=>carrosRef(v.id).add(d));CAR.lista.push(Object.assign({id:r.id},d))}
+      await resumoVitrine(v.id,CAR.lista);toast(sel.length+' carro'+(sel.length===1?'':'s')+' na vitrine');gerenciarCarros(v)}
+    catch(er){q('#impErr').textContent=er.message||'Parou no meio. Os que já foram continuam na vitrine.';b.disabled=false;b.textContent='Tentar de novo'}}}
+
+async function carroAcao(b){const k=b.dataset.car,v=CAR.v;if(!v)return;const c=CAR.lista.find(x=>x.id===b.dataset.id);
+  if(k==='voltar'){gerenciarCarros(v);return}
+  if(k==='novo'){try{await token()}catch(er){toast(er.message);return}formCarro();return}
+  if(k==='importar'){importarCarros();return}
+  if(k==='link'){dCopiar(linkEnvio(v));return}
+  if(!c)return;
+  if(k==='editar'){formCarro(c);return}
+  if(k==='copiar'){dCopiar(linkCarro(v,c));return}
+  if(k==='atualizar'){b.disabled=true;b.textContent='Lendo…';
+    try{const arqs=arqsDoCarro((await coletarMidia(c.pasta.id)).arqs);try{await dLinkPublico(c.pasta.id)}catch(_){}
+      const up={arquivos:arqs,capa:arqs.some(a=>a.id===c.capa)?c.capa:capaDe(arqs),atualizadoEm:new Date().toISOString()};await write(()=>carrosRef(v.id).doc(c.id).update(up));Object.assign(c,up);await resumoVitrine(v.id,CAR.lista);toast(arqs.length+' arquivos em '+nomeCarro(c));pintaCarros()}
+    catch(er){toast(er.message||'Não deu certo');b.disabled=false;b.textContent='Atualizar fotos'}return}
+  if(k==='remover'){if(!armed['car'+c.id]){armed['car'+c.id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['car'+c.id]){b.textContent=armed['car'+c.id];delete armed['car'+c.id]}},3000);return}delete armed['car'+c.id];
+    try{await write(()=>carrosRef(v.id).doc(c.id).delete())}catch(_){return}CAR.lista=CAR.lista.filter(x=>x.id!==c.id);await resumoVitrine(v.id,CAR.lista);toast(nomeCarro(c)+' saiu da vitrine (as fotos continuam no Drive)');pintaCarros()}}
 
 /* ---------- Álbuns (seleção de fotos pelo cliente) ---------- */
 const ALB_ST={aberto:['eq','Aguardando cliente'],enviado:['rec','Seleção recebida'],baixado:['ok','Baixado · em montagem'],producao:['ok','Enviado p/ produção']};
@@ -2437,7 +2647,7 @@ function renderClientes(){
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
     return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="mid '+(p.tipo==='reels'||p.tipo==='stories'?'video':'foto')+'">'+ico(p.tipo==='reels'||p.tipo==='stories'?'i-video':'i-cam')+(TPOST[p.tipo]||'Post')+'</span></div>'+
       '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
-      (ps_&&p.pubStatus!=='publicado'?'<span class="chip '+ps_[0]+'" style="align-self:flex-start;white-space:normal">'+ps_[1]+(p.pubStatus==='aguardando'?' · '+fmtQuando(p.quando):'')+'</span><span>'+esc(ondePub(p))+' · '+(p.arquivos||[]).length+' arquivo'+((p.arquivos||[]).length===1?'':'s')+'</span>'+(p.pubStatus==='erro'?'<span style="color:var(--neg)">'+esc(p.pubErro||'')+'</span>':'')+(filaInfo(p)?(()=>{const f=filaInfo(p),pc=Math.round(f.feitos/f.n*100);return '<span class="serie"><span><b>'+f.n+' stories</b> · '+f.feitos+' de '+f.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span><span>Último: '+fmtQuando(f.fim)+'</span>'})():''):'')+
+      (ps_&&p.pubStatus!=='publicado'?'<span class="chip '+ps_[0]+'" style="align-self:flex-start;white-space:normal">'+(filaInfo(p)&&p.pubStatus==='aguardando'?'Próximo story: '+fmtQuando(p.quando):ps_[1]+(p.pubStatus==='aguardando'?' · '+fmtQuando(p.quando):''))+'</span><span>'+esc(ondePub(p))+' · '+(p.arquivos||[]).length+' arquivo'+((p.arquivos||[]).length===1?'':'s')+'</span>'+(p.pubStatus==='erro'?'<span style="color:var(--neg)">'+esc(p.pubErro||'')+'</span>':'')+(filaInfo(p)?(()=>{const f=filaInfo(p),pc=Math.round(f.feitos/f.n*100);return '<span class="serie"><span><b>'+f.n+' stories</b> · '+f.feitos+' de '+f.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span><span>Último: '+fmtQuando(f.fim)+'</span>'})():''):'')+
       (p.status==='programado'&&!p.pubStatus&&(p.qtd||1)>1?(()=>{const si=serieInfo(p),pc=Math.round(si.sairam/si.n*100);return '<span class="serie"><span><b>'+si.n+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+'</b> · '+si.sairam+' de '+si.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span>'+
         (si.prox?'<span>Próximo: '+fmtQuando(si.prox)+'</span><span>Último: '+fmtQuando(si.fim)+'</span>':'<span>'+(atras?'<b style="color:var(--warn)">O último era '+fmtQuando(si.fim)+' · confira se todos saíram</b>':'Último saiu '+fmtQuando(si.fim))+'</span>')})():'')+
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
