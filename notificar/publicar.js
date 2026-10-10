@@ -203,6 +203,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
     const pag = pags.find((x) => x.id === lj.fbPage) || pags.find((x) => lj.igId && x.ig === lj.igId) || pags.find((x) => x.igUser && lj.instagram && x.igUser.toLowerCase() === String(lj.instagram).replace(/^@/, '').toLowerCase());
     const feito = Object.assign({}, p.pubFeito || {});
     const erros = [];
+    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); continue; }
     try {
       if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
       const arqs = [];
@@ -230,6 +231,47 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       console.error(`Postagens: erro ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
       for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}${onde ? ' (saiu só no ' + onde + ')' : ''}. ${erros[0]}`.slice(0, 230));
     }
+  }
+}
+
+// Série de stories: solta só os que já chegaram na hora, um de cada vez
+async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
+  const fila = p.fila.map((x) => Object.assign({}, x));
+  const falta = (x) => (p.pubIG && !x.ig) || (p.pubFB && !x.fb);
+  const erros = [];
+  let soltos = 0;
+  try {
+    if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
+    for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).slice(0, 5)) {
+      const a = (p.arquivos || [])[it.i];
+      if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; continue; }
+      const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
+      const n = it.i + 1;
+      if (p.pubIG && !it.ig) {
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, 'stories', [x], ''); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        catch (e) { erros.push(`Story ${n} no Instagram: ${e.message}`); }
+      }
+      if (p.pubFB && !it.fb) {
+        try { const r = await fbPublicar(pag, 'stories', [x], ''); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
+        catch (e) { erros.push(`Story ${n} no Facebook: ${e.message}`); }
+      }
+      if (erros.length) break;
+      soltos++;
+    }
+  } catch (e) { erros.push(e.message); }
+  const pend = fila.filter(falta);
+  const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
+  if (erros.length) {
+    await ref.doc(p.id).update({ pubStatus: 'erro', fila, pubFeito: feito, pubErro: erros.join(' · ').slice(0, 500) });
+    console.error(`Postagens: erro série ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
+    for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}. ${erros[0]}`.slice(0, 230));
+  } else if (pend.length) {
+    await ref.doc(p.id).update({ pubStatus: 'aguardando', fila, pubFeito: feito, pubErro: '', quando: pend[0].quando });
+    console.log(`Postagens: série ${lj.nome} · ${p.titulo}: +${soltos}, faltam ${pend.length}`);
+  } else {
+    await ref.doc(p.id).update({ pubStatus: 'publicado', fila, pubFeito: feito, pubErro: '', status: 'publicado', publicadoEm: agoraIso, quando: fila[fila.length - 1].quando, link: feito.ig || feito.fb || '', verificado: true });
+    console.log(`Postagens: série completa ${lj.nome} · ${p.titulo}`);
+    for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `Os ${fila.length} stories de ${p.titulo} saíram.`);
   }
 }
 
