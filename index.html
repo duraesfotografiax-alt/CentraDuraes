@@ -2643,7 +2643,7 @@ function renderClientes(){
     else if(p.pubStatus==='publicando')a='';
     else if(p.status==='pronto')a='<button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>';
     else if(p.status==='publicado'&&p.pubFeito&&(p.pubFeito.ig||p.pubFeito.fb))a=(p.pubFeito.ig?'<a class="btn sm" href="'+esc(p.pubFeito.ig)+'" target="_blank" rel="noopener">Ver no Instagram</a>':'')+(p.pubFeito.fb?'<a class="btn sm" href="'+esc(p.pubFeito.fb)+'" target="_blank" rel="noopener">Ver no Facebook</a>':'');
-    else if(p.status==='programado')a='<button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">'+((p.qtd||1)>1?'Todos saíram ✓':'Saiu ✓')+'</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
+    else if(p.status==='programado')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'" title="A Central publica sozinha no Instagram/Facebook">Agendar na Central</button><button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">'+((p.qtd||1)>1?'Todos saíram ✓':'Saiu ✓')+'</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
     return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="mid '+(p.tipo==='reels'||p.tipo==='stories'?'video':'foto')+'">'+ico(p.tipo==='reels'||p.tipo==='stories'?'i-video':'i-cam')+(TPOST[p.tipo]||'Post')+'</span></div>'+
       '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
@@ -2725,20 +2725,26 @@ function formPost(pst,lojaId){const novo=!pst;pst=pst||{titulo:'',tipo:'reels',d
   '<div class="fld"><label for="poTipo">Tipo</label><select id="poTipo">'+opts(Object.entries(TPOST),pst.tipo)+'</select></div></div>'+
   '<div class="fld"><label for="poTit">Conteúdo</label><input id="poTit" value="'+esc(pst.titulo)+'" placeholder="Ex.: Jeep Renegade 2017"></div>'+
   '<div class="fld"><label for="poDrive">Link no Drive</label><input id="poDrive" type="url" value="'+esc(pst.drive)+'" placeholder="https://drive.google.com/..."></div>'+
-  '<div class="two"><div class="fld"><label for="poSt">Situação</label><select id="poSt">'+opts([['pronto','Para programar'],['programado','Programado'],['publicado','No ar']],pst.status)+'</select></div>'+
+  '<div class="two"><div class="fld"><label for="poSt">Situação</label><select id="poSt">'+opts([['pronto','Para programar'],['central','Agendar na Central (posta sozinho)'],['programado','Programado no Meta'],['publicado','No ar']],pst.pubStatus==='aguardando'||pst.pubStatus==='erro'?'central':pst.status)+'</select><span class="hint" id="poStH"></span></div>'+
   '<div class="fld"><label for="poQ">Programado para</label><input id="poQ" type="datetime-local" value="'+esc(pst.quando)+'"></div></div>'+
   '<div class="fld"><label for="poLink">Link do post (quando estiver no ar)</label><input id="poLink" type="url" value="'+esc(pst.link)+'" placeholder="https://instagram.com/p/..."></div>'+
   '<div class="fld"><label for="poObs">Observação</label><input id="poObs" value="'+esc(pst.obs)+'"></div>'+
   '<div class="err" id="poErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-pact="apagar" data-id="'+pst.id+'">Apagar</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   ligarBotoesDrive(sheet,'#poDrive',{tipo:'elite',get loja(){return q('#poLoja').value},get titulo(){return q('#poTit').value.trim()||'Conteúdo'}});
+  const stH=()=>{const v=q('#poSt').value;q('#poStH').textContent=v==='central'?'Ao salvar, você escolhe Instagram e/ou Facebook, a legenda e os arquivos. A Central publica sozinha na hora marcada.':v==='programado'?'Só marca: vocês já programaram pelo Meta (a Central não publica).':'';
+    q('#fPo button[type=submit]').textContent=v==='central'?'Continuar →':'Salvar'};q('#poSt').onchange=stH;stH();
   q('#fPo').onsubmit=async e=>{e.preventDefault();const titulo=q('#poTit').value.trim();if(!titulo){q('#poErr').textContent='Escreva o nome do conteúdo.';return}
-    const st=q('#poSt').value,qd=q('#poQ').value;if(st==='programado'&&!qd){q('#poErr').textContent='Informe a data e a hora em que vai sair.';return}
+    const stSel=q('#poSt').value,central=stSel==='central',st=central?(pst.pubStatus==='aguardando'||pst.pubStatus==='erro'?pst.status:'pronto'):stSel,qd=q('#poQ').value;if(st==='programado'&&!central&&!qd){q('#poErr').textContent='Informe a data e a hora em que vai sair.';return}
+    if(central&&!q('#poDrive').value.trim()){q('#poErr').textContent='Para a Central publicar, coloque o link do Drive (ou suba os arquivos).';return}
+    if(central&&!S.lojas.some(l=>l.id===q('#poLoja').value&&pagDaLoja(l))){q('#poErr').textContent='Esta loja ainda não está ligada a uma Página/Instagram. Use "Editar cliente" para ligar.';return}
     const doc=Object.assign({},pst,{loja:q('#poLoja').value,tipo:q('#poTipo').value,titulo:titulo.slice(0,100),drive:q('#poDrive').value.trim(),status:st,quando:qd,link:q('#poLink').value.trim(),obs:q('#poObs').value.slice(0,300)});
     delete doc.id;if(novo){doc.editadoEm=agoraLocal();doc.editadoPor=meuMembro()||''}
     if(st==='programado'&&pst.status!=='programado'){doc.programadoPor=meuMembro()||'';doc.programadoEm=agoraLocal()}
     if(st==='publicado'&&!doc.publicadoEm)doc.publicadoEm=qd||agoraLocal();
-    try{await write(()=>novo?store.add('posts',doc):store.set('posts',pst.id,doc))}catch(_){return}
+    if(!central&&pst.pubStatus&&pst.pubStatus!=='publicado'){doc.pubStatus='';doc.pubErro=''}
+    let nid=pst.id;try{const r=await write(()=>novo?store.add('posts',doc):store.set('posts',pst.id,doc));if(novo)nid=r}catch(_){return}
+    if(central&&nid){formAuto(Object.assign({id:nid},doc));return}
     closeSheet();toast('Salvo')};
   q('#poTit').focus()}
 function agendaDe(p){const a=Array.isArray(p.agenda)?p.agenda.filter(Boolean).slice().sort():[];return a.length?a:(p.quando?[p.quando]:[])}
