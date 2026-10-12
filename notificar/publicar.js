@@ -243,7 +243,7 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
   let soltos = 0;
   try {
     if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
-    for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).slice(0, 5)) {
+    for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando)).slice(0, 5)) {
       const a = (p.arquivos || [])[it.i];
       if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; continue; }
       const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
@@ -269,7 +269,7 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
     console.error(`Postagens: erro série ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
     for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}. ${erros[0]}`.slice(0, 230));
   } else if (pend.length) {
-    await ref.doc(p.id).update({ pubStatus: 'aguardando', fila, pubFeito: feito, pubErro: '', quando: pend[0].quando });
+    await ref.doc(p.id).update({ pubStatus: 'aguardando', fila, pubFeito: feito, pubErro: '', quando: pend.map((x) => x.quando).sort()[0] });
     console.log(`Postagens: série ${lj.nome} · ${p.titulo}: +${soltos}, faltam ${pend.length}`);
   } else {
     await ref.doc(p.id).update({ pubStatus: 'publicado', fila, pubFeito: feito, pubErro: '', status: 'publicado', publicadoEm: agoraIso, quando: fila[fila.length - 1].quando, link: feito.ig || feito.fb || '', verificado: true });

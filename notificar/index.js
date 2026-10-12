@@ -146,6 +146,19 @@ async function enviar(u, title, body) {
     await marcar(chave);
   }
 
+  // 0f) Material bruto novo: avisa a equipe (menos quem subiu)
+  const desde = new Date(Date.now() - 3 * 864e5).toISOString();
+  const mats = (await db.collection('materiais').where('criadoEm', '>=', desde).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  for (const m of mats.filter((x) => (x.arquivos || []).length)) {
+    const chave = `material_${m.id}`;
+    if (await jaFoi(chave)) continue;
+    const nv = m.arquivos.filter((a) => /^video/.test(a.mime || '')).length, nf = m.arquivos.length - nv;
+    const quem = [nv ? `${nv} vídeo(s)` : '', nf ? `${nf} foto(s)` : ''].filter(Boolean).join(' e ');
+    const dia = String(m.data || '').split('-').reverse().slice(0, 2).join('/');
+    for (const u of usuarios.filter((u) => membroDe(u) !== m.criadoPor)) await enviar(u, `Material novo: ${m.lojaNome || 'loja'} · ${dia}`, `${quem} para editar${m.criadoPor ? ', subido por ' + m.criadoPor : ''}. Abra em Envios → Materiais brutos.`);
+    await marcar(chave);
+  }
+
   // 1) Resumo do dia, a partir das 8h
   if (min >= 8 * 60 && min < 22 * 60) {
     for (const u of usuarios) {

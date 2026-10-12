@@ -390,7 +390,7 @@ details.panel[open] summary{margin-bottom:12px}
 .envth{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;height:96px;background:var(--panel2)}
 .envth span{background:var(--hover) center/cover no-repeat}
 .envth span:only-child{grid-column:1/-1}
-.auLegs{display:flex;flex-direction:column;gap:8px}.auLg{display:flex;flex-direction:column;gap:4px}.auLg b{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.auLegs{display:flex;flex-direction:column;gap:8px}.auLgH{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.auLgH input{width:auto;min-width:0;padding:6px 10px;font-size:14px}.auLg{display:flex;flex-direction:column;gap:4px}.auLg b{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
 .carth{width:64px;height:48px;border-radius:8px;background:var(--panel2) center/cover no-repeat;flex:none;display:block}
 .impck{display:flex;align-items:center;gap:8px;cursor:pointer}.impck input{width:18px;height:18px}
 .impf{display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr 1.4fr;gap:6px}.impf input{min-width:0;padding:8px 10px;font-size:14px}
@@ -717,6 +717,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <div class="sp"></div>
           <div class="seg" id="fEnv"></div>
           <input class="search" id="envBusca" placeholder="Buscar…" aria-label="Buscar envio" style="width:200px">
+          <button class="btn" data-mat="abrir"><svg class="i"><use href="#i-video"/></svg>Materiais brutos</button>
           <button class="btn" data-env="vitrine"><svg class="i"><use href="#i-store"/></svg>Vitrine de carros</button>
           <button class="btn primary" data-env="novo"><svg class="i"><use href="#i-plus"/></svg>Novo envio</button>
         </div>
@@ -788,6 +789,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
   <symbol id="i-drive" viewBox="0 0 24 24"><path d="M8.5 3.5h7l6 10.5-3.5 6h-12L2.5 14z"/><path d="M8.5 3.5 15 14.5h6.5M2.5 14 9 3.5M6 20l6.2-10.6"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></symbol>
   <symbol id="i-album" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
@@ -932,6 +934,7 @@ function renderShell(){
 }
 function segs(id,key,opts){document.getElementById(id).innerHTML=opts.map(([v,t])=>'<button type="button" data-seg="'+key+'" data-v="'+v+'" aria-pressed="'+(S[key]===v)+'">'+t+'</button>').join('')}
 function render(){
+  if(document.getElementById('matL'))pintaMateriais();
   if(!tabs().some(n=>n[0]===S.tab)){setTab('producao');return}
   document.querySelectorAll('[data-mlabel]').forEach(e=>e.textContent=mesLabel(S.mes));
   const eo=[['todas','Todas'],['elite','Elite'],['duraes','Durães']];
@@ -1292,6 +1295,7 @@ document.addEventListener('click',async e=>{
   const ctb=e.target.closest('[data-ct]');if(ctb){contratoAcao(ctb);return}
   const evb=e.target.closest('[data-env]');if(evb){envioAcao(evb);return}
   const crb=e.target.closest('[data-car]');if(crb){carroAcao(crb);return}
+  const mtb=e.target.closest('[data-mat]');if(mtb){materialAcao(mtb);return}
   const rcb=e.target.closest('[data-rc]');if(rcb){recorrenteAcao(rcb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
@@ -2425,6 +2429,110 @@ async function carroAcao(b){const k=b.dataset.car,v=CAR.v;if(!v)return;const c=C
   if(k==='remover'){if(!armed['car'+c.id]){armed['car'+c.id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['car'+c.id]){b.textContent=armed['car'+c.id];delete armed['car'+c.id]}},3000);return}delete armed['car'+c.id];
     try{await write(()=>carrosRef(v.id).doc(c.id).delete())}catch(_){return}CAR.lista=CAR.lista.filter(x=>x.id!==c.id);await resumoVitrine(v.id,CAR.lista);toast(nomeCarro(c)+' saiu da vitrine (as fotos continuam no Drive)');pintaCarros()}}
 
+/* ---------- Materiais brutos: sobe do iPhone pela Central, baixa no computador em qualidade original ---------- */
+let MAT={f:'todas'};
+function matNome(m){return m.loja?lojaNome(m.loja)||m.lojaNome||'Loja':m.lojaNome||'Outros'}
+function matPastaWeb(m){return m.pasta&&m.pasta.id?'https://drive.google.com/drive/folders/'+encodeURIComponent(m.pasta.id):''}
+function baixarDireto(id){return 'https://drive.usercontent.google.com/download?id='+encodeURIComponent(id)+'&export=download&confirm=t'}
+async function manterTelaLigada(){try{if(navigator.wakeLock)return await navigator.wakeLock.request('screen')}catch(_){}return null}
+function abrirMateriais(){
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:900px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Materiais brutos</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<p class="muted" style="margin:0;font-size:14px">O que foi gravado, separado por loja e dia. Sobe do celular aqui e baixa no computador para editar, sem perder qualidade.</p>'+
+    '<div class="drvbtns" style="align-items:center"><button type="button" class="btn primary" data-mat="subir">'+ico('i-plus')+'Subir material</button><div class="seg" id="matF"></div></div>'+
+    '<div id="matL"></div></form>';
+  sheet.hidden=false;pintaMateriais()}
+function pintaMateriais(){const L=sheet.querySelector('#matL');if(!L)return;
+  const ms=(S.materiais||[]).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')||(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  const nomes=[...new Set(ms.map(matNome))].sort((a,b)=>a.localeCompare(b,'pt'));if(MAT.f!=='todas'&&!nomes.includes(MAT.f))MAT.f='todas';
+  sheet.querySelector('#matF').innerHTML=['todas'].concat(nomes).map(n=>'<button type="button" data-mat="filtro" data-v="'+esc(n)+'" aria-pressed="'+(MAT.f===n)+'">'+(n==='todas'?'Todas':esc(n))+'</button>').join('');
+  const vis=ms.filter(m=>MAT.f==='todas'||matNome(m)===MAT.f);
+  if(!vis.length){L.innerHTML=emptyMsg('Nenhum material ainda','Depois de gravar, toque em "Subir material" no celular, escolha a loja e os vídeos. Aparece aqui para o Lucas baixar.');return}
+  L.innerHTML='<div class="envs" style="margin-top:12px">'+vis.map(m=>{const as=m.arquivos||[],nv=as.filter(a=>/^video/.test(a.mime)).length,nf=as.length-nv,tot=as.reduce((s,a)=>s+(Number(a.size)||0),0);
+    const th=as.filter(a=>a.id).slice(0,4).map(a=>'<span style="background-image:url(\''+thumbPub(a.id,300)+'\')"></span>').join('');
+    const bx=(m.baixadoPor||[]);
+    return '<div class="env"><div class="envth">'+(th||'<span></span>')+'</div><div class="envbd"><div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><div class="t">'+esc(matNome(m))+' · '+esc(dCurta(m.data))+'</div>'+chipEmp(m.empresa)+'</div>'+
+      '<div class="meta"><span>'+[nv?nv+(nv===1?' vídeo':' vídeos'):'',nf?nf+(nf===1?' foto':' fotos'):''].filter(Boolean).join(' e ')+(tot?' · '+tamTxt(tot):'')+'</span>'+(m.obs?'<span>'+esc(m.obs)+'</span>':'')+'<span>Subido por '+esc(m.criadoPor||'—')+' · '+quandoIso(m.atualizadoEm||m.criadoEm)+'</span>'+(bx.length?'<span style="color:var(--pos)">Baixado por '+esc(bx.join(', '))+'</span>':'')+'</div>'+
+      '<div class="acts">'+(window.showSaveFilePicker?'<button type="button" class="btn sm primary" data-mat="zip" data-id="'+m.id+'">'+ico('i-down')+'Baixar pasta (.zip)</button><button type="button" class="btn sm" data-mat="baixar" data-id="'+m.id+'">Um por um</button>':'<button type="button" class="btn sm primary" data-mat="baixar" data-id="'+m.id+'">'+ico('i-down')+'Baixar tudo</button>')+(matPastaWeb(m)?'<a class="btn sm" href="'+esc(matPastaWeb(m))+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+
+      '<button type="button" class="btn sm ghost" data-mat="ver" data-id="'+m.id+'">Arquivos</button><button type="button" class="btn sm ghost" data-mat="mais" data-id="'+m.id+'">Subir mais</button><button type="button" class="btn sm ghost danger" data-mat="apagar" data-id="'+m.id+'">Apagar</button></div></div></div>'}).join('')+'</div>'+
+    '<p class="hint" style="margin-top:12px">Baixar pasta (.zip) junta tudo num arquivo só, sem dividir em partes (Chrome ou Edge no computador: escolha onde salvar e deixe a Central aberta até terminar). Um por um baixa, em qualidade original, para a pasta Downloads (o navegador pode pedir para permitir vários arquivos). "Abrir no Drive" → Fazer download baixa tudo em .zip. Apagar manda a pasta para a lixeira do Drive e libera espaço.</p>'}
+function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
+  sheet.innerHTML='<form id="fMat" novalidate style="max-width:560px"><h2>'+(m?'Subir mais · '+esc(matNome(m))+' · '+esc(dCurta(m.data)):'Subir material bruto')+'</h2>'+
+    (m?'':'<div class="fld"><label for="matLoja">Loja / cliente</label><select id="matLoja">'+opts(L.map(l=>[l.id,l.nome]).concat([['__duraes','Durães Fotografia (evento)'],['__outro','Outro… (escrever)']]),L[0]?L[0].id:'__outro')+'</select></div>'+
+      '<div class="fld" id="matOutW" hidden><label for="matOut">Nome</label><input id="matOut" placeholder="Ex.: Casamento Ana & Pedro"></div>'+
+      '<div class="two"><div class="fld"><label for="matData">Dia da gravação</label><input id="matData" type="date" value="'+hoje()+'"></div><div class="fld"><label for="matObs">Observação (opcional)</label><input id="matObs" placeholder="Ex.: Jeep e Onix, takes externos"></div></div>')+
+    '<div class="fld"><span class="l">Vídeos e fotos</span><div class="drvbtns"><button type="button" class="btn primary" id="matPick">'+ico('i-file')+'Escolher arquivos</button></div><input type="file" id="matFiles" multiple accept="video/*,image/*" hidden>'+
+    '<div class="hint" id="matSel">No iPhone, para vir 100% original: na tela de escolher, toque em <b>Opções</b> e marque <b>Atual</b> (ou escolha pelo app Arquivos). Deixe a tela ligada até terminar.</div></div>'+
+    '<div class="err" id="matErr"></div><div class="formacts"><button type="button" class="btn ghost" data-mat="voltar">Voltar</button><button class="btn primary" type="submit">Subir</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x),err=t=>{q('#matErr').textContent=t};
+  if(!m)q('#matLoja').onchange=()=>{q('#matOutW').hidden=q('#matLoja').value!=='__outro'};
+  if(!m)q('#matOutW').hidden=q('#matLoja').value!=='__outro';
+  q('#matPick').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#matFiles').value='';q('#matFiles').click()};
+  q('#matFiles').onchange=e=>{arqs=[...e.target.files];const tot=arqs.reduce((s,f)=>s+f.size,0);q('#matSel').innerHTML='<b style="color:var(--ink)">'+arqs.length+' arquivo'+(arqs.length===1?'':'s')+'</b> · '+tamTxt(tot)+' · deixe a tela ligada até terminar'};
+  q('#fMat').onsubmit=async e=>{e.preventDefault();if(!arqs||!arqs.length)return err('Escolha os vídeos ou fotos.');
+    const b=q('#fMat button[type=submit]');b.disabled=true;b.textContent='Preparando…';const wl=await manterTelaLigada();
+    try{let doc=m,pasta=m&&m.pasta;
+      if(!m){const lv=q('#matLoja').value,data=q('#matData').value||hoje(),out=q('#matOut')?q('#matOut').value.trim():'';
+        if(lv==='__outro'&&!out){err('Escreva o nome.');b.disabled=false;b.textContent='Subir';return}
+        const loja=lv.startsWith('__')?'':lv,nome=loja?lojaNome(loja):lv==='__duraes'?(out||'Durães Fotografia'):out,emp=lv==='__duraes'?'duraes':'elite';
+        doc=(S.materiais||[]).find(x=>x.data===data&&(loja?x.loja===loja:(!x.loja&&x.lojaNome===nome)));
+        if(doc)pasta=doc.pasta;
+        else{const base=emp==='duraes'?await pastaDestino({tipo:'duraes'}):loja?await pastaDestino({tipo:'elite',loja,titulo:''}):(cfg.clientes&&cfg.clientes.id);
+          if(!base)throw new Error('O Adm ainda não escolheu as pastas do Drive (aba Drive).');
+          const br=(await dAcharPasta('Brutos',base))||(await dCriarPasta('Brutos',base));
+          const nomeP=data.split('-').reverse().join('-')+(loja?'':' · '+nome);
+          const p=(await dAcharPasta(nomeP,br.id))||(await dCriarPasta(nomeP,br.id));pasta={id:p.id,nome:p.name||nomeP};
+          try{await dLinkPublico(p.id)}catch(_){}
+          doc={loja,lojaNome:nome,empresa:emp,data,obs:q('#matObs').value.trim().slice(0,120),pasta,arquivos:[],baixadoPor:[],criadoEm:new Date().toISOString(),criadoPor:meuMembro()||(S.me&&S.me.nome)||''};
+          const id=await write(()=>store.add('materiais',doc));doc=Object.assign({id},doc)}}
+      b.textContent='Enviando…';await dSubir(arqs,pasta.id);
+      b.textContent='Organizando…';const fs=await dListar(pasta.id);
+      const lista=fs.filter(f=>/^(video|image)\//.test(f.mimeType||'')).map(f=>({id:f.id,nome:f.name,mime:f.mimeType||'',size:Number(f.size)||0})).sort((a,b2)=>a.nome.localeCompare(b2.nome,'pt',{numeric:true}));
+      await write(()=>store.update('materiais',doc.id,{arquivos:lista.slice(0,800),atualizadoEm:new Date().toISOString(),baixadoPor:[]}));
+      toast(arqs.length+' arquivo'+(arqs.length===1?'':'s')+' em '+matNome(doc)+' · '+dCurta(doc.data));abrirMateriais()}
+    catch(er){err(er.message||'O envio parou. Tente de novo.');b.disabled=false;b.textContent='Tentar de novo'}
+    finally{try{wl&&wl.release()}catch(_){}}}}
+/* baixa a pasta inteira num .zip só (sem dividir em partes), gravando direto no disco: Chrome/Edge no computador */
+async function baixarZip(as,nome,b,aoTerminar){
+  if(!window.showSaveFilePicker){toast('O zip único funciona no Chrome ou no Edge do computador. Use "Abrir no Drive" ou "Um por um".');return}
+  if(!as.length){toast('Sem arquivos');return}
+  let fh;try{fh=await showSaveFilePicker({suggestedName:String(nome).replace(/[\\/:*?"<>|]+/g,'-').slice(0,80)+'.zip',types:[{description:'Arquivo ZIP',accept:{'application/zip':['.zip']}}]})}catch(_){return}
+  const t0=b.innerHTML;b.disabled=true;b.textContent='Preparando…';let ws=null;
+  try{await token();const {makeZip}=await import('./vendor/client-zip.js');
+    const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0;const usados={};
+    const mb=x=>x>=1e9?(x/1e9).toFixed(1).replace('.',',')+' GB':Math.max(0,Math.round(x/1e6))+' MB';
+    const pinta=()=>{const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(Date.now()-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
+      b.textContent='Baixando '+i+'/'+as.length+' · '+mb(feito)+(total?' de '+mb(total)+' ('+pc+'%)':'')+(rest!=null&&feito>5e6?' · ~'+(rest<1?'1':rest)+' min':'')};
+    async function* arquivos(){for(const a of as){i++;pinta();
+      const r=await fetch(DAPI+'/files/'+encodeURIComponent(a.id)+'?alt=media&supportsAllDrives=true',{headers:{Authorization:'Bearer '+await token()}});
+      if(!r.ok||!r.body)throw new Error('O Drive não liberou '+a.nome+' ('+r.status+')');
+      let nm=a.nome||('arquivo'+i);if(usados[nm]){const k=nm.lastIndexOf('.');nm=(k>0?nm.slice(0,k):nm)+' ('+(++usados[nm])+')'+(k>0?nm.slice(k):'')}else usados[nm]=1;
+      const rd=r.body.getReader(),body=new ReadableStream({async pull(c){const {done,value}=await rd.read();if(done){c.close();return}feito+=value.length;pinta();c.enqueue(value)}});
+      yield {name:nm,input:body,size:Number(a.size)||undefined,lastModified:new Date()}}}
+    ws=await fh.createWritable();await makeZip(arquivos()).pipeTo(ws);ws=null;
+    b.innerHTML=t0;toast('Pronto: '+as.length+' arquivos em '+fh.name);aoTerminar&&aoTerminar()}
+  catch(er){try{ws&&await ws.abort()}catch(_){}b.innerHTML=t0;toast('O zip parou: '+(er.message||'erro')+'. Tente de novo.')}
+  finally{b.disabled=false}}
+async function baixarMaterial(m,b){const as=m.arquivos||[];if(!as.length){toast('Sem arquivos');return}
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&as.length>1){window.open(matPastaWeb(m),'_blank');return}
+  b.disabled=true;for(let k=0;k<as.length;k++){b.textContent='Baixando '+(k+1)+' de '+as.length+'…';const a=document.createElement('a');a.href=baixarDireto(as[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1300))}
+  b.disabled=false;b.textContent='Baixado ✓';const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}}
+function verMaterial(m){const as=m.arquivos||[];
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:760px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(matNome(m))+' · '+esc(dCurta(m.data))+'</h2><button type="button" class="btn sm ghost" data-mat="voltar">Voltar</button></div>'+
+    '<div class="list">'+as.map(a=>'<div class="row"><span class="carth" style="background-image:url(\''+thumbPub(a.id,240)+'\')"></span><div style="min-width:0"><div class="t">'+esc(a.nome)+'</div><div class="s"><span>'+(/^video/.test(a.mime)?'Vídeo':'Foto')+(a.size?' · '+tamTxt(a.size):'')+'</span></div></div><div class="acts"><a class="btn sm" href="'+esc(baixarDireto(a.id))+'" rel="noopener">'+ico('i-down')+'Baixar</a></div></div>').join('')+'</div></form>';
+  sheet.hidden=false}
+async function materialAcao(b){const k=b.dataset.mat,m=(S.materiais||[]).find(x=>x.id===b.dataset.id);
+  if(k==='abrir'||k==='voltar'){abrirMateriais();return}
+  if(k==='filtro'){MAT.f=b.dataset.v;pintaMateriais();return}
+  if(k==='subir'){try{await token()}catch(er){toast(er.message);return}formMaterial();return}
+  if(!m)return;
+  if(k==='mais'){try{await token()}catch(er){toast(er.message);return}formMaterial(m);return}
+  if(k==='ver'){verMaterial(m);return}
+  if(k==='baixar'){baixarMaterial(m,b);return}
+  if(k==='zip'){baixarZip(m.arquivos||[],matNome(m)+' '+String(m.data||'').split('-').reverse().join('-'),b,async()=>{const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}});return}
+  if(k==='apagar'){if(!armed['mat'+m.id]){armed['mat'+m.id]=b.textContent;b.textContent='Apagar mesmo? (vai para a lixeira)';setTimeout(()=>{if(armed['mat'+m.id]){b.textContent=armed['mat'+m.id];delete armed['mat'+m.id]}},3500);return}delete armed['mat'+m.id];
+    b.disabled=true;try{if(m.pasta&&m.pasta.id){await token();await gfetch(DAPI+'/files/'+m.pasta.id+'?supportsAllDrives=true',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({trashed:true})})}}catch(er){toast('Não consegui mandar para a lixeira do Drive: '+er.message);b.disabled=false;return}
+    try{await write(()=>store.del('materiais',m.id))}catch(_){b.disabled=false;return}toast('Material apagado (está na lixeira do Drive por 30 dias)');pintaMateriais()}}
+
 /* ---------- Álbuns (seleção de fotos pelo cliente) ---------- */
 const ALB_ST={aberto:['eq','Aguardando cliente'],enviado:['rec','Seleção recebida'],baixado:['ok','Baixado · em montagem'],producao:['ok','Enviado p/ produção']};
 function linkCliente_(a){return location.origin+location.pathname.replace(/[^/]*$/,'')+'album.html?a='+a.id}
@@ -2843,22 +2951,25 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
   q('#auJa').onchange=()=>{q('#auQ').disabled=q('#auJa').checked;serie()};
   const SER=()=>['stories','reels','feed'].includes(q('#auTipo').value),ehSerie=()=>SER()&&escolhidos.length>1,nomeS=()=>({stories:'stories',reels:'reels',feed:'posts'})[q('#auTipo').value]||'posts';
   const legs={};(pst.fila||[]).forEach(x=>{const a=(pst.arquivos||[])[x.i];if(a&&x.legenda)legs[a.id]=x.legenda});
-  const horarios=()=>{const ini=q('#auJa').checked?agoraLocal():q('#auQ').value,fim=q('#auFim').value;return ini&&fim&&fim>ini?distribuirDia(ini,fim,escolhidos.length):null};
+  let horasEd={};
+  const horarios=()=>{const ini=q('#auJa').checked?agoraLocal():q('#auQ').value,fim=q('#auFim').value;if(!(ini&&fim&&fim>ini))return null;return distribuirDia(ini,fim,escolhidos.length).map((t,i)=>horasEd[i]||t)};
   const serie=()=>{const s=ehSerie();q('#auSerieW').hidden=!s;q('#auTodos').hidden=!(SER()&&lista.length>1);if(!s)return;
     if(!q('#auFim').value&&q('#auQ').value){const d=new Date(q('#auQ').value);d.setDate(d.getDate()+escolhidos.length-1);if(escolhidos.length>1)q('#auFim').value=iso(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
     const hs=horarios(),tx=q('#auSerieTx');pintaLegs(hs);
     if(!hs){tx.textContent='Escolha a data e hora do primeiro (acima) e a do último. A Central espalha os '+escolhidos.length+' '+nomeS()+' entre elas.';return}
     const dias=new Set(hs.map(x=>x.slice(0,10))).size,pd=Math.round(hs.length/dias*10)/10,cada=dias<2?'todos no mesmo dia':'cerca de '+String(pd).replace('.',',')+' por dia';
     tx.textContent=escolhidos.length+' '+nomeS()+' entre 8h e 22h, '+cada+': '+hs.slice(0,4).map(fmtQuando).join(' · ')+(hs.length>4?' … último '+fmtQuando(hs[hs.length-1]):'')};
-  const pintaLegs=hs=>{const box=q('#auLegs');const t=q('#auTipo').value;if(t==='stories'||!ehSerie()){box.innerHTML='';return}
+  const pintaLegs=hs=>{const box=q('#auLegs');const t=q('#auTipo').value;if(!ehSerie()){box.innerHTML='';return}
     box.querySelectorAll('textarea').forEach(x=>{legs[x.dataset.lg]=x.value});
-    box.innerHTML='<span class="l" style="margin-top:8px">Legenda de cada '+(t==='reels'?'vídeo':'post')+' <small class="muted" style="text-transform:none;font-weight:600">(em branco = usa a legenda de cima)</small></span>'+escolhidos.map((id,i)=>{const f=lista.find(x=>x.id===id)||{name:''};return '<div class="auLg"><b>'+(i+1)+'. '+esc(f.name)+(hs?' · '+fmtQuando(hs[i]):'')+'</b><textarea rows="2" data-lg="'+esc(id)+'" placeholder="Usa a legenda de cima">'+esc(legs[id]||'')+'</textarea></div>'}).join('')};
-  q('#auQ').oninput=serie;q('#auFim').oninput=serie;
+    box.innerHTML='<span class="l" style="margin-top:8px">'+(t==='stories'?'Horário de cada um':'Horário e legenda de cada um')+' <small class="muted" style="text-transform:none;font-weight:600">(dá para mudar o horário de qualquer um'+(t==='stories'?')':'; legenda em branco = usa a de cima)')+'</small></span>'+
+      escolhidos.map((id,i)=>{const f=lista.find(x=>x.id===id)||{name:''};return '<div class="auLg"><div class="auLgH"><b>'+(i+1)+'. '+esc(f.name)+'</b><input type="datetime-local" data-hq="'+i+'" value="'+esc(hs?hs[i]:'')+'"'+(hs?'':' disabled')+'></div>'+(t==='stories'?'':'<textarea rows="2" data-lg="'+esc(id)+'" placeholder="Usa a legenda de cima">'+esc(legs[id]||'')+'</textarea>')+'</div>'}).join('')};
+  q('#auLegs').addEventListener('change',e=>{const el=e.target.closest('[data-hq]');if(el&&el.value){horasEd[+el.dataset.hq]=el.value;el.style.borderColor='var(--gold)'}});
+  q('#auQ').oninput=()=>{horasEd={};serie()};q('#auFim').oninput=()=>{horasEd={};serie()};
   q('#auTodos').onclick=()=>{const todos=lista.map(f=>f.id);const ok=f=>q('#auTipo').value==='reels'?/^video/.test(f.mimeType):q('#auTipo').value==='feed'?/^image/.test(f.mimeType):true;const alvo=lista.filter(ok).map(f=>f.id);escolhidos=alvo.every(id=>escolhidos.includes(id))?[]:escolhidos.concat(alvo.filter(id=>!escolhidos.includes(id)));pinta()};
   const pinta=()=>{const box=q('#auArqs');if(!lista.length)return;
     box.innerHTML='<div class="aupick">'+lista.map(f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'}).join('')+'</div>';serie()};
   q('#auArqs').onclick=e=>{const b=e.target.closest('[data-auf]');if(!b)return;const id=b.dataset.auf,i=escolhidos.indexOf(id);
-    if(i>=0)escolhidos.splice(i,1);else{const t=q('#auTipo').value;if(t!=='carrossel'&&!SER())escolhidos=[];escolhidos.push(id)}pinta()};
+    horasEd={};if(i>=0)escolhidos.splice(i,1);else{const t=q('#auTipo').value;if(t!=='carrossel'&&!SER())escolhidos=[];escolhidos.push(id)}pinta()};
   (async()=>{const box=q('#auArqs');
     if(!pst.drive){box.innerHTML='<p class="hint" style="margin:0">Este conteúdo não tem link do Drive. Feche, toque em Editar e escolha a pasta ou o arquivo.</p>';return}
     try{await token();lista=await arquivosDoLink(pst.drive);if(!lista.length){box.innerHTML='<p class="hint" style="margin:0">Nenhuma foto ou vídeo nesse link do Drive.</p>';return}
@@ -3052,7 +3163,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
-  store.sub('albuns');store.sub('envios');
+  store.sub('albuns');store.sub('envios');store.sub('materiais');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
