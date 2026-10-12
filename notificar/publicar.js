@@ -234,7 +234,8 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   }
 }
 
-// Série de stories: solta só os que já chegaram na hora, um de cada vez
+const nomeItem = (t) => (t === 'reels' ? 'Reels' : t === 'feed' ? 'Post' : 'Story');
+// Série (stories, reels ou fotos): solta só os que já chegaram na hora, um de cada vez
 async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
   const fila = p.fila.map((x) => Object.assign({}, x));
   const falta = (x) => (p.pubIG && !x.ig) || (p.pubFB && !x.fb);
@@ -247,13 +248,15 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
       if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; continue; }
       const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
       const n = it.i + 1;
+      const tipo = p.tipo === 'reels' || p.tipo === 'feed' ? p.tipo : 'stories';
+      const leg = tipo === 'stories' ? '' : String(it.legenda || p.legenda || '').slice(0, 2200);
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, 'stories', [x], ''); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
-        catch (e) { erros.push(`Story ${n} no Instagram: ${e.message}`); }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, tipo, [x], leg); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
-        try { const r = await fbPublicar(pag, 'stories', [x], ''); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
-        catch (e) { erros.push(`Story ${n} no Facebook: ${e.message}`); }
+        try { const r = await fbPublicar(pag, tipo, [x], leg); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
+        catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Facebook: ${e.message}`); }
       }
       if (erros.length) break;
       soltos++;
@@ -271,7 +274,7 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
   } else {
     await ref.doc(p.id).update({ pubStatus: 'publicado', fila, pubFeito: feito, pubErro: '', status: 'publicado', publicadoEm: agoraIso, quando: fila[fila.length - 1].quando, link: feito.ig || feito.fb || '', verificado: true });
     console.log(`Postagens: série completa ${lj.nome} · ${p.titulo}`);
-    for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `Os ${fila.length} stories de ${p.titulo} saíram.`);
+    for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `Os ${fila.length} ${p.tipo === 'reels' ? 'reels' : p.tipo === 'feed' ? 'posts' : 'stories'} de ${p.titulo} saíram.`);
   }
 }
 

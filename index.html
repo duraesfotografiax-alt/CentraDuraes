@@ -390,6 +390,7 @@ details.panel[open] summary{margin-bottom:12px}
 .envth{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;height:96px;background:var(--panel2)}
 .envth span{background:var(--hover) center/cover no-repeat}
 .envth span:only-child{grid-column:1/-1}
+.auLegs{display:flex;flex-direction:column;gap:8px}.auLg{display:flex;flex-direction:column;gap:4px}.auLg b{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
 .carth{width:64px;height:48px;border-radius:8px;background:var(--panel2) center/cover no-repeat;flex:none;display:block}
 .impck{display:flex;align-items:center;gap:8px;cursor:pointer}.impck input{width:18px;height:18px}
 .impf{display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr 1.4fr;gap:6px}.impf input{min-width:0;padding:8px 10px;font-size:14px}
@@ -2647,7 +2648,7 @@ function renderClientes(){
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
     return '<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">'+esc(p.titulo)+'</div><span class="mid '+(p.tipo==='reels'||p.tipo==='stories'?'video':'foto')+'">'+ico(p.tipo==='reels'||p.tipo==='stories'?'i-video':'i-cam')+(TPOST[p.tipo]||'Post')+'</span></div>'+
       '<div class="meta">'+(p.status==='pronto'?'<span>Editado '+(p.editadoEm?dCurta(p.editadoEm.slice(0,10)):'')+(p.editadoPor?' por '+esc(p.editadoPor):'')+'</span>':'')+
-      (ps_&&p.pubStatus!=='publicado'?'<span class="chip '+ps_[0]+'" style="align-self:flex-start;white-space:normal">'+(filaInfo(p)&&p.pubStatus==='aguardando'?'Próximo story: '+fmtQuando(p.quando):ps_[1]+(p.pubStatus==='aguardando'?' · '+fmtQuando(p.quando):''))+'</span><span>'+esc(ondePub(p))+' · '+(p.arquivos||[]).length+' arquivo'+((p.arquivos||[]).length===1?'':'s')+'</span>'+(p.pubStatus==='erro'?'<span style="color:var(--neg)">'+esc(p.pubErro||'')+'</span>':'')+(filaInfo(p)?(()=>{const f=filaInfo(p),pc=Math.round(f.feitos/f.n*100);return '<span class="serie"><span><b>'+f.n+' stories</b> · '+f.feitos+' de '+f.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span><span>Último: '+fmtQuando(f.fim)+'</span>'})():''):'')+
+      (ps_&&p.pubStatus!=='publicado'?'<span class="chip '+ps_[0]+'" style="align-self:flex-start;white-space:normal">'+(filaInfo(p)&&p.pubStatus==='aguardando'?'Próximo: '+fmtQuando(p.quando):ps_[1]+(p.pubStatus==='aguardando'?' · '+fmtQuando(p.quando):''))+'</span><span>'+esc(ondePub(p))+' · '+(p.arquivos||[]).length+' arquivo'+((p.arquivos||[]).length===1?'':'s')+'</span>'+(p.pubStatus==='erro'?'<span style="color:var(--neg)">'+esc(p.pubErro||'')+'</span>':'')+(filaInfo(p)?(()=>{const f=filaInfo(p),pc=Math.round(f.feitos/f.n*100);return '<span class="serie"><span><b>'+f.n+' '+(({stories:'stories',reels:'reels',feed:'posts'})[p.tipo]||'posts')+'</b> · '+f.feitos+' de '+f.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span><span>Último: '+fmtQuando(f.fim)+'</span>'})():''):'')+
       (p.status==='programado'&&!p.pubStatus&&(p.qtd||1)>1?(()=>{const si=serieInfo(p),pc=Math.round(si.sairam/si.n*100);return '<span class="serie"><span><b>'+si.n+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+'</b> · '+si.sairam+' de '+si.n+' já saíram</span><span class="sbar"><i style="width:'+pc+'%"></i></span></span>'+
         (si.prox?'<span>Próximo: '+fmtQuando(si.prox)+'</span><span>Último: '+fmtQuando(si.fim)+'</span>':'<span>'+(atras?'<b style="color:var(--warn)">O último era '+fmtQuando(si.fim)+' · confira se todos saíram</b>':'Último saiu '+fmtQuando(si.fim))+'</span>')})():'')+
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
@@ -2833,30 +2834,36 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     '<div class="fld"><label for="auQ">Data e hora</label><input id="auQ" type="datetime-local" value="'+esc(quando)+'"><div class="checks" style="margin-top:6px"><label><input type="checkbox" id="auJa"> Publicar agora (em até 10 min)</label></div></div></div>'+
     '<div class="fld" id="auLegW"><label for="auLeg">Legenda</label><textarea id="auLeg" rows="5" maxlength="2200" placeholder="Texto do post, emojis e #hashtags">'+esc(pst.legenda||'')+'</textarea><span class="hint" id="auCont"></span></div>'+
     '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Arquivos do Drive<button type="button" class="btn sm ghost" id="auTodos" hidden>Marcar todos</button></span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
-    '<div class="fld" id="auSerieW" hidden><label for="auFim">Último story sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span></div>'+
+    '<div class="fld" id="auSerieW" hidden><label for="auFim" id="auFimL">Último sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span><div id="auLegs" class="auLegs"></div></div>'+
     '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#auErr').textContent=m};
   const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';q('#auLegW').hidden=q('#auTipo').value==='stories'};
-  const dica=()=>{const t=q('#auTipo').value;q('#auDica').textContent=t==='carrossel'?'Escolha de 2 a 10 arquivos, na ordem em que vão aparecer.':t==='reels'?'Escolha 1 vídeo (vertical 9:16).':t==='stories'?'Escolha 1 ou vários (fotos ou vídeos verticais), na ordem em que vão sair. Com vários, a Central solta um de cada vez, espalhados até a data do último.':'Escolha 1 foto (ou 1 vídeo, que sai como Reels no Instagram).'};
-  q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{const t=q('#auTipo').value;if(t!=='carrossel'&&t!=='stories'&&escolhidos.length>1)escolhidos=escolhidos.slice(0,1);cont();dica();pinta()};cont();dica();
+  const dica=()=>{const t=q('#auTipo').value;q('#auDica').textContent=t==='carrossel'?'Escolha de 2 a 10 arquivos, na ordem em que vão aparecer.':t==='reels'?'Escolha 1 ou vários vídeos (vertical 9:16). Com vários, cada vídeo vira um Reels separado, um de cada vez, até a data do último.':t==='stories'?'Escolha 1 ou vários (fotos ou vídeos verticais), na ordem em que vão sair. Com vários, a Central solta um de cada vez, espalhados até a data do último.':'Escolha 1 ou várias fotos. Com várias, cada uma vira um post separado, espalhados até a data do último.'};
+  q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{const t=q('#auTipo').value;cont();dica();pinta()};cont();dica();
   q('#auJa').onchange=()=>{q('#auQ').disabled=q('#auJa').checked;serie()};
-  const ehSerie=()=>q('#auTipo').value==='stories'&&escolhidos.length>1;
+  const SER=()=>['stories','reels','feed'].includes(q('#auTipo').value),ehSerie=()=>SER()&&escolhidos.length>1,nomeS=()=>({stories:'stories',reels:'reels',feed:'posts'})[q('#auTipo').value]||'posts';
+  const legs={};(pst.fila||[]).forEach(x=>{const a=(pst.arquivos||[])[x.i];if(a&&x.legenda)legs[a.id]=x.legenda});
   const horarios=()=>{const ini=q('#auJa').checked?agoraLocal():q('#auQ').value,fim=q('#auFim').value;return ini&&fim&&fim>ini?distribuirDia(ini,fim,escolhidos.length):null};
-  const serie=()=>{const s=ehSerie();q('#auSerieW').hidden=!s;q('#auTodos').hidden=!(q('#auTipo').value==='stories'&&lista.length>1);if(!s)return;
-    const hs=horarios(),tx=q('#auSerieTx');
-    if(!hs){tx.textContent='Escolha a data e hora do primeiro (acima) e a do último. A Central espalha os '+escolhidos.length+' stories entre elas.';return}
+  const serie=()=>{const s=ehSerie();q('#auSerieW').hidden=!s;q('#auTodos').hidden=!(SER()&&lista.length>1);if(!s)return;
+    if(!q('#auFim').value&&q('#auQ').value){const d=new Date(q('#auQ').value);d.setDate(d.getDate()+escolhidos.length-1);if(escolhidos.length>1)q('#auFim').value=iso(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
+    const hs=horarios(),tx=q('#auSerieTx');pintaLegs(hs);
+    if(!hs){tx.textContent='Escolha a data e hora do primeiro (acima) e a do último. A Central espalha os '+escolhidos.length+' '+nomeS()+' entre elas.';return}
     const dias=new Set(hs.map(x=>x.slice(0,10))).size,pd=Math.round(hs.length/dias*10)/10,cada=dias<2?'todos no mesmo dia':'cerca de '+String(pd).replace('.',',')+' por dia';
-    tx.textContent=escolhidos.length+' stories entre 8h e 22h, '+cada+': '+hs.slice(0,4).map(fmtQuando).join(' · ')+(hs.length>4?' … último '+fmtQuando(hs[hs.length-1]):'')};
+    tx.textContent=escolhidos.length+' '+nomeS()+' entre 8h e 22h, '+cada+': '+hs.slice(0,4).map(fmtQuando).join(' · ')+(hs.length>4?' … último '+fmtQuando(hs[hs.length-1]):'')};
+  const pintaLegs=hs=>{const box=q('#auLegs');const t=q('#auTipo').value;if(t==='stories'||!ehSerie()){box.innerHTML='';return}
+    box.querySelectorAll('textarea').forEach(x=>{legs[x.dataset.lg]=x.value});
+    box.innerHTML='<span class="l" style="margin-top:8px">Legenda de cada '+(t==='reels'?'vídeo':'post')+' <small class="muted" style="text-transform:none;font-weight:600">(em branco = usa a legenda de cima)</small></span>'+escolhidos.map((id,i)=>{const f=lista.find(x=>x.id===id)||{name:''};return '<div class="auLg"><b>'+(i+1)+'. '+esc(f.name)+(hs?' · '+fmtQuando(hs[i]):'')+'</b><textarea rows="2" data-lg="'+esc(id)+'" placeholder="Usa a legenda de cima">'+esc(legs[id]||'')+'</textarea></div>'}).join('')};
   q('#auQ').oninput=serie;q('#auFim').oninput=serie;
-  q('#auTodos').onclick=()=>{const todos=lista.map(f=>f.id);escolhidos=escolhidos.length===todos.length?[]:escolhidos.concat(todos.filter(id=>!escolhidos.includes(id)));pinta()};
+  q('#auTodos').onclick=()=>{const todos=lista.map(f=>f.id);const ok=f=>q('#auTipo').value==='reels'?/^video/.test(f.mimeType):q('#auTipo').value==='feed'?/^image/.test(f.mimeType):true;const alvo=lista.filter(ok).map(f=>f.id);escolhidos=alvo.every(id=>escolhidos.includes(id))?[]:escolhidos.concat(alvo.filter(id=>!escolhidos.includes(id)));pinta()};
   const pinta=()=>{const box=q('#auArqs');if(!lista.length)return;
     box.innerHTML='<div class="aupick">'+lista.map(f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'}).join('')+'</div>';serie()};
   q('#auArqs').onclick=e=>{const b=e.target.closest('[data-auf]');if(!b)return;const id=b.dataset.auf,i=escolhidos.indexOf(id);
-    if(i>=0)escolhidos.splice(i,1);else{const t=q('#auTipo').value;if(t!=='carrossel'&&t!=='stories')escolhidos=[];escolhidos.push(id)}pinta()};
+    if(i>=0)escolhidos.splice(i,1);else{const t=q('#auTipo').value;if(t!=='carrossel'&&!SER())escolhidos=[];escolhidos.push(id)}pinta()};
   (async()=>{const box=q('#auArqs');
     if(!pst.drive){box.innerHTML='<p class="hint" style="margin:0">Este conteúdo não tem link do Drive. Feche, toque em Editar e escolha a pasta ou o arquivo.</p>';return}
     try{await token();lista=await arquivosDoLink(pst.drive);if(!lista.length){box.innerHTML='<p class="hint" style="margin:0">Nenhuma foto ou vídeo nesse link do Drive.</p>';return}
-      if(!escolhidos.length&&lista.length===1)escolhidos=[lista[0].id];pinta()}
+      if(!escolhidos.length){const t=q('#auTipo').value,vs=lista.filter(f=>/^video/.test(f.mimeType)),fs=lista.filter(f=>/^image/.test(f.mimeType));
+        escolhidos=lista.length===1?[lista[0].id]:t==='reels'&&vs.length>1?vs.map(f=>f.id):t==='stories'?lista.map(f=>f.id):t==='feed'&&fs.length>1&&!vs.length?fs.map(f=>f.id):[]}pinta()}
     catch(er){box.innerHTML='<p class="err" style="margin:0">'+esc(er.message)+'</p><button type="button" class="btn sm" id="auCon">Conectar o Drive</button>';const c=q('#auCon');if(c)c.onclick=async()=>{try{await pedirToken('');formAuto(pst)}catch(e2){toast(e2.message)}}}})();
   q('#fAu').onsubmit=async e=>{e.preventDefault();
     const ig=q('#auIG').checked,fb=q('#auFB').checked,tipo=q('#auTipo').value,ja=q('#auJa').checked,qd=ja?agoraLocal():q('#auQ').value,leg=q('#auLeg').value;
@@ -2868,17 +2875,17 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     if(!sel.length)return err('Escolha o arquivo que vai ser publicado.');
     if(tipo==='carrossel'&&(sel.length<2||sel.length>10))return err('Carrossel precisa de 2 a 10 arquivos.');
     if(tipo==='carrossel'&&fb&&vid)return err('No Facebook, carrossel só com fotos. Desmarque o Facebook ou tire os vídeos.');
-    if(tipo==='reels'&&!vid)return err('Reels precisa de um vídeo.');
-    if(tipo!=='carrossel'&&tipo!=='stories'&&sel.length>1)return err('Escolha só 1 arquivo para '+TPOST[tipo]+'.');
-    if(tipo==='stories'&&sel.length>40)return err('No máximo 40 stories de uma vez.');
-    const serieOn=tipo==='stories'&&sel.length>1,hs=serieOn?horarios():null;
-    if(serieOn&&!hs)return err('Escolha quando sai o último story (depois do primeiro).');
+    if(tipo==='reels'&&vid<sel.length)return err('Reels só com vídeos. Desmarque as fotos.');
+    if(sel.length>40)return err('No máximo 40 de uma vez.');
+    const serieOn=['stories','reels','feed'].includes(tipo)&&sel.length>1,hs=serieOn?horarios():null;
+    if(serieOn&&!hs)return err('Escolha quando sai o último (depois do primeiro).');
+    sheet.querySelectorAll('#auLegs textarea').forEach(x=>{legs[x.dataset.lg]=x.value});
     if((leg.match(/#[\wÀ-ÿ]+/g)||[]).length>30)return err('O Instagram aceita no máximo 30 hashtags.');
     const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
     try{for(const f of sel)await deixarPublico(f.id);
       const doc={tipo,legenda:leg.slice(0,2200),quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,arquivos:sel.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
-        fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:''})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
-      await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' stories agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook'].filter(Boolean).join(' + '))}
+        fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:'',legenda:tipo==='stories'?'':String(legs[sel[i].id]||'').trim().slice(0,2200)})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
+      await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' '+(({stories:'stories',reels:'reels',feed:'posts'})[tipo])+' agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook'].filter(Boolean).join(' + '))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};
 }
 
