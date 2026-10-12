@@ -1391,6 +1391,9 @@ function pedirToken(prompt){return new Promise((res,rej)=>{
   tokenClient.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'A janela do Google foi fechada.':'Não consegui conectar ao Google.'));
   tokenClient.requestAccessToken({prompt:prompt||'',login_hint:gEmail()});
 })}
+/* No iPhone o seletor de arquivos só abre se for no mesmo toque (sem esperar nada antes). Se o Google ainda não estiver conectado, conecta e pede para tocar de novo. */
+function abrirPicker(inp,onErr){if(driveConectado()){inp.value='';inp.click();return}
+  token().then(()=>toast('Google conectado ✓ Toque de novo para escolher os arquivos.')).catch(er=>{(onErr||toast)(er.message)})}
 async function token(){if(driveConectado())return gTok;return pedirToken('')}
 async function gfetch(url,opt,tentou){opt=opt||{};const t=await token();
   const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({},opt.headers||{},{Authorization:'Bearer '+t})}));
@@ -1480,9 +1483,9 @@ function ligarBotoesDrive(root,inputSel,ctx){
     if(x==='esc'){try{await token()}catch(er){st.textContent=er.message;return}
       let ini=null;try{ini=await pastaDestino(ctx)}catch(er){st.textContent=er.message}
       abrirSeletor(ini,f=>{inp.value=f.webViewLink;st.textContent=(f.mimeType===FOLDER?'Pasta escolhida: ':'Arquivo escolhido: ')+f.name});return}
-    if(x==='pasta'||x==='arq'){modo=x;try{await token()}catch(er){st.textContent=er.message;return}
+    if(x==='pasta'||x==='arq'){modo=x;
       if(x==='pasta'){fp.setAttribute('webkitdirectory','');fp.setAttribute('directory','')}else{fp.removeAttribute('webkitdirectory');fp.removeAttribute('directory')}
-      fp.value='';fp.click()}});
+      abrirPicker(fp,m=>{st.textContent=m})}});
   fp.addEventListener('change',async()=>{if(!fp.files.length)return;
     try{st.textContent='Preparando…';const destino=await pastaDestino(ctx);
       const nome=modo==='arq'?(hoje().split('-').reverse().join('-')+' '+ctx.titulo).slice(0,90):'';
@@ -2184,8 +2187,8 @@ function formEnvio(){
   const resumo=()=>{const n=locais?locais.length:arquivosDrive?arquivosDrive.length:0,tot=locais?locais.reduce((s,f)=>s+f.size,0):arquivosDrive?arquivosDrive.reduce((s,f)=>s+(Number(f.size)||0),0):0;
     q('#envSel').innerHTML=n?'<b style="color:var(--ink)">'+n+' arquivo'+(n===1?'':'s')+'</b> · '+tamTxt(tot)+(locais?' · vão subir ao criar o link':' · do Drive'+(pastaDrive?' ("'+esc(pastaDrive.name)+'")':'')):'Os arquivos vão para o Drive da empresa sem compressão, na qualidade original.'};
   const pegaLocais=fs=>{const ok=[...fs].filter(f=>/^(video|image)\//.test(f.type)||/\.(mp4|mov|m4v|avi|mkv|jpe?g|png|heic|webp)$/i.test(f.name));if(!ok.length){err('Escolha vídeos ou fotos.');return}err('');locais=ok;arquivosDrive=null;pastaDrive=null;resumo()};
-  q('#envSubir').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#envFiles').value='';q('#envFiles').click()};
-  q('#envPasta').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#envDir').value='';q('#envDir').click()};
+  q('#envSubir').onclick=()=>abrirPicker(q('#envFiles'),err);
+  q('#envPasta').onclick=()=>abrirPicker(q('#envDir'),err);
   q('#envFiles').onchange=e=>pegaLocais(e.target.files);q('#envDir').onchange=e=>pegaLocais(e.target.files);
   q('#envDrive').onclick=async()=>{try{await token()}catch(er){err(er.message);return}
     let ini=null;try{ini=await pastaDestino(emp==='elite'?{tipo:'elite',loja:q('#envLoja').value,titulo:''}:{tipo:'duraes'})}catch(_){}
@@ -2348,7 +2351,7 @@ function formCarro(c){const v=CAR.v,novo=!c;c=c||{marca:'',modelo:'',ano:'',cor:
   q('#carMod').addEventListener('change',()=>{const m=marcaDoModelo(q('#carMod').value);if(m&&!q('#carMarca').value.trim())q('#carMarca').value=m;
     const p=lerNomeCarro(q('#carMod').value);if(p.ano&&p.modelo){if(!q('#carAno').value.trim())q('#carAno').value=p.ano;if(p.cor&&!q('#carCor').value.trim())q('#carCor').value=p.cor;if(p.marca&&!q('#carMarca').value.trim())q('#carMarca').value=p.marca;q('#carMod').value=p.modelo}});
   const resumo=()=>{const n=locais?locais.length:0;q('#carSel').innerHTML=locais?'<b style="color:var(--ink)">'+n+' arquivo'+(n===1?'':'s')+'</b> · '+tamTxt(locais.reduce((s,f)=>s+f.size,0))+' · sobem ao salvar':pastaDrive?'Pasta do Drive: <b style="color:var(--ink)">'+esc(pastaDrive.name)+'</b>':q('#carSel').innerHTML};
-  q('#carSubir').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#carFiles').value='';q('#carFiles').click()};
+  q('#carSubir').onclick=()=>abrirPicker(q('#carFiles'),err);
   q('#carFiles').onchange=e=>{const ok=[...e.target.files].filter(f=>/^(video|image)\//.test(f.type)||/\.(mp4|mov|m4v|jpe?g|png|heic|webp)$/i.test(f.name));if(!ok.length)return err('Escolha fotos ou vídeos.');err('');locais=ok;pastaDrive=null;resumo()};
   q('#carDrive').onclick=async()=>{try{await token()}catch(er){err(er.message);return}
     const vals={modelo:q('#carMod').value,marca:q('#carMarca').value,ano:q('#carAno').value,cor:q('#carCor').value,placa:q('#carPlaca').value,mes:q('#carMes').value};
@@ -2466,7 +2469,7 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=t=>{q('#matErr').textContent=t};
   if(!m)q('#matLoja').onchange=()=>{q('#matOutW').hidden=q('#matLoja').value!=='__outro'};
   if(!m)q('#matOutW').hidden=q('#matLoja').value!=='__outro';
-  q('#matPick').onclick=async()=>{try{await token()}catch(er){err(er.message);return}q('#matFiles').value='';q('#matFiles').click()};
+  q('#matPick').onclick=()=>abrirPicker(q('#matFiles'),err);
   q('#matFiles').onchange=e=>{arqs=[...e.target.files];const tot=arqs.reduce((s,f)=>s+f.size,0);q('#matSel').innerHTML='<b style="color:var(--ink)">'+arqs.length+' arquivo'+(arqs.length===1?'':'s')+'</b> · '+tamTxt(tot)+' · deixe a tela ligada até terminar'};
   q('#fMat').onsubmit=async e=>{e.preventDefault();if(!arqs||!arqs.length)return err('Escolha os vídeos ou fotos.');
     const b=q('#fMat button[type=submit]');b.disabled=true;b.textContent='Preparando…';const wl=await manterTelaLigada();
