@@ -390,6 +390,11 @@ details.panel[open] summary{margin-bottom:12px}
 .envth{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;height:96px;background:var(--panel2)}
 .envth span{background:var(--hover) center/cover no-repeat}
 .envth span:only-child{grid-column:1/-1}
+.mkservs{display:flex;flex-direction:column;gap:6px}
+.mks{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+.mks label{display:flex;gap:10px;align-items:center;font-weight:700;cursor:pointer}.mks label input{width:18px;height:18px}
+.mks>input{display:none;padding:7px 10px;font-size:14px}.mks.on{border-color:var(--gold);background:var(--gold-bg)}.mks.on>input{display:block}
+.mkprev{border:1px dashed var(--line2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--muted)}.mkprev ol{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}.mkprev b{color:var(--ink)}
 /* caixa simples */
 .cxemp{margin:0 0 12px}
 .cxsum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.cxsum .hi{grid-column:1/-1;order:-1}.cxsum .hi b{font-size:26px}
@@ -1911,11 +1916,27 @@ const CT_ENT=['Fotografia (fotos editadas em alta resolução)','Filmagem da cer
 const ehVideo=s=>/film|v[íi]deo|teaser|reels|drone/i.test(s),ehFoto=s=>/foto|[áa]lbum|ensaio/i.test(s);
 const casam=t=>t==='casamento'||t==='civil';
 const CT_SERV={foto_video:'Fotografia e Filmagem',foto:'Fotografia',video:'Filmagem'};
+/* serviços da Elite que podem entrar no contrato: cada um vira um item do contrato, com o detalhe (quantidade) escrito */
+const CT_MKT=[
+  {k:'conteudo',n:'Produção de fotos e vídeos',obj:'produção de fotos e vídeos',cl:'<b>Produção de Conteúdo:</b> fotos e vídeos (reels) para divulgação e promoção nas redes sociais.',ph:'Ex.: 4 reels e 10 fotos por mês'},
+  {k:'redes',n:'Postagens / gestão das redes sociais',obj:'gestão de publicações nas redes sociais',cl:'<b>Postagens e Gerenciamento de Redes Sociais:</b> planejamento e publicação de conteúdo nas redes sociais do contratante com foco em engajamento e venda.',ph:'Ex.: 3 posts por semana + stories'},
+  {k:'trafego',n:'Gestão de tráfego (anúncios)',obj:'gestão de anúncios pagos',cl:'<b>Gestão de Tráfego:</b> criação, acompanhamento e otimização de anúncios pagos nas plataformas do Meta (Facebook e Instagram). O valor investido nos anúncios não está incluso neste contrato e é pago pelo contratante diretamente à plataforma.',ph:'Ex.: até 3 campanhas ativas'},
+  {k:'veiculos',n:'Fotos dos veículos do estoque',obj:'fotografia dos veículos do estoque',cl:'<b>Fotos de Veículos:</b> fotografia dos veículos do estoque para anúncios em plataformas de venda e redes sociais, entregues em alta qualidade.',ph:'Ex.: até 20 carros por mês'},
+  {k:'artes',n:'Criação de artes / design',obj:'criação de artes gráficas',cl:'<b>Criação de Artes:</b> criação de artes gráficas (posts, banners e materiais promocionais) seguindo a identidade visual do contratante.',ph:'Ex.: 8 artes por mês'},
+  {k:'edicao',n:'Edição de vídeos',obj:'edição de vídeos',cl:'<b>Edição de Vídeos:</b> edição e finalização de vídeos com cortes, trilha e legendas para as redes sociais.',ph:'Ex.: até 6 vídeos por mês'},
+  {k:'eventos',n:'Cobertura de eventos / ações',obj:'cobertura de eventos e ações promocionais',cl:'<b>Cobertura de Eventos:</b> registro em foto e vídeo de eventos e ações promocionais do contratante.',ph:'Ex.: 1 evento por mês'},
+  {k:'google',n:'Perfil no Google (Meu Negócio)',obj:'gestão do perfil da empresa no Google',cl:'<b>Perfil no Google:</b> atualização do perfil da empresa no Google (Meu Negócio) com fotos, informações e publicações.',ph:''}];
+function mkServs(c){if(Array.isArray(c.servs))return c.servs;return [c.sConteudo&&{k:'conteudo',det:''},c.sRedes&&{k:'redes',det:''},c.sTrafego&&{k:'trafego',det:''}].filter(Boolean)}
+function mkLinhas(c){/* [{obj, cl}] na ordem do catálogo + serviços escritos à mão */
+  const ss=mkServs(c),out=[];
+  for(const s of CT_MKT){const x=ss.find(y=>y.k===s.k);if(x)out.push({nome:s.n,obj:s.obj,cl:s.cl+(x.det?' <b>Inclui:</b> '+esc(x.det)+'.':'')})}
+  for(const t of (c.servExtra||[]))if(t&&t.trim())out.push({nome:t.trim(),obj:t.trim().toLowerCase(),cl:'<b>'+esc(t.trim())+'.</b>'});
+  return out}
 const CT_FREQ={avista:'À vista (1 pagamento)',semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
 const CT_ST={rascunho:['eq','Rascunho'],enviado:['soon','Enviado'],assinado:['rec','Assinado']};
 const CT_PADRAO={
   evento:{empresa:'duraes',modelo:'evento',tipoEvt:'casamento',servico:'foto_video',servNome:'',momentos:[],entregas:[],descServ:'',horas:8,prazoFotos:15,prazoVideo:30,duracaoVideo:'10 a 20 minutos',multaDia:2,diasAtraso:10,cancelDias:2,taxaClip:25,freq:'semanal',forma:'Pix'},
-  marketing:{empresa:'elite',modelo:'marketing',sConteudo:true,sRedes:true,sTrafego:true,meses:3,diaVenc:5,forma:'Pix ou Débito',multaDia:2,avisoPrevio:30}
+  marketing:{empresa:'elite',modelo:'marketing',servs:[],servExtra:[],meses:3,diaVenc:5,forma:'Pix ou Débito',multaDia:2,avisoPrevio:30}
 };
 function dBR(s){return s?String(s).split('-').reverse().join('/'):''}
 function numExt(n){return extenso(n).replace(/ (real|reais)$/,'')}
@@ -1936,7 +1957,7 @@ function fimVigencia(ini,meses){if(!ini||!meses)return '';const d=new Date(ini+'
 /* ---- documento ---- */
 function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.modelo!=='marketing';
   const B=[],sec=(t,h)=>'<div class="csec"><h3>» '+t+'</h3>'+h+'</div>',cl=(t,p)=>'<div class="ccl"><h4>'+t+'</h4>'+[].concat(p).map(x=>'<p>'+x+'</p>').join('')+'</div>';
-  const titulo=ev?'Contrato de Serviços Fotográficos':'Contrato de Prestação de Serviços de Mídias Sociais, Conteúdo Audiovisual'+(c.sTrafego?' e Gestão de Tráfego':'');
+  const titulo=ev?'Contrato de Serviços Fotográficos':'Contrato de Prestação de Serviços de Marketing Digital';
   B.push('<div class="chd">'+(el?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img src="logos/duraes-claro.jpg" alt="">')+'<div><h1>'+titulo+'</h1><small>Contrato nº '+esc(c.numero||'—')+'</small></div></div>');
   const contratada='<b>'+esc(e.nome)+'</b>'+(e.end?', com sede na '+esc(e.end):'')+(e.cep?', CEP '+esc(e.cep):'')+(e.cidade?' – '+esc(e.cidade):'')+(e.doc?', inscrita no CNPJ/CPF '+esc(e.doc):'')+(e.resp?', representada por <b>'+esc(e.resp)+'</b>'+(e.respDoc?', portador do CPF nº '+esc(e.respDoc):''):'')+', doravante denominada <b>CONTRATADA</b>, e de outro lado:';
   B.push(sec('Contratada','<div class="cbox">'+contratada+'</div>'));
@@ -1979,16 +2000,16 @@ function ctBlocos(c){const e=emissor(c.empresa),el=c.empresa==='elite',ev=c.mode
     if(c.obs)B.push(cl('Condições adicionais',esc(c.obs).split(/\n+/)));
     B.push(cl('Acordo integral','Este Contrato constitui o acordo integral entre o Fotógrafo e o cliente e substitui todas as discussões anteriores, correspondências e acordos anteriores entre as partes. Este Contrato só pode ser modificado por escrito e assinado por ambas as partes.'));
   } else {
-    const it=[c.sConteudo&&'produção de fotos e vídeos',c.sRedes&&'gestão de publicações nas redes sociais da empresa',c.sTrafego&&'gestão de anúncios'].filter(Boolean);
-    B.push(sec('Objetivo do contrato','<div class="cbox">Este contrato tem como objetivo a prestação de serviços de mídias sociais'+(it.length?', incluindo '+(it.length>1?it.slice(0,-1).join(', ')+' e '+it[it.length-1]:it[0]):'')+', conforme os termos a seguir:</div>'));
+    const LN=mkLinhas(c),it=LN.map(x=>esc(x.obj)),temTr=mkServs(c).some(s=>s.k==='trafego');
+    B.push(sec('Objetivo do contrato','<div class="cbox">Este contrato tem como objetivo a prestação de serviços de marketing digital'+(it.length?', incluindo '+(it.length>1?it.slice(0,-1).join(', ')+' e '+it[it.length-1]:it[0]):'')+', conforme os termos a seguir:</div>'));
     let n=0;const N=t=>(++n)+'. '+t;
-    B.push(cl(N('Prestação de Serviços'),[c.sConteudo&&'<b>Produção de Conteúdo:</b> fotos e vídeos (reels) para divulgação e promoção nas redes sociais.',c.sRedes&&'<b>Postagens e Gerenciamento de Redes Sociais:</b> planejamento e publicação de conteúdo nas redes sociais do contratante com foco em engajamento e venda.',c.sTrafego&&'<b>Gestão de Tráfego:</b> criação, acompanhamento e otimização de anúncios pagos nas plataformas do Meta (Facebook e Instagram). O valor investido nos anúncios não está incluso neste contrato e é pago pelo contratante diretamente à plataforma.',c.pacote&&'<b>Pacote:</b> '+esc(c.pacote)+'.','<b>Periodicidade:</b> o contratado se compromete a entregar o conteúdo e realizar as postagens conforme cronograma acordado.'].filter(Boolean)));
+    B.push(cl(N('Prestação de Serviços'),LN.map(x=>x.cl).concat([c.pacote&&'<b>Pacote:</b> '+esc(c.pacote)+'.','<b>Periodicidade:</b> o contratado se compromete a entregar os serviços acima conforme cronograma acordado entre as partes.']).filter(Boolean)));
     B.push(cl(N('Vigência do Contrato'),'O contrato terá duração de '+c.meses+' ('+numExt(+c.meses||0)+') '+(c.meses==1?'mês':'meses')+', com início em <b>'+dBR(c.ini)+'</b> e término em <b>'+dBR(c.fim)+'</b>.'));
     B.push('<div class="ccl"><h4>'+N('Valor e Condições de Pagamento')+'</h4><p>O valor do contrato é de <b>'+$(c.mensal)+'</b> ('+esc(extenso(c.mensal||0))+') mensais. O pagamento será realizado mensalmente até o dia '+(c.diaVenc||'')+' de cada mês, via '+esc(c.forma||'Pix')+'. Em caso de atraso no pagamento, será cobrada uma multa de '+$(c.multaDia)+' por dia de atraso.</p></div>');
     B.push(sec('Condições de pagamento',pagBox));
     B.push(cl(N('Cancelamento e Rescisão'),['Em caso de rescisão antecipada por qualquer das partes, deverá ser feito aviso prévio de '+(c.avisoPrevio||30)+' dias.','Caso o cancelamento ocorra antes do fim do contrato, o contratante deverá pagar proporcionalmente pelos serviços prestados até o momento do cancelamento.']));
     B.push(cl(N('Direitos de Uso das Imagens e Conteúdos'),['O contratante terá o direito de uso dos conteúdos produzidos exclusivamente para as redes sociais e canais de marketing digital durante o período contratado.','O contratado reserva o direito de utilizar o material produzido para fins de portfólio, salvo acordo específico contrário com o contratante.']));
-    B.push(cl(N('Obrigações das Partes'),['<b>Contratante:</b> fornecer acesso e informações necessárias para o gerenciamento das redes sociais'+(c.sTrafego?' e das contas de anúncio':'')+' e disponibilizar os demais elementos a serem fotografados/filmados.','<b>Contratado:</b> produzir o conteúdo conforme solicitado e publicar nas redes sociais do contratante, respeitando o calendário e as diretrizes estabelecidas em reunião.']));
+    B.push(cl(N('Obrigações das Partes'),['<b>Contratante:</b> fornecer acesso e informações necessárias para o gerenciamento das redes sociais'+(temTr?' e das contas de anúncio':'')+' e disponibilizar os demais elementos a serem fotografados/filmados.','<b>Contratado:</b> produzir o conteúdo conforme solicitado e publicar nas redes sociais do contratante, respeitando o calendário e as diretrizes estabelecidas em reunião.']));
     if(c.obs)B.push(cl(N('Condições adicionais'),esc(c.obs).split(/\n+/)));
     B.push(cl('Acordo integral','Este Contrato constitui o acordo integral entre o contratado e o contratante e substitui todas as discussões anteriores, correspondências e acordos anteriores entre as partes. Este Contrato só pode ser modificado por escrito e assinado por ambas as partes.'));
   }
@@ -2056,7 +2077,9 @@ function formContrato(c,base){
     '<label id="ctAgW" style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="ctAgendar" '+(c.agendar===false?'':'checked')+' style="width:18px;height:18px"> <span id="ctAgTx">Agendar automaticamente na Produção e na Agenda</span></label></div>'+
   /* marketing */
   '<div id="ctMk" class="pushbox"><b>Serviços e vigência</b>'+
-    '<div class="checks"><label><input type="checkbox" id="ctS1" '+(c.sConteudo?'checked':'')+'> Produção de fotos e vídeos</label><label><input type="checkbox" id="ctS2" '+(c.sRedes?'checked':'')+'> Postagens / redes sociais</label><label><input type="checkbox" id="ctS3" '+(c.sTrafego?'checked':'')+'> Gestão de tráfego (anúncios)</label></div>'+
+    '<span class="l" style="margin-top:4px">Marque o que foi fechado com o cliente</span><div class="mkservs" id="ctMkS">'+CT_MKT.map(s=>{const x=mkServs(c).find(y=>y.k===s.k);return '<div class="mks'+(x?' on':'')+'" data-mk="'+s.k+'"><label><input type="checkbox" data-mkc="'+s.k+'"'+(x?' checked':'')+'> '+esc(s.n)+'</label>'+(s.ph?'<input data-mkd="'+s.k+'" placeholder="'+esc(s.ph)+' (opcional)" value="'+esc(x&&x.det||'')+'">':'')+'</div>'}).join('')+'</div>'+
+    '<div class="fld"><label for="ctMkX">Outro serviço (escreva, um por linha)</label><textarea id="ctMkX" rows="2" placeholder="Ex.: Gravação de podcast mensal">'+esc((c.servExtra||[]).join('\n'))+'</textarea></div>'+
+    '<div class="mkprev" id="ctMkPrev"></div>'+
     I('ctPacote','O que está incluso por mês (opcional)',c.pacote,' placeholder="Ex.: 4 reels + 8 posts + 1 visita de captação por semana"')+
     '<div class="three">'+I('ctMeses','Duração (meses)',c.meses,' type="number" min="1" max="36"')+I('ctIni','Início',c.ini,' type="date"')+I('ctFim','Término',c.fim,' type="date"')+'</div>'+
     '<div class="three">'+I('ctMensal','Valor mensal (R$)',v(c.mensal),' inputmode="decimal"')+I('ctDia','Vence todo dia',c.diaVenc,' type="number" min="1" max="31"')+I('ctPri1','1º vencimento',c.pri||'',' type="date"')+'</div></div>'+
@@ -2113,6 +2136,10 @@ function formContrato(c,base){
   q('#ctTar').onchange=()=>{const T=S.tar.find(t=>t.id===q('#ctTar').value);if(!T)return;if(T.data&&!q('#ctData').value)q('#ctData').value=T.data;if(T.hora&&!q('#ctHora').value)q('#ctHora').value=T.hora;if(T.local&&!q('#ctLocal').value)q('#ctLocal').value=T.local;
     if(T.tipo&&CT_EVT[T.tipo]){q('#ctTipo').value=T.tipo}else if(T.tipo==='evento'||T.tipo==='ensaio'){q('#ctTipo').value='outro';if(!q('#ctOutro').value)q('#ctOutro').value=T.titulo}
     const vv=valOf(T.id);if(vv&&vv.valor&&!q('#ctTotal').value)q('#ctTotal').value=v(vv.valor);vis()};
+  const mkLer=()=>({servs:CT_MKT.filter(s=>q('[data-mkc="'+s.k+'"]').checked).map(s=>{const d=q('[data-mkd="'+s.k+'"]');return {k:s.k,det:d?d.value.trim().slice(0,160):''}}),servExtra:q('#ctMkX').value.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,8)});
+  const mkPrev=()=>{const L=mkLinhas(mkLer());q('#ctMkS').querySelectorAll('.mks').forEach(el=>el.classList.toggle('on',q('[data-mkc="'+el.dataset.mk+'"]').checked));
+    q('#ctMkPrev').innerHTML=L.length?'<b>No contrato vai aparecer:</b><ol>'+L.map(x=>'<li>'+x.cl+'</li>').join('')+'</ol>':'<b style="color:var(--warn)">Marque pelo menos um serviço.</b>'};
+  q('#ctMkS').addEventListener('input',mkPrev);q('#ctMkX').addEventListener('input',mkPrev);mkPrev();
   q('#ctLoja').onchange=()=>{const l=S.lojas.find(x=>x.id===q('#ctLoja').value);if(l&&!q('#ctEmpCli').value)q('#ctEmpCli').value=l.nome};
   vis();desenha();if(novo&&!parc.length&&ehMk())gerarMk();
   q('#fCt').onsubmit=async e=>{e.preventDefault();const err=m=>{q('#ctErr').textContent=m;q('#ctErr').scrollIntoView({block:'nearest'})};
@@ -2121,8 +2148,9 @@ function formContrato(c,base){
     const d={empresa:mk?'elite':'duraes',modelo:mk?'marketing':'evento',nome:nome.slice(0,120),doc:q('#ctDoc').value.trim().slice(0,30),email:q('#ctEmail').value.trim().slice(0,120),tel:q('#ctTel').value.trim().slice(0,40),end:q('#ctEnd').value.trim().slice(0,200),
       forma:q('#ctForma').value.trim().slice(0,60),multaDia:num('#ctMulta')||0,obs:q('#ctObs').value.trim().slice(0,1500),dataAss:q('#ctDAss').value||hoje(),assinar:q('#ctAss').checked,
       parcelas:parc.filter(p=>p.valor>0).map(p=>({data:p.data||'',valor:Math.round(p.valor*100)/100}))};
-    if(mk){Object.assign(d,{loja:q('#ctLoja').value,empCli:q('#ctEmpCli').value.trim().slice(0,120),sConteudo:q('#ctS1').checked,sRedes:q('#ctS2').checked,sTrafego:q('#ctS3').checked,pacote:q('#ctPacote').value.trim().slice(0,300),
+    if(mk){Object.assign(d,{loja:q('#ctLoja').value,empCli:q('#ctEmpCli').value.trim().slice(0,120),...(()=>{const m=mkLer();return Object.assign(m,{sConteudo:m.servs.some(s=>s.k==='conteudo'),sRedes:m.servs.some(s=>s.k==='redes'),sTrafego:m.servs.some(s=>s.k==='trafego')})})(),pacote:q('#ctPacote').value.trim().slice(0,300),
         meses:int('#ctMeses'),ini:q('#ctIni').value,fim:q('#ctFim').value,mensal:num('#ctMensal')||0,diaVenc:int('#ctDia'),pri:q('#ctPri1').value,avisoPrevio:int('#ctAviso')||30});
+      if(!d.servs.length&&!d.servExtra.length){err('Marque pelo menos um serviço que foi fechado com o cliente.');return}
       if(!(d.mensal>0)){err('Informe o valor mensal.');return}if(!d.meses){err('Informe a duração em meses.');return}if(!d.ini){err('Informe a data de início.');return}
       if(!d.fim)d.fim=fimVigencia(d.ini,d.meses);if(!d.parcelas.length){err('Confira o 1º vencimento para gerar as mensalidades.');return}}
     else{Object.assign(d,{tar:q('#ctTar').value,tipoEvt:q('#ctTipo').value,outro:q('#ctOutro').value.trim().slice(0,60),n1:q('#ctN1').value.trim().slice(0,120),n2:q('#ctN2').value.trim().slice(0,120),data:q('#ctData').value,hora:q('#ctHora').value.trim().slice(0,20),local:q('#ctLocal').value.trim().slice(0,200),
