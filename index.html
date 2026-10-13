@@ -2242,12 +2242,13 @@ async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.c
       catch(er){if(w)w.close();throw er}finally{b.disabled=false;b.innerHTML=t}return}
     if(k==='zapsalvar'||k==='zapwhats'){const inp=document.getElementById('zapLink'),link=(inp&&inp.value||'').trim();
       if(link&&!/^https:\/\/[^\s]*zapsign\.com\.br\//i.test(link)){toast('Cole o link do ZapSign (começa com https://app.zapsign.com.br/...)');return}
+      if(k==='zapwhats'&&link){const tel=String(c.tel||'').replace(/\D/g,'');abrirWhats('Olá, '+(c.nome||'').split(' ')[0]+'! Segue o contrato '+c.numero+' para assinatura eletrônica pelo ZapSign. É só abrir o link e assinar pelo celular: '+link,tel?(tel.length<=11?'55'+tel:tel):'')}
       if(c.id&&link!==(c.zapLink||'')){await write(()=>store.update('contratos',c.id,Object.assign({zapLink:link},link&&(c.status||'rascunho')==='rascunho'?{status:'enviado'}:{})));c.zapLink=link}
       if(k==='zapsalvar'){toast(link?'Link salvo no contrato':'Link removido');return}
       if(!link){toast('Cole primeiro o link de assinatura');return}
       const tel=String(c.tel||'').replace(/\D/g,''),num=tel?(tel.length<=11?'55'+tel:tel):'';
       const msg='Olá, '+(c.nome||'').split(' ')[0]+'! Segue o contrato '+c.numero+' para assinatura eletrônica pelo ZapSign. É só abrir o link e assinar pelo celular: '+link;
-      window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');return}
+      return}
     if(k==='pdf'||k==='enviar'){b.disabled=true;const t=b.textContent;b.textContent='Gerando…';
       try{const f=await gerarContratoPdf(c);
         if(k==='enviar'&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Contrato '+c.numero,text:'Olá! Segue o contrato '+c.numero+' para conferência e assinatura.'})}catch(_){}}
@@ -2258,6 +2259,27 @@ async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.c
 
 function imgReduzida(f,max){return new Promise((ok,er)=>{const r=new FileReader();r.onerror=er;r.onload=()=>{const im=new Image();im.onerror=er;im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);ok(cv.toDataURL('image/png'))};im.src=r.result};r.readAsDataURL(f)})}
 
+/* ---------- WhatsApp: abre no app certo (Business ou pessoal), lembrando a escolha neste aparelho ---------- */
+function waPref(){try{return localStorage.getItem('waApp')||''}catch(_){return ''}}
+function waSet(v){try{localStorage.setItem('waApp',v)}catch(_){}}
+const ehIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const ehAndroid=()=>/Android/i.test(navigator.userAgent);
+function abrirWhats(texto,num){num=String(num||'').replace(/\D/g,'');const pref=waPref();
+  if(!pref){escolherWhats(texto,num);return}
+  const enc=encodeURIComponent(texto);
+  if(pref==='business'){
+    if(ehAndroid()){location.href='intent://send/?'+(num?'phone='+num+'&':'')+'text='+enc+'#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url='+encodeURIComponent('https://wa.me/'+num+'?text='+enc)+';end';return}
+    if(ehIOS()&&navigator.share){navigator.share({text:texto}).catch(er=>{if(er&&er.name==='AbortError')return;dCopiar(texto);toast('Mensagem copiada. Abra o WhatsApp Business e cole.')});return}
+    if(!ehIOS()){window.open('https://web.whatsapp.com/send?'+(num?'phone='+num+'&':'')+'text='+enc,'_blank');return}}
+  window.open('https://wa.me/'+num+'?text='+enc,'_blank')}
+function escolherWhats(texto,num){
+  sheet2.innerHTML='<form novalidate onsubmit="return false" style="max-width:420px"><h2>Mandar por qual WhatsApp?</h2><p class="muted" style="margin:0;font-size:14px">A Central lembra a escolha neste aparelho. Dá para trocar depois em Envios → Mais.</p>'+
+    '<div class="cxacts"><button type="button" class="btn primary" data-wap="business">WhatsApp Business (clientes)</button><button type="button" class="btn" data-wap="pessoal">WhatsApp pessoal</button></div>'+
+    (ehIOS()?'<p class="hint" style="margin:0">No iPhone, o Business abre pela lista de compartilhar: toque em <b>WA Business</b>. Na primeira vez ele pode estar em "Mais".</p>':'')+
+    '<div class="formacts"><button type="button" class="btn ghost" data-close2>Cancelar</button></div></form>';
+  sheet2.hidden=false;sheet2.querySelectorAll('[data-wap]').forEach(b=>b.onclick=()=>{waSet(b.dataset.wap);fecharSheet2();abrirWhats(texto,num)});
+  const c=sheet2.querySelector('[data-close2]');if(c)c.onclick=fecharSheet2}
+document.addEventListener('click',e=>{const w=e.target.closest('[data-wa]');if(!w)return;e.preventDefault();abrirWhats(decodeURIComponent(w.dataset.wa),w.dataset.wanum||'')});
 /* ---------- Envios (link para o cliente ver e baixar vídeos/fotos em qualidade original) ---------- */
 /* percorre a pasta e as subpastas; cada arquivo guarda o caminho da subpasta (grupo), ex.: "Fotos", "Vídeos/Making of" */
 async function coletarMidia(raizId){const arqs=[],grupos=[];
@@ -2356,9 +2378,11 @@ async function envioAcao(b){const k=b.dataset.env,id=b.dataset.id;const e=(S.env
   if(!e)return;
   if(k==='carros'){gerenciarCarros(e);return}
   if(k==='copiar'){dCopiar(linkEnvio(e));return}
-  if(k==='whats'){window.open('https://wa.me/?text='+encodeURIComponent(msgEnvio(e)),'_blank');return}
+  if(k==='whats'){abrirWhats(msgEnvio(e));return}
+  if(k==='waTroca'){waSet('');closeSheet();toast('Na próxima vez a Central pergunta qual WhatsApp usar.');return}
   if(k==='mais'){sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(e.titulo)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+
       (e.pasta&&e.pasta.id?'<a href="https://drive.google.com/drive/folders/'+encodeURIComponent(e.pasta.id)+'" target="_blank" rel="noopener" class="mnlink">'+ico('i-drive')+'Abrir no Drive</a>':'')+
+      '<button type="button" data-env="waTroca" data-id="'+e.id+'">'+ico('i-send')+'Trocar app do WhatsApp (agora: '+(waPref()==='business'?'Business':waPref()==='pessoal'?'pessoal':'perguntar')+')</button>'+
       '<button type="button" data-env="ativo" data-id="'+e.id+'">'+ico(e.ativo===false?'i-check':'i-x')+(e.ativo===false?'Reativar link':'Desativar link')+'</button>'+
       '<button type="button" data-env="apagar" data-id="'+e.id+'" style="color:var(--neg)">'+ico('i-x')+'Apagar envio</button></div><p class="hint" style="margin:0">Desativar: o cliente não consegue mais abrir. Apagar: some daqui (os arquivos continuam no Drive).</p></form>';sheet.hidden=false;return}
   if(k==='download'){const novo=!e.soVer;b.disabled=true;const t0=b.textContent;
@@ -2705,7 +2729,7 @@ function renderAlbuns(){
       (a.status==='aberto'?'<span>'+(n?'Cliente já marcou '+n+(lim?' de '+lim:''):'Cliente ainda não começou')+(pr!=null?' · prazo '+dCurta(a.prazo)+(pr<0?' <b style="color:var(--neg)">(vencido)</b>':''):'')+'</span>':'')+
       (a.enviadoEm?'<span>Seleção enviada '+fmtQuando(a.enviadoEm)+'</span>':'')+(a.obs?'<span>Recado: "'+esc(a.obs)+'"</span>':'')+'</div>'+
       (lim?'<div class="prog"><i style="width:'+Math.min(100,n/lim*100)+'%"></i></div>':'')+
-      '<div class="acts">'+(a.status==='aberto'?'<button class="btn sm primary" data-alb="copiar" data-id="'+a.id+'">Copiar link do cliente</button><a class="btn sm" href="https://wa.me/?text='+encodeURIComponent('Olá! Suas fotos estão prontas para escolher as do álbum: '+linkCliente_(a))+'" target="_blank" rel="noopener">WhatsApp</a>':'<button class="btn sm primary" data-alb="ver" data-id="'+a.id+'">Ver seleção ('+n+')</button>')+
+      '<div class="acts">'+(a.status==='aberto'?'<button class="btn sm primary" data-alb="copiar" data-id="'+a.id+'">Copiar link do cliente</button><button type="button" class="btn sm" data-wa="'+encodeURIComponent('Olá! Suas fotos estão prontas para escolher as do álbum: '+linkCliente_(a))+'">WhatsApp</button>':'<button class="btn sm primary" data-alb="ver" data-id="'+a.id+'">Ver seleção ('+n+')</button>')+
       '<a class="btn sm ghost" href="'+linkCliente_(a)+'" target="_blank" rel="noopener">Abrir galeria</a><button class="btn sm ghost" data-alb="editar" data-id="'+a.id+'">Editar</button></div></div>'}).join('')+'</div>';
 }
 async function listarFotos(pastaId,grupo,prof,out){
@@ -2754,7 +2778,7 @@ function formAlbum(a){const novo=!a;
 function mostrarLink(a){const link=linkCliente_(a);
   sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Álbum criado</h2><p class="muted" style="margin:0;font-size:14px">'+arr(a.fotos).length+' fotos'+(a.limite?' · o cliente pode escolher até '+a.limite:'')+'. Mande este link para o cliente:</p>'+
     '<div class="fld"><input readonly value="'+esc(link)+'" onclick="this.select()"></div>'+
-    '<div class="formacts"><a class="btn" href="https://wa.me/?text='+encodeURIComponent('Olá! Suas fotos estão prontas. Escolham aqui as fotos do álbum: '+link)+'" target="_blank" rel="noopener">Mandar no WhatsApp</a><button type="button" class="btn primary" data-alb="copiar" data-id="'+a.id+'">Copiar link</button><button type="button" class="btn ghost" data-close>Fechar</button></div></form>';
+    '<div class="formacts"><button type="button" class="btn" data-wa="'+encodeURIComponent('Olá! Suas fotos estão prontas. Escolham aqui as fotos do álbum: '+link)+'">Mandar no WhatsApp</button><button type="button" class="btn primary" data-alb="copiar" data-id="'+a.id+'">Copiar link</button><button type="button" class="btn ghost" data-close>Fechar</button></div></form>';
   sheet.hidden=false}
 function verSelecao(id){const a=S.albuns.find(x=>x.id===id);if(!a)return;
   const sel=arr(a.selecionadas),mapa=Object.fromEntries(arr(a.fotos).map(f=>[f.id,f])),fotos=sel.map(i=>mapa[i]).filter(Boolean);
