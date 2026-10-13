@@ -390,6 +390,7 @@ details.panel[open] summary{margin-bottom:12px}
 .envth{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;height:96px;background:var(--panel2)}
 .envth span{background:var(--hover) center/cover no-repeat}
 .envth span:only-child{grid-column:1/-1}
+.linkbtn{background:none;border:0;padding:0;color:var(--gold);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
 .mkservs{display:flex;flex-direction:column;gap:6px}
 .mks{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
 .mks label{display:flex;gap:10px;align-items:center;font-weight:700;cursor:pointer}.mks label input{width:18px;height:18px}
@@ -2301,13 +2302,15 @@ function renderEnvios(){
   if(S.fEnv==='ativos')es=es.filter(e=>e.ativo!==false);
   if(q)es=es.filter(e=>((e.titulo||'')+' '+lojaNome(e.loja)).toLowerCase().includes(q));
   if(!es.length){body.innerHTML='<div class="panel">'+emptyMsg('Nenhum envio ainda','Toque em "Novo envio", suba os vídeos ou fotos e mande o link pelo WhatsApp. O cliente assiste e baixa na qualidade original.')+'</div>';return}
+  setTimeout(sincVivos,50);
   body.innerHTML='<div class="envs">'+es.map(e=>{if(e.tipo==='carros')return cardVitrine(e);const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length,nf=arqs.length-nv,tot=arqs.reduce((s,a)=>s+(Number(a.size)||0),0);
     const dl='<button class="dltog'+(e.soVer?' off':'')+'" data-env="download" data-id="'+e.id+'" title="Tocar para mudar">'+(e.soVer?'🔒 Só visualizar':'⬇ Download liberado')+'</button>';
+    const vv=e.vivo?'<span class="chip ok" title="O link acompanha a pasta do Drive">🔄 Link fixo'+(e.mesNome?' · '+esc(e.mesNome):'')+'</span>':'';
     const st=e.ativo===false?'<span class="chip late">Link desativado</span>':e.abertoEm?'<span class="chip rec">Cliente abriu'+(e.aberturas>1?' '+e.aberturas+'x':'')+'</span>':'<span class="chip eq">Ainda não abriu</span>';
     const th=arqs.slice(0,4).map(a=>'<span style="background-image:url(\'https://drive.google.com/thumbnail?id='+encodeURIComponent(a.id)+'&sz=w300\')"></span>').join('');
     return '<div class="env"><div class="envth">'+(th||'<span></span>')+'</div><div class="envbd"><div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><div class="t">'+esc(e.titulo)+'</div>'+chipEmp(e.empresa)+'</div>'+
       '<div class="meta"><span>'+[nv?nv+(nv===1?' vídeo':' vídeos'):'',nf?nf+(nf===1?' foto':' fotos'):''].filter(Boolean).join(' e ')+(tot?' · '+tamTxt(tot):'')+(e.loja?' · '+esc(lojaNome(e.loja)):'')+'</span>'+
-      '<span>Criado '+quandoIso(e.criadoEm)+(e.criadoPor?' por '+esc(e.criadoPor):'')+'</span>'+(e.abertoEm?'<span>Último acesso '+quandoIso(e.ultimoAcesso||e.abertoEm)+(e.baixados?' · '+e.baixados+' download'+(e.baixados===1?'':'s'):'')+'</span>':'')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+st+dl+'</div>'+
+      '<span>Criado '+quandoIso(e.criadoEm)+(e.criadoPor?' por '+esc(e.criadoPor):'')+'</span>'+(e.abertoEm?'<span>Último acesso '+quandoIso(e.ultimoAcesso||e.abertoEm)+(e.baixados?' · '+e.baixados+' download'+(e.baixados===1?'':'s'):'')+'</span>':'')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+st+vv+dl+'</div>'+(e.vivo?'<span class="hint" style="margin:0">Atualizado '+(e.sincEm?quandoIso(e.sincEm):'—')+' · <button type="button" class="linkbtn" data-env="sinc" data-id="'+e.id+'">atualizar agora</button></span>':'')+
       '<div class="acts"><button class="btn sm primary" data-env="whats" data-id="'+e.id+'">WhatsApp</button><button class="btn sm" data-env="copiar" data-id="'+e.id+'">Copiar link</button><a class="btn sm ghost" href="'+esc(linkEnvio(e))+'" target="_blank" rel="noopener">Ver como o cliente</a><button class="btn sm ghost" data-env="mais" data-id="'+e.id+'">Mais…</button></div></div></div>'}).join('')+'</div>';
 }
 function cardVitrine(e){const n=e.nCarros||0;
@@ -2316,6 +2319,41 @@ function cardVitrine(e){const n=e.nCarros||0;
   return '<div class="env"><div class="envth">'+(th||'<span></span>')+'</div><div class="envbd"><div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><div class="t">'+esc(e.titulo)+'</div><span class="chip elite">Vitrine</span></div>'+
     '<div class="meta"><span>'+n+(n===1?' carro':' carros')+' · '+esc(lojaNome(e.loja))+'</span><span>Link fixo: os carros novos aparecem nele sozinhos'+(e.atualizadoEm?' · atualizado '+quandoIso(e.atualizadoEm):'')+'</span>'+(e.abertoEm?'<span>Último acesso '+quandoIso(e.ultimoAcesso||e.abertoEm)+(e.baixados?' · '+e.baixados+' download'+(e.baixados===1?'':'s'):'')+'</span>':'')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+st+'</div>'+
     '<div class="acts"><button class="btn sm primary" data-env="carros" data-id="'+e.id+'">Carros</button><button class="btn sm" data-env="whats" data-id="'+e.id+'">WhatsApp</button><button class="btn sm" data-env="copiar" data-id="'+e.id+'">Copiar link</button><a class="btn sm ghost" href="'+esc(linkEnvio(e))+'" target="_blank" rel="noopener">Ver como a loja</a><button class="btn sm ghost" data-env="mais" data-id="'+e.id+'">Mais…</button></div></div></div>'}
+/* ---------- Link fixo: o mesmo link do cliente acompanha a pasta do Drive (só o mês mais recente), separando vídeos e fotos ---------- */
+function mesDaPasta(nome){const n=nrmC(nome);let mi=-1;for(let i=0;i<12;i++){const m=nrmC(MES_NOME[i]);if(n.startsWith(m)||new RegExp('(^|[^a-z])'+m+'([^a-z]|$)').test(n)){mi=i;break}}
+  let y=(String(nome).match(/(20\d{2})/)||[])[1],mo=mi+1;
+  if(mi<0){const d=String(nome).match(/\b(\d{1,2})[-._/](20\d{2})\b/);if(!d)return null;mo=+d[1];y=d[2];if(mo<1||mo>12)return null}
+  const ag=new Date();if(!y)y=mo>ag.getMonth()+3?ag.getFullYear()-1:ag.getFullYear();return (+y)*100+mo}
+async function atualizarVivo(e,manual){if(!e||!e.vivo||!e.raiz||!e.raiz.id)return {n:0,mes:''};
+  const fs=await dListar(e.raiz.id),meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
+  const alvo=e.modo==='tudo'||!meses.length?{id:e.raiz.id,name:e.raiz.nome}:meses[0].f;
+  const c=await coletarMidia(alvo.id);
+  const arqs=c.arqs.map(a=>({id:a.id,nome:a.name,mime:a.mimeType||'',size:Number(a.size)||0,g:/^video\//.test(a.mimeType||'')?'Vídeos':'Fotos'}))
+    .sort((x,y)=>(x.g===y.g?0:x.g==='Vídeos'?-1:1)||x.nome.localeCompare(y.nome,'pt',{numeric:true})).slice(0,1500);
+  const up={arquivos:arqs,grupos:[],pasta:{id:alvo.id,nome:alvo.name||''},mesNome:alvo.id===e.raiz.id?'':alvo.name,sincEm:new Date().toISOString()};
+  if(!e.publico){try{await dLinkPublico(e.raiz.id)}catch(_){}up.publico=true}
+  const mudou=JSON.stringify(arqs.map(a=>a.id))!==JSON.stringify((e.arquivos||[]).map(a=>a.id))||up.pasta.id!==(e.pasta&&e.pasta.id)||!e.publico;
+  if(mudou||manual)await store.update('envios',e.id,up);else await store.update('envios',e.id,{sincEm:up.sincEm});
+  return {n:arqs.length,mes:up.mesNome}}
+const vivoFeito={};
+async function sincVivos(){if(!driveConectado()||S.tab!=='envios')return;
+  for(const e of (S.envios||[]).filter(x=>x.vivo&&x.ativo!==false)){const ult=Date.parse(e.sincEm||0)||0;if(vivoFeito[e.id]||Date.now()-ult<10*60e3)continue;vivoFeito[e.id]=1;
+    try{await atualizarVivo(e)}catch(_){}setTimeout(()=>{delete vivoFeito[e.id]},10*60e3)}}
+function formVivo(e){let raiz=e.raiz||null;
+  sheet.innerHTML='<form id="fViv" novalidate style="max-width:560px"><h2>Link fixo · '+esc(e.titulo)+'</h2><p class="muted" style="margin:0;font-size:14px">O cliente usa sempre <b style="color:var(--ink)">este mesmo link</b>. Tudo que vocês colocarem na pasta do Drive aparece nele, separado em <b style="color:var(--ink)">Vídeos</b> e <b style="color:var(--ink)">Fotos</b>.</p>'+
+    '<div class="fld"><span class="l">Pasta do cliente no Drive</span><div class="drvbtns"><button type="button" class="btn sm" id="vvPasta">'+ico('i-folder')+'Escolher pasta</button></div><div class="hint" id="vvTx">'+(raiz?'<b style="color:var(--ink)">'+esc(raiz.nome)+'</b>':'A pasta onde ficam os meses (Outubro, Novembro…) ou os arquivos do cliente.')+'</div></div>'+
+    '<div class="fld"><span class="l">O que o cliente vê</span><div class="seg pills" id="vvModo"><button type="button" data-v="mes" aria-pressed="'+(e.modo!=='tudo')+'">Só o mês mais recente</button><button type="button" data-v="tudo" aria-pressed="'+(e.modo==='tudo')+'">Tudo da pasta</button></div><span class="hint">Mês mais recente: se a pasta tiver Outubro e Novembro, mostra só Novembro. Quando vocês criarem Dezembro, passa a mostrar Dezembro.</span></div>'+
+    '<div class="err" id="vvErr"></div><div class="formacts">'+(e.vivo?'<button type="button" class="btn ghost danger" id="vvOff" style="margin-right:auto">Desligar link fixo</button>':'')+'<button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar e atualizar</button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);let modo=e.modo==='tudo'?'tudo':'mes';
+  q('#vvModo').onclick=ev=>{const b=ev.target.closest('[data-v]');if(!b)return;modo=b.dataset.v;q('#vvModo').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))};
+  q('#vvPasta').onclick=async()=>{try{await token()}catch(er){q('#vvErr').textContent=er.message;return}let ini=raiz&&raiz.id;if(!ini&&e.loja){try{ini=await pastaDestino({tipo:'elite',loja:e.loja,titulo:''})}catch(_){}}
+    abrirSeletor(ini||null,f=>{if(f.mimeType!==FOLDER){toast('Escolha uma pasta.');return}raiz={id:f.id,nome:f.name};q('#vvTx').innerHTML='<b style="color:var(--ink)">'+esc(f.name)+'</b>'})};
+  if(q('#vvOff'))q('#vvOff').onclick=async()=>{try{await write(()=>store.update('envios',e.id,{vivo:false}))}catch(_){return}closeSheet();toast('Link fixo desligado. Os arquivos atuais continuam no link.')};
+  q('#fViv').onsubmit=async ev=>{ev.preventDefault();if(!raiz){q('#vvErr').textContent='Escolha a pasta do cliente no Drive.';return}
+    const b=q('#fViv button[type=submit]');b.disabled=true;b.textContent='Lendo a pasta…';
+    try{const novo=Object.assign({},e,{vivo:true,raiz,modo});await write(()=>store.update('envios',e.id,{vivo:true,raiz,modo}));const r=await atualizarVivo(novo,true);
+      closeSheet();toast('Link fixo ligado: '+r.n+' arquivos'+(r.mes?' de '+r.mes:''))}
+    catch(er){q('#vvErr').textContent=er.message||'Não deu certo';b.disabled=false;b.textContent='Salvar e atualizar'}}}
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='envBusca')renderEnvios()});
 function msgEnvio(e){if(e.tipo==='carros')return 'Olá! Aqui é da Elite Marketing Digital. Neste link ficam as fotos e vídeos dos carros da '+(lojaNome(e.loja)||'loja')+', separados por mês e em qualidade original. É só buscar pelo modelo, marca ou ano (ex.: Sandero 2019) e baixar:\n'+linkEnvio(e)+'\n\nO link é sempre o mesmo: os carros novos vão aparecendo nele.';const arqs=e.arquivos||[],nv=arqs.filter(a=>/^video\//.test(a.mime||'')).length;
   return 'Olá! '+(e.empresa==='elite'?'Aqui é da Elite Marketing Digital. ':'Aqui é da Durães Fotografia. ')+'Seguem '+(nv?(nv===1?'o seu vídeo':'os seus vídeos'):'os seus arquivos')+' de "'+e.titulo+'" em alta qualidade. É só abrir o link para '+(e.soVer?'assistir':'assistir e baixar')+':\n'+linkEnvio(e)}
@@ -2328,6 +2366,7 @@ function formEnvio(){
     '<div class="two"><div class="fld" id="envLojaW" hidden><label for="envLoja">Loja (opcional)</label><select id="envLoja">'+opts([['','—']].concat(L.map(l=>[l.id,l.nome])),'')+'</select></div>'+
     '<div class="fld"><label for="envTar">Trabalho (opcional)</label><select id="envTar">'+opts([['','—']].concat(ts.map(t=>[t.id,t.titulo+(t.data?' · '+dCurta(t.data):'')])),'')+'</select></div></div>'+
     '<div class="fld"><label for="envMsg">Recado na página (opcional)</label><textarea id="envMsg" rows="2" placeholder="Ex.: Foi um prazer registrar esse dia! Qualquer coisa, chama a gente."></textarea></div>'+
+    '<label class="tgl"><input type="checkbox" id="envVivo"><span><b>Link fixo (acompanha a pasta)</b><small>Escolha no Drive a pasta do cliente. O link mostra sempre o mês mais recente e atualiza sozinho quando vocês colocam arquivos novos.</small></span></label>'+
     '<label class="tgl"><input type="checkbox" id="envSoVer"><span><b>Só visualizar</b><small>O cliente assiste e vê as fotos, sem os botões de baixar. Dá para liberar o download depois.</small></span></label>'+
     '<div class="fld"><span class="l">Arquivos</span><div class="drvbtns"><button type="button" class="btn sm primary" id="envSubir">'+ico('i-file')+'Subir vídeos/fotos</button><button type="button" class="btn sm" id="envPasta">'+ico('i-folder')+'Subir uma pasta (com subpastas)</button><button type="button" class="btn sm ghost" id="envDrive">Escolher no Drive</button></div>'+
     '<input type="file" id="envFiles" multiple accept="video/*,image/*" hidden><input type="file" id="envDir" webkitdirectory directory multiple hidden>'+
@@ -2350,6 +2389,7 @@ function formEnvio(){
       else{pastaDrive=null;arquivosDrive=[f];if(!f.size){try{const i=await(await gfetch(DAPI+'/files/'+f.id+'?fields=id,name,mimeType,size&supportsAllDrives=true')).json();arquivosDrive=[i]}catch(_){}}}
       locais=null;err('');resumo()}catch(er){err(er.message)}})};
   q('#fEnv').onsubmit=async e=>{e.preventDefault();const tit=q('#envTit').value.trim();if(!tit)return err('Dê um título (o cliente vê).');
+    if(q('#envVivo').checked&&!pastaDrive)return err('Para o link fixo, use "Escolher no Drive" e escolha a pasta do cliente.');
     if(!locais&&!arquivosDrive)return err('Escolha os vídeos ou fotos.');
     const b=q('#fEnv button[type=submit]');b.disabled=true;b.textContent='Enviando…';
     try{let pasta=pastaDrive,arqs=arquivosDrive;
@@ -2364,7 +2404,10 @@ function formEnvio(){
         pasta:pasta?{id:pasta.id,nome:pasta.name||''}:null,soVer,grupos:gruposDrive.slice(0,60),
         arquivos:arqs.slice(0,1500).map(f=>({id:f.id,nome:f.name,mime:f.mimeType||'',size:Number(f.size)||0,g:f.grupo||''})).sort((x,y)=>x.g.localeCompare(y.g,'pt')||x.nome.localeCompare(y.nome,'pt',{numeric:true})),
         criadoEm:new Date().toISOString(),criadoPor:meuMembro()||(S.me&&S.me.nome)||'',ativo:true,aberturas:0,baixados:0};
-      const id=idAleatorio();await write(()=>db.collection('envios').doc(id).set(doc));closeSheet();mostrarEnvio(Object.assign({id},doc))}
+      const vivo=q('#envVivo').checked&&pastaDrive;if(vivo)Object.assign(doc,{vivo:true,raiz:{id:pastaDrive.id,nome:pastaDrive.name||''},modo:'mes'});
+      const id=idAleatorio();await write(()=>db.collection('envios').doc(id).set(doc));
+      if(vivo){b.textContent='Organizando o mês…';try{await atualizarVivo(Object.assign({id},doc),true)}catch(_){}}
+      closeSheet();mostrarEnvio(Object.assign({id},doc))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Criar link'}};
   q('#envTit').focus()}
 function mostrarEnvio(e){const link=linkEnvio(e);
@@ -2379,9 +2422,12 @@ async function envioAcao(b){const k=b.dataset.env,id=b.dataset.id;const e=(S.env
   if(k==='carros'){gerenciarCarros(e);return}
   if(k==='copiar'){dCopiar(linkEnvio(e));return}
   if(k==='whats'){abrirWhats(msgEnvio(e));return}
+  if(k==='vivo'){try{await token()}catch(er){toast(er.message);return}formVivo(e);return}
+  if(k==='sinc'){b.disabled=true;b.textContent='atualizando…';try{await token();const r=await atualizarVivo(e,true);toast(r.n+' arquivos'+(r.mes?' de '+r.mes:'')+' no link')}catch(er){toast(er.message||'Não deu certo')}finally{b.disabled=false;b.textContent='atualizar agora'}return}
   if(k==='waTroca'){waSet('');closeSheet();toast('Na próxima vez a Central pergunta qual WhatsApp usar.');return}
   if(k==='mais'){sheet.innerHTML='<form novalidate onsubmit="return false"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(e.titulo)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div><div class="morenav">'+
       (e.pasta&&e.pasta.id?'<a href="https://drive.google.com/drive/folders/'+encodeURIComponent(e.pasta.id)+'" target="_blank" rel="noopener" class="mnlink">'+ico('i-drive')+'Abrir no Drive</a>':'')+
+      (e.tipo==='carros'?'':'<button type="button" data-env="vivo" data-id="'+e.id+'">'+ico('i-folder')+(e.vivo?'Link fixo: trocar pasta ou desligar':'Transformar em link fixo (acompanha a pasta do Drive)')+'</button>')+
       '<button type="button" data-env="waTroca" data-id="'+e.id+'">'+ico('i-send')+'Trocar app do WhatsApp (agora: '+(waPref()==='business'?'Business':waPref()==='pessoal'?'pessoal':'perguntar')+')</button>'+
       '<button type="button" data-env="ativo" data-id="'+e.id+'">'+ico(e.ativo===false?'i-check':'i-x')+(e.ativo===false?'Reativar link':'Desativar link')+'</button>'+
       '<button type="button" data-env="apagar" data-id="'+e.id+'" style="color:var(--neg)">'+ico('i-x')+'Apagar envio</button></div><p class="hint" style="margin:0">Desativar: o cliente não consegue mais abrir. Apagar: some daqui (os arquivos continuam no Drive).</p></form>';sheet.hidden=false;return}

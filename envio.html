@@ -162,7 +162,7 @@ function pinta(){
       (fs.length?'<div class="fotos"'+(vs.length?' style="margin-top:14px"':'')+'>'+fs.map(a=>'<button class="ph" data-ver="'+a.i+'" aria-label="Ver '+esc(a.nome)+'"><img src="'+thumb(a.id,400)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.opacity=.2"></button>').join('')+'</div>':'')+'</section>'}).join('');
   app.innerHTML='<div class="wrap"><header>'+(el?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img class="lg" src="logos/duraes.png" alt="Durães Fotografia">')+
     '<h1>'+esc(E.titulo||'Seus arquivos')+'</h1>'+(E.msg?'<p class="msg">'+esc(E.msg)+'</p>':'')+
-    '<span class="meta">'+desc+(total&&!so?' · '+tam(total)+' · qualidade original':'')+'</span>'+
+    (E.vivo&&E.mesNome?'<span class="lock" style="color:var(--ac);border-color:var(--ac)">Arquivos de '+esc(E.mesNome)+'</span>':'')+'<span class="meta">'+desc+(total&&!so?' · '+tam(total)+' · qualidade original':'')+'</span>'+
     (so?'<span class="lock">🔒 Somente visualização</span>':(ARQ.length>1&&E.pasta&&E.pasta.id?'<a class="btn pri" href="https://drive.google.com/drive/folders/'+encodeURIComponent(E.pasta.id)+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Baixar tudo</a>':''))+'</header></div>'+
     (grupos.length>1?'<nav class="tabs"><div class="wrap"><button data-f="" aria-pressed="'+(filtro==='')+'">Tudo ('+ARQ.length+')</button>'+grupos.map(g=>'<button data-f="'+esc(g)+'" aria-pressed="'+(filtro===g)+'">'+esc(rotulo(g)||'Outros')+' ('+ARQ.filter(a=>(a.g||'')===g).length+')</button>').join('')+'</div></nav>':'')+
     '<div class="wrap">'+secoes+
