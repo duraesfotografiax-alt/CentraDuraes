@@ -2328,9 +2328,9 @@ async function atualizarVivo(e,manual){if(!e||!e.vivo||!e.raiz||!e.raiz.id)retur
   const fs=await dListar(e.raiz.id),meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
   const alvo=e.modo==='tudo'||!meses.length?{id:e.raiz.id,name:e.raiz.nome}:meses[0].f;
   const c=await coletarMidia(alvo.id);
-  const arqs=c.arqs.map(a=>({id:a.id,nome:a.name,mime:a.mimeType||'',size:Number(a.size)||0,g:/^video\//.test(a.mimeType||'')?'Vídeos':'Fotos'}))
-    .sort((x,y)=>(x.g===y.g?0:x.g==='Vídeos'?-1:1)||x.nome.localeCompare(y.nome,'pt',{numeric:true})).slice(0,1500);
-  const up={arquivos:arqs,grupos:[],pasta:{id:alvo.id,nome:alvo.name||''},mesNome:alvo.id===e.raiz.id?'':alvo.name,sincEm:new Date().toISOString()};
+  const arqs=c.arqs.map(a=>({id:a.id,nome:a.name,mime:a.mimeType||'',size:Number(a.size)||0,g:a.grupo||'',t:/^video\//.test(a.mimeType||'')?'v':'f'}))
+    .sort((x,y)=>(x.t===y.t?0:x.t==='v'?-1:1)||x.g.localeCompare(y.g,'pt',{numeric:true})||x.nome.localeCompare(y.nome,'pt',{numeric:true})).slice(0,1500);
+  const up={arquivos:arqs,grupos:c.grupos.slice(0,300),pasta:{id:alvo.id,nome:alvo.name||''},mesNome:alvo.id===e.raiz.id?'':alvo.name,sincEm:new Date().toISOString()};
   if(!e.publico){try{await dLinkPublico(e.raiz.id)}catch(_){}up.publico=true}
   const mudou=JSON.stringify(arqs.map(a=>a.id))!==JSON.stringify((e.arquivos||[]).map(a=>a.id))||up.pasta.id!==(e.pasta&&e.pasta.id)||!e.publico;
   if(mudou||manual)await store.update('envios',e.id,up);else await store.update('envios',e.id,{sincEm:up.sincEm});

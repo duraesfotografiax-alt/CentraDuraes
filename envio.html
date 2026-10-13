@@ -94,6 +94,16 @@ header.ch .row{display:flex;gap:8px;flex-wrap:wrap}
 .phw{position:relative}
 .phd{position:absolute;right:6px;bottom:6px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
 .phd svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pastas{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:16px 0 4px}
+@media (max-width:560px){.pastas{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.pasta{display:flex;flex-direction:column;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;padding:0;cursor:pointer;color:inherit}
+.pasta:hover{border-color:var(--ac)}
+.pim{display:block;aspect-ratio:16/10;background:#000 center/cover no-repeat}
+.pbd{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;padding:10px 12px 12px}
+.pbd svg{width:18px;height:18px;stroke:var(--ac);fill:none;stroke-width:2;grid-row:1/3}
+.pbd b{font-size:15px;overflow-wrap:anywhere}.pbd small{color:var(--muted);font-size:12.5px;font-weight:600}
+.vpath{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:16px 0 6px}.vpath h2{font-family:var(--display);font-size:20px;margin:0}.vpath small{color:var(--faint);font-weight:600;flex:1}
+.tabs button svg{width:13px;height:13px;fill:currentColor;vertical-align:-1px}
 footer{text-align:center;color:var(--faint);font-size:12px;padding:0 0 30px}
 .spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--ac);border-radius:50%;animation:g .8s linear infinite;margin:80px auto}
 @keyframes g{to{transform:rotate(360deg)}}
@@ -138,10 +148,43 @@ else{
     if(!d.exists)return vazio('Link não encontrado','Ele pode ter sido apagado. Fale com quem te enviou.');
     E=d.data();
     if(E.ativo===false)return vazio('Link desativado','Fale com quem te enviou para receber um link novo.');
-    if(E.tipo==='carros')carregarCarros();else{ARQ=(E.arquivos||[]).map((a,i)=>Object.assign({i},a));pinta()}
+    if(E.tipo==='carros')carregarCarros();else{ARQ=(E.arquivos||[]).map((a,i)=>Object.assign({i},a));if(E.vivo&&ARQ.some(a=>a.t))pintaVivo();else pinta()}
     const agora=new Date().toISOString();const up={aberturas:firebase.firestore.FieldValue.increment(1),ultimoAcesso:agora};if(!E.abertoEm)up.abertoEm=agora;ref.update(up).catch(()=>{});
   }).catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'));
 }
+
+/* ---------- Link fixo: abas Vídeos / Fotos e, dentro delas, as pastas do Drive (dia 13, dia 14, Postados…) ---------- */
+let VT='',VP=null;
+const ehTipoPasta=s=>/^(fotos?|v[ií]deos?|videos?|imagens?)$/i.test(String(s||'').trim());
+function chaveVivo(a){const seg=(a.g||'').split('/').filter(Boolean);if(seg.length&&ehTipoPasta(seg[0]))seg.shift();return {k:seg[0]||'',resto:seg.slice(1).join(' › ')}}
+function blocoArqs(vs,fs,so){return (vs.length?'<div class="vids">'+vs.map(a=>'<div class="it"><button class="th" data-ver="'+a.i+'" aria-label="Assistir '+esc(a.nome)+'"><img src="'+thumb(a.id,900)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.display=\'none\'"><span class="play"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></span></button>'+
+    '<div class="bd"><div class="nm">'+esc(a.nome)+'<small>Vídeo'+(a.size?' · '+tam(a.size):'')+'</small></div><div class="row"><button class="btn" data-ver="'+a.i+'">'+ico('pl')+'Assistir</button>'+(so?'':'<a class="btn pri" href="'+baixarUrl(a.id)+'" data-baixou rel="noopener">'+ico('dl')+'Baixar</a>')+'</div></div></div>').join('')+'</div>':'')+
+  (fs.length?'<div class="fotos"'+(vs.length?' style="margin-top:14px"':'')+'>'+fs.map(a=>'<button class="ph" data-ver="'+a.i+'" aria-label="Ver '+esc(a.nome)+'"><img src="'+thumb(a.id,400)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'ok\')" onerror="this.style.opacity=.2"></button>').join('')+'</div>':'')}
+function pintaVivo(){
+  const el=E.empresa==='elite',so=!!E.soVer;document.body.className=(el?'elite ':'')+(so?'sover':'');
+  document.title=(E.titulo||'Seus arquivos')+' · '+(el?'Elite Marketing Digital':'Durães Fotografia');
+  const vs=ARQ.filter(a=>a.t==='v'),fs=ARQ.filter(a=>a.t!=='v');if(!VT)VT=vs.length?'v':'f';if(VT==='v'&&!vs.length)VT='f';if(VT==='f'&&!fs.length)VT='v';
+  const doTipo=VT==='v'?vs:fs,iphone=/iPhone|iPad|iPod/.test(navigator.userAgent),pastas=Object.fromEntries((E.grupos||[]).map(g=>[g.nome,g.id]));
+  const grupos={};for(const a of doTipo){const c=chaveVivo(a);(grupos[c.k]=grupos[c.k]||[]).push(Object.assign({resto:c.resto},a))}
+  const chaves=Object.keys(grupos).filter(Boolean).sort((a,b)=>b.localeCompare(a,'pt',{numeric:true}));
+  const idPasta=k=>{const a=grupos[k]&&grupos[k][0];if(!a)return '';const seg=(a.g||'').split('/');const i=seg.indexOf(k);return pastas[seg.slice(0,i+1).join('/')]||''};
+  LISTA=[];let corpo='';
+  if(VP!=null&&grupos[VP]){const its=grupos[VP],subs=[...new Set(its.map(a=>a.resto))].sort((a,b)=>a.localeCompare(b,'pt',{numeric:true})),pid=idPasta(VP);
+    corpo='<div class="vpath"><button class="btn" data-vp="">'+ico('lt')+(VT==='v'?'Vídeos':'Fotos')+'</button><h2>'+esc(VP)+'</h2><small>'+plural(its.length,VT==='v'?'vídeo':'foto',VT==='v'?'vídeos':'fotos')+'</small>'+(!so&&pid&&its.length>1?'<a class="btn pri" href="https://drive.google.com/drive/folders/'+encodeURIComponent(pid)+'" target="_blank" rel="noopener" data-baixou>'+ico('fd')+'Baixar esta pasta</a>':'')+'</div>'+
+      subs.map(s=>{const x=its.filter(a=>a.resto===s),v=x.filter(ehVid),f=x.filter(a=>!ehVid(a));v.concat(f).forEach(a=>LISTA.push(a));return '<section class="gr">'+(s?'<div class="grh"><h2>'+esc(s)+'</h2></div>':'')+blocoArqs(v,f,so)+'</section>'}).join('')}
+  else{VP=null;const soltos=grupos['']||[],v=soltos.filter(ehVid),f=soltos.filter(a=>!ehVid(a));
+    corpo=(chaves.length?'<div class="pastas">'+chaves.map(k=>{const its=grupos[k],cap=its.find(a=>!ehVid(a))||its[0];return '<button class="pasta" data-vp="'+esc(k)+'"><span class="pim" style="background-image:url(\''+thumb(cap.id,500)+'\')"></span><span class="pbd">'+ico('fd')+'<b>'+esc(k)+'</b><small>'+plural(its.length,VT==='v'?'vídeo':'foto',VT==='v'?'vídeos':'fotos')+'</small></span></button>'}).join('')+'</div>':'')+
+      (soltos.length?'<section class="gr">'+(chaves.length?'<div class="grh"><h2>'+(VT==='v'?'Outros vídeos':'Outras fotos')+'</h2><small>'+soltos.length+'</small></div>':'')+blocoArqs(v,f,so)+'</section>':'');
+    v.concat(f).forEach(a=>LISTA.push(a));
+    if(!doTipo.length)corpo='<div class="empty"><b>Nada aqui ainda</b>Assim que a equipe colocar os arquivos, eles aparecem aqui.</div>'}
+  const total=ARQ.reduce((s,a)=>s+(Number(a.size)||0),0);
+  app.innerHTML='<div class="wrap"><header>'+(el?'<div class="lg" style="background-image:url(\'logos/elite.jpg\')"></div>':'<img class="lg" src="logos/duraes.png" alt="Durães Fotografia">')+
+    '<h1>'+esc(E.titulo||'Seus arquivos')+'</h1>'+(E.msg?'<p class="msg">'+esc(E.msg)+'</p>':'')+
+    (E.mesNome?'<span class="lock" style="color:var(--ac);border-color:var(--ac)">Arquivos de '+esc(E.mesNome)+'</span>':'')+'<span class="meta">'+[vs.length?plural(vs.length,'vídeo','vídeos'):'',fs.length?plural(fs.length,'foto','fotos'):''].filter(Boolean).join(' e ')+(total&&!so?' · '+tam(total)+' · qualidade original':'')+'</span>'+
+    (so?'<span class="lock">🔒 Somente visualização</span>':'')+'</header></div>'+
+    '<nav class="tabs"><div class="wrap">'+(vs.length?'<button data-vt="v" aria-pressed="'+(VT==='v')+'">'+ico('pl')+' Vídeos ('+vs.length+')</button>':'')+(fs.length?'<button data-vt="f" aria-pressed="'+(VT==='f')+'">Fotos ('+fs.length+')</button>':'')+'</div></nav>'+
+    '<div class="wrap">'+corpo+(so?'':'<p class="tip">'+(iphone?'<b>No iPhone:</b> toque em <b>Baixar</b> e confirme. O arquivo vai para o app <b>Arquivos</b>; de lá, <b>Compartilhar → Salvar vídeo/imagem</b> manda para a galeria.':'<b>Dica:</b> toque em <b>Baixar</b> em cada arquivo, na qualidade original.')+' Para várias de uma vez, abra a pasta e use <b>Baixar esta pasta</b>.</p>')+'</div>'+
+    '<footer>'+(el?'Elite Marketing Digital':'Durães Fotografia')+'</footer>'}
 function rotulo(g){return g?g.split('/').join(' › '):''}
 function pinta(){
   const el=E.empresa==='elite',so=!!E.soVer;document.body.className=(el?'elite ':'')+(so?'sover':'');
@@ -172,6 +215,8 @@ function pinta(){
 }
 document.addEventListener('click',e=>{
   const f=e.target.closest('[data-f]');if(f){filtro=f.dataset.f;pinta();window.scrollTo({top:0});return}
+  const vt=e.target.closest('[data-vt]');if(vt){VT=vt.dataset.vt;VP=null;pintaVivo();window.scrollTo({top:0});return}
+  const vp=e.target.closest('[data-vp]');if(vp){VP=vp.dataset.vp||null;pintaVivo();window.scrollTo({top:0});return}
   const mb=e.target.closest('[data-mes]');if(mb){mesF=mb.dataset.mes;lista();return}
   const cb=e.target.closest('[data-car]');if(cb){const c=CARS.find(x=>x.id===cb.dataset.car);if(c)verCarro(c);return}
   if(e.target.closest('[data-voltar]')){if(history.state&&history.state.c)history.back();else{history.replaceState(null,'','?e='+encodeURIComponent(id));vitrine();lista()}return}
