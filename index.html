@@ -1502,11 +1502,19 @@ async function dCriarPasta(nome,pai){const j=await(await gfetch(DAPI+'/files?sup
 async function dAcharPasta(nome,pai){const q="'"+pai+"' in parents and trashed=false and mimeType='"+FOLDER+"' and name='"+String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
   const j=await(await gfetch(DAPI+'/files?q='+encodeURIComponent(q)+'&fields=files(id,name,webViewLink)&supportsAllDrives=true&includeItemsFromAllDrives=true')).json();return (j.files||[])[0]||null}
 async function dInfo(id){return (await gfetch(DAPI+'/files/'+id+'?fields=id,name,webViewLink,mimeType&supportsAllDrives=true')).json()}
-async function dSubirArquivo(file,pai,onp){
+async function dSessao(file,pai){const t=await token();
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Type':file.type||'application/octet-stream','X-Upload-Content-Length':String(file.size)},body:JSON.stringify({name:file.name,parents:[pai]})});
+  if(!r.ok)throw new Error('Falha ao iniciar envio de '+file.name+' ('+r.status+')');
+  const loc=r.headers.get('Location');if(!loc)throw new Error('O Google não liberou o envio. Recarregue e tente de novo.');return loc}
+async function dSubirArquivo(file,pai,onp,locPronto){
+  if(locPronto)return dEnviarPartes(file,locPronto,onp);
   const t=await token();
   const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Type':file.type||'application/octet-stream','X-Upload-Content-Length':String(file.size)},body:JSON.stringify({name:file.name,parents:[pai]})});
   if(!r.ok)throw new Error('Falha ao iniciar envio de '+file.name);
   const loc=r.headers.get('Location');if(!loc)throw new Error('O Google não liberou o envio. Recarregue e tente de novo.');
+  return dEnviarPartes(file,loc,onp)}
+/* manda o arquivo em partes para o endereço de envio (não precisa mais do login do Google: envios longos não param quando o login vence) */
+async function dEnviarPartes(file,loc,onp){
   const CH=16*1024*1024;let off=0,falhas=0;
   if(!file.size){const z=await fetch(loc,{method:'PUT',headers:{'Content-Range':'bytes */0'}});if(!z.ok)throw new Error('Falha em '+file.name);return}
   while(off<file.size){const end=Math.min(off+CH,file.size);
@@ -1540,10 +1548,14 @@ async function dSubir(files,pai,opts){
       if(!caminho)return raiz;if(cache[caminho])return cache[caminho];
       cache[caminho]=(async()=>{const partes=caminho.split('/');const nome=partes.pop();const p=await pasta(partes.join('/'));return (await dCriarPasta(nome,p)).id})();
       return cache[caminho]};
+    // abre o envio de todos os arquivos logo no começo (rápido); depois só manda os dados
+    const sess=new Map();let k=0;
+    for(const f of files){k++;upPainel('<b>Preparando o envio</b><span class="muted">'+k+' de '+files.length+' arquivos</span><span class="hint">Não feche a Central nem bloqueie o celular.</span>');
+      const rel=(f.webkitRelativePath||f.name).split('/');rel.pop();if(temPastas)rel.shift();const destino=await pasta(rel.join('/'));sess.set(f,await dSessao(f,destino))}
+    pinta();
     const fila=files.slice();
-    const worker=async()=>{while(fila.length){const f=fila.shift();const rel=(f.webkitRelativePath||f.name).split('/');rel.pop();if(temPastas)rel.shift();
-      const destino=await pasta(rel.join('/'));let ant=0;
-      await dSubirArquivo(f,destino,x=>{feito+=x-ant;ant=x;pinta()});n++;pinta()}};
+    const worker=async()=>{while(fila.length){const f=fila.shift();let ant=0;
+      await dSubirArquivo(f,null,x=>{feito+=x-ant;ant=x;pinta()},sess.get(f));n++;pinta()}};
     await Promise.all([worker(),worker(),worker()]);
     upPainel('<b style="color:var(--pos)">Envio concluído</b><span class="muted">'+files.length+' arquivos · '+mb(total)+'</span>');setTimeout(()=>upPainel(null),5000);
     return raizInfo?raizInfo:await dInfo(raiz);
@@ -2561,10 +2573,14 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=t=>{q('#matErr').textContent=t};
   if(!m)q('#matLoja').onchange=()=>{q('#matOutW').hidden=q('#matLoja').value!=='__outro'};
   if(!m)q('#matOutW').hidden=q('#matLoja').value!=='__outro';
-  q('#matPick').onclick=()=>abrirPicker(q('#matFiles'),err);
-  q('#matFiles').onchange=e=>{arqs=[...e.target.files];const tot=arqs.reduce((s,f)=>s+f.size,0);q('#matSel').innerHTML='<b style="color:var(--ink)">'+arqs.length+' arquivo'+(arqs.length===1?'':'s')+'</b> · '+tamTxt(tot)+' · deixe a tela ligada até terminar'};
-  q('#fMat').onsubmit=async e=>{e.preventDefault();if(!arqs||!arqs.length)return err('Escolha os vídeos ou fotos.');
-    const b=q('#fMat button[type=submit]');b.disabled=true;b.textContent='Preparando…';const wl=await manterTelaLigada();
+  let esperando=false;
+  q('#matPick').onclick=()=>{if(driveConectado()){esperando=true;q('#matSel').innerHTML='<b style="color:var(--ink)">Esperando os vídeos…</b> Se escolheu muitos, o iPhone leva um tempo preparando. Espere aparecer a quantidade aqui antes de tocar em Subir.'}abrirPicker(q('#matFiles'),err)};
+  q('#matFiles').onchange=e=>{esperando=false;arqs=[...e.target.files];if(!arqs.length){arqs=null;return}const tot=arqs.reduce((s,f)=>s+f.size,0);q('#matSel').innerHTML='<b style="color:var(--ink)">'+arqs.length+' arquivo'+(arqs.length===1?'':'s')+'</b> · '+tamTxt(tot)+' · deixe a tela ligada até terminar'};
+  q('#fMat').onsubmit=async e=>{e.preventDefault();
+    if(!arqs||!arqs.length)return err(esperando?'Os vídeos ainda estão sendo preparados pelo iPhone. Espere aparecer a quantidade acima e toque em Subir de novo.':'Toque em "Escolher arquivos" e selecione os vídeos.');
+    const b=q('#fMat button[type=submit]');
+    if(!driveConectado()||gExp-Date.now()<15*60e3){try{await pedirToken('')}catch(er){return err('Precisa conectar o Google da empresa: '+er.message)}}
+    b.disabled=true;b.textContent='Preparando…';const wl=await manterTelaLigada();
     try{let doc=m,pasta=m&&m.pasta;
       if(!m){const lv=q('#matLoja').value,data=q('#matData').value||hoje(),out=q('#matOut')?q('#matOut').value.trim():'';
         if(lv==='__outro'&&!out){err('Escreva o nome.');b.disabled=false;b.textContent='Subir';return}
@@ -2584,33 +2600,46 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
       const lista=fs.filter(f=>/^(video|image)\//.test(f.mimeType||'')).map(f=>({id:f.id,nome:f.name,mime:f.mimeType||'',size:Number(f.size)||0})).sort((a,b2)=>a.nome.localeCompare(b2.nome,'pt',{numeric:true}));
       await write(()=>store.update('materiais',doc.id,{arquivos:lista.slice(0,800),atualizadoEm:new Date().toISOString(),baixadoPor:[]}));
       toast(arqs.length+' arquivo'+(arqs.length===1?'':'s')+' em '+matNome(doc)+' · '+dCurta(doc.data));abrirMateriais()}
-    catch(er){err(er.message||'O envio parou. Tente de novo.');b.disabled=false;b.textContent='Tentar de novo'}
+    catch(er){err(er.message||'O envio parou. Tente de novo.');toast('O envio parou: '+(er.message||'tente de novo'));b.disabled=false;b.textContent='Tentar de novo'}
     finally{try{wl&&wl.release()}catch(_){}}}}
-/* baixa a pasta inteira num .zip só (sem dividir em partes), gravando direto no disco: Chrome/Edge no computador */
+/* baixa a pasta inteira num .zip só (sem dividir em partes), gravando direto no disco: Chrome/Edge no computador.
+   Cada vídeo vem em 4 pedaços ao mesmo tempo (mais rápido) e dá para parar a qualquer momento. */
+let zipChave=true;
+function streamDrive(a,signal,onBytes){const size=Number(a.size)||0,CH=8*1024*1024,PAR=4,key=(window.FIREBASE_CONFIG||{}).apiKey||'';
+  const url=k=>DAPI+'/files/'+encodeURIComponent(a.id)+'?alt=media&supportsAllDrives=true'+(k?'&key='+encodeURIComponent(k):'');
+  const pede=async(range)=>{const h0=range?{Range:range}:{};let r=null;
+    if(zipChave&&key){try{r=await fetch(url(key),{headers:h0,signal});if(!r.ok){if(r.status<500)zipChave=false;r=null}}catch(e){if(signal.aborted)throw e;r=null}}
+    if(!r)r=await fetch(url(''),{headers:Object.assign({Authorization:'Bearer '+await token()},h0),signal});
+    if(!r.ok)throw new Error('O Drive não liberou '+a.nome+' ('+r.status+')');return r};
+  const pega=async(ini,fim)=>{for(let t=0;;t++){try{const r=await pede('bytes='+ini+'-'+fim);return new Uint8Array(await r.arrayBuffer())}catch(e){if(signal.aborted||t>=3)throw e;await new Promise(x=>setTimeout(x,1500*(t+1)))}}};
+  if(!size){let rd=null;return new ReadableStream({async pull(c){if(!rd)rd=(await pede('')).body.getReader();const {done,value}=await rd.read();if(done){c.close();return}onBytes(value.length);c.enqueue(value)},cancel(){try{rd&&rd.cancel()}catch(_){}}})}
+  let prox=0;const fila=[];
+  return new ReadableStream({async pull(c){while(fila.length<PAR&&prox<size){const i0=prox,f0=Math.min(size,i0+CH)-1;const p=pega(i0,f0);p.catch(()=>{});fila.push(p);prox=f0+1}
+      if(!fila.length){c.close();return}const buf=await fila.shift();onBytes(buf.length);c.enqueue(buf)}},{highWaterMark:0})}
 async function baixarZip(as,nome,b,aoTerminar){
+  if(b._ac){b._ac.abort();return}
   if(!window.showSaveFilePicker){toast('O zip único funciona no Chrome ou no Edge do computador. Use "Abrir no Drive" ou "Um por um".');return}
   if(!as.length){toast('Sem arquivos');return}
+  if(!driveConectado()){pedirToken('').then(()=>toast('Google conectado ✓ Toque de novo em Baixar pasta.')).catch(er=>toast(er.message));return}
   let fh;try{fh=await showSaveFilePicker({suggestedName:String(nome).replace(/[\\/:*?"<>|]+/g,'-').slice(0,80)+'.zip',types:[{description:'Arquivo ZIP',accept:{'application/zip':['.zip']}}]})}catch(_){return}
-  const t0=b.innerHTML;b.disabled=true;b.textContent='Preparando…';let ws=null;
-  try{await token();const {makeZip}=await import('./vendor/client-zip.js');
-    const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0;const usados={};
+  const t0=b.innerHTML,ac=new AbortController();b._ac=ac;b.classList.add('danger');b.textContent='Preparando… (toque para parar)';let ws=null;
+  try{const {makeZip}=await import('./vendor/client-zip.js');
+    const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0,ult=0;const usados={};
     const mb=x=>x>=1e9?(x/1e9).toFixed(1).replace('.',',')+' GB':Math.max(0,Math.round(x/1e6))+' MB';
-    const pinta=()=>{const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(Date.now()-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
-      b.textContent='Baixando '+i+'/'+as.length+' · '+mb(feito)+(total?' de '+mb(total)+' ('+pc+'%)':'')+(rest!=null&&feito>5e6?' · ~'+(rest<1?'1':rest)+' min':'')};
-    async function* arquivos(){for(const a of as){i++;pinta();
-      const r=await fetch(DAPI+'/files/'+encodeURIComponent(a.id)+'?alt=media&supportsAllDrives=true',{headers:{Authorization:'Bearer '+await token()}});
-      if(!r.ok||!r.body)throw new Error('O Drive não liberou '+a.nome+' ('+r.status+')');
+    const pinta=()=>{const agora=Date.now();if(agora-ult<300)return;ult=agora;const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(agora-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
+      b.textContent='⏹ Parar · '+i+'/'+as.length+' · '+(total?pc+'% de '+mb(total):mb(feito))+(v>2e5?' · '+(v/1e6).toFixed(1).replace('.',',')+' MB/s':'')+(rest!=null&&feito>5e6?' · ~'+(rest<1?'1':rest)+' min':'')};
+    async function* arquivos(){for(const a of as){if(ac.signal.aborted)return;i++;ult=0;pinta();
       let nm=a.nome||('arquivo'+i);if(usados[nm]){const k=nm.lastIndexOf('.');nm=(k>0?nm.slice(0,k):nm)+' ('+(++usados[nm])+')'+(k>0?nm.slice(k):'')}else usados[nm]=1;
-      const rd=r.body.getReader(),body=new ReadableStream({async pull(c){const {done,value}=await rd.read();if(done){c.close();return}feito+=value.length;pinta();c.enqueue(value)}});
-      yield {name:nm,input:body,size:Number(a.size)||undefined,lastModified:new Date()}}}
-    ws=await fh.createWritable();await makeZip(arquivos()).pipeTo(ws);ws=null;
-    b.innerHTML=t0;toast('Pronto: '+as.length+' arquivos em '+fh.name);aoTerminar&&aoTerminar()}
-  catch(er){try{ws&&await ws.abort()}catch(_){}b.innerHTML=t0;toast('O zip parou: '+(er.message||'erro')+'. Tente de novo.')}
-  finally{b.disabled=false}}
+      yield {name:nm,input:streamDrive(a,ac.signal,n=>{feito+=n;pinta()}),size:Number(a.size)||undefined,lastModified:new Date()}}}
+    ws=await fh.createWritable();await makeZip(arquivos()).pipeTo(ws,{signal:ac.signal});ws=null;
+    toast('Pronto: '+as.length+' arquivos em '+fh.name);aoTerminar&&aoTerminar()}
+  catch(er){try{ws&&await ws.abort()}catch(_){}if(ac.signal.aborted)toast('Download parado.');else toast('O zip parou: '+(er.message||'erro')+'. Tente de novo.')}
+  finally{b._ac=null;b.classList.remove('danger');b.innerHTML=t0;b.disabled=false}}
 async function baixarMaterial(m,b){const as=m.arquivos||[];if(!as.length){toast('Sem arquivos');return}
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&as.length>1){window.open(matPastaWeb(m),'_blank');return}
-  b.disabled=true;for(let k=0;k<as.length;k++){b.textContent='Baixando '+(k+1)+' de '+as.length+'…';const a=document.createElement('a');a.href=baixarDireto(as[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1300))}
-  b.disabled=false;b.textContent='Baixado ✓';const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}}
+  if(b._parar===false){b._parar=true;return}b._parar=false;const t1=b.innerHTML;
+  for(let k=0;k<as.length;k++){if(b._parar){toast('Parado em '+k+' de '+as.length);break}b.textContent='⏹ Parar · '+(k+1)+' de '+as.length;const a=document.createElement('a');a.href=baixarDireto(as[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1300))}
+  const parou=b._parar;b._parar=undefined;b.disabled=false;if(parou){b.innerHTML=t1;return}b.textContent='Baixado ✓';const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}}
 function verMaterial(m){const as=m.arquivos||[];
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:760px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(matNome(m))+' · '+esc(dCurta(m.data))+'</h2><button type="button" class="btn sm ghost" data-mat="voltar">Voltar</button></div>'+
     '<div class="list">'+as.map(a=>'<div class="row"><span class="carth" style="background-image:url(\''+thumbPub(a.id,240)+'\')"></span><div style="min-width:0"><div class="t">'+esc(a.nome)+'</div><div class="s"><span>'+(/^video/.test(a.mime)?'Vídeo':'Foto')+(a.size?' · '+tamTxt(a.size):'')+'</span></div></div><div class="acts"><a class="btn sm" href="'+esc(baixarDireto(a.id))+'" rel="noopener">'+ico('i-down')+'Baixar</a></div></div>').join('')+'</div></form>';
