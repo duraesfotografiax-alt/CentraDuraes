@@ -360,6 +360,7 @@ details.panel[open] summary{margin-bottom:12px}
 .iggrid .im{position:absolute;inset:0;background:center/cover no-repeat}
 .iggrid .tp{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 4px;font-size:11px}.iggrid .tp svg{width:13px;height:13px}
 .iggrid .nm{position:absolute;left:0;right:0;bottom:0;padding:16px 6px 5px;font-size:10.5px;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.augr{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.augh{display:flex;align-items:center;gap:8px}.augh svg{width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:2}.augh b{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
 .aupick{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .aupick button{position:relative;border:2px solid var(--line2);background:var(--panel2);border-radius:10px;padding:0 0 4px;color:var(--ink);text-align:left;overflow:hidden}
 .aupick button[aria-pressed="true"]{border-color:var(--gold)}
@@ -3041,25 +3042,39 @@ function formLoja(l,depois,nomeSug){const novo=!l;l=l||{nome:nomeSug||'',instagr
     try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id;if(depois)depois(id)}}catch(_){return}
     closeSheet();toast(novo?'Cliente cadastrado':'Cliente atualizado')};
   q('#ljNome').focus()}
-function itemRow(it){return '<div class="item"><input placeholder="Ex.: Ford Ka SE 2016" value="'+esc(it.titulo||'')+'" data-it="t"><select data-it="k">'+opts(Object.entries(TPOST),it.tipo||'reels')+'</select><button type="button" class="btn sm ghost danger" data-rm-item aria-label="Remover">✕</button></div>'}
+function itemRow(it){return '<div class="item"><input type="hidden" data-it="d" value="'+esc(it.drive||'')+'"><input placeholder="Ex.: Ford Ka SE 2016" value="'+esc(it.titulo||'')+'" data-it="t"><select data-it="k">'+opts(Object.entries(TPOST),it.tipo||'reels')+'</select><button type="button" class="btn sm ghost danger" data-rm-item aria-label="Remover">✕</button></div>'}
 function formEntrega(T){
   const eu=meuMembro()||(S.me&&S.me.nome)||'';
   sheet.innerHTML='<form id="fEn" novalidate><h2>Entregar edição</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(T.titulo)+'</b> · '+esc(lojaNome(T.loja))+'. A Vanessa vai receber o aviso para programar.</p>'+
   '<div class="fld"><label for="enDrive">Link da pasta no Drive</label><input id="enDrive" type="url" inputmode="url" placeholder="https://drive.google.com/..." value="'+esc(T.drive||'')+'"></div>'+
+  '<div class="pushbox" id="enSub" hidden></div>'+
   '<div class="fld"><span class="l">O que foi entregue</span><div class="items" id="enItems">'+itemRow({titulo:'',tipo:'reels'})+'</div><button type="button" class="btn sm" id="enAdd" style="align-self:flex-start">'+ico('i-plus')+'Mais um conteúdo</button><span class="hint">Um item para cada post: cada carro, cada reels, cada carrossel.</span></div>'+
   '<div class="err" id="enErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Entregar e avisar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   ligarBotoesDrive(sheet,'#enDrive',{tipo:'elite',loja:T.loja,titulo:T.titulo});
+  /* se o link for uma pasta com subpastas (ex.: um carrossel por pasta), oferece criar um conteúdo para cada uma */
+  let ultLink='',subs=[];
+  const confere=async()=>{const v=q('#enDrive')&&q('#enDrive').value.trim();if(!v||v===ultLink)return;ultLink=v;const box=q('#enSub');box.hidden=true;subs=[];
+    const id=driveId(v);if(!id||!driveConectado())return;
+    try{const i=await dInfo(id);if(i.mimeType!==FOLDER)return;const ps=await dListar(id,true);if(!ps.length||q('#enDrive').value.trim()!==v)return;subs=ps;
+      box.innerHTML='<b>Essa pasta tem '+ps.length+' pasta'+(ps.length>1?'s':'')+' dentro</b><span class="muted" style="font-size:14px">'+ps.slice(0,6).map(p=>esc(p.name)).join(' · ')+(ps.length>6?' …':'')+'</span><button type="button" class="btn sm primary" id="enSubOk" style="align-self:flex-start">Criar um conteúdo para cada pasta</button><span class="hint">Cada pasta vira um card em "Para programar", já com o link certo (ex.: cada carrossel na sua pasta).</span>';box.hidden=false;
+      q('#enSubOk').onclick=async()=>{const b=q('#enSubOk');b.disabled=true;b.textContent='Lendo as pastas…';const rows=[];
+        for(const p of subs){let fs=[];try{fs=(await dListar(p.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''))}catch(_){}
+          const nv=fs.filter(x=>/^video/.test(x.mimeType)).length,nf=fs.length-nv,tipo=nv&&!nf?'reels':nf>=2?'carrossel':'feed';
+          rows.push(itemRow({titulo:p.name,tipo,drive:'https://drive.google.com/drive/folders/'+p.id}))}
+        q('#enItems').innerHTML=rows.join('');box.innerHTML='<b style="color:var(--pos)">✓ '+subs.length+' conteúdos criados, um por pasta</b><span class="hint">Confira o nome e o tipo de cada um abaixo.</span>'}}
+    catch(_){}};
+  const tm=setInterval(()=>{if(!document.body.contains(q('#fEn')||document.createElement('i'))){clearInterval(tm);return}confere()},800);
   q('#enAdd').onclick=()=>{q('#enItems').insertAdjacentHTML('beforeend',itemRow({}));const ins=q('#enItems').querySelectorAll('input');ins[ins.length-1].focus()};
   q('#enItems').onclick=e=>{const b=e.target.closest('[data-rm-item]');if(b&&q('#enItems').children.length>1)b.closest('.item').remove()};
   q('#fEn').onsubmit=async e=>{e.preventDefault();const drive=q('#enDrive').value.trim();
     if(!/^https?:\/\//i.test(drive)){q('#enErr').textContent='Cole o link da pasta do Drive (começa com https://).';return}
-    const its=[...q('#enItems').children].map(r=>({titulo:r.querySelector('[data-it="t"]').value.trim(),tipo:r.querySelector('[data-it="k"]').value})).filter(x=>x.titulo);
+    const its=[...q('#enItems').children].map(r=>({titulo:r.querySelector('[data-it="t"]').value.trim(),tipo:r.querySelector('[data-it="k"]').value,d:(r.querySelector('[data-it="d"]')||{}).value||''})).filter(x=>x.titulo);
     if(!its.length){q('#enErr').textContent='Escreva pelo menos um conteúdo (ex.: o nome do carro).';return}
     const agora=agoraLocal();
     try{
       meus.add(T.id);await write(()=>store.update('tar',T.id,{etapa:'entregue',entregueEm:hoje(),drive}));
-      for(const it of its)await write(()=>store.add('posts',{loja:T.loja,tar:T.id,titulo:it.titulo.slice(0,100),tipo:it.tipo,drive,status:'pronto',editadoPor:eu,editadoEm:agora,quando:'',link:'',obs:''}));
+      for(const it of its)await write(()=>store.add('posts',{loja:T.loja,tar:T.id,titulo:it.titulo.slice(0,100),tipo:it.tipo,drive:it.d||drive,status:'pronto',editadoPor:eu,editadoEm:agora,quando:'',link:'',obs:''}));
     }catch(_){return}
     closeSheet();toast(its.length+' conteúdo(s) enviado(s) para programar')};
   q('#enItems input').focus()}
@@ -3165,7 +3180,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-verig]')){S.ver
 
 async function arquivosDoLink(link){const id=driveId(link);if(!id)return [];
   const i=await dInfo(id);if(i.mimeType!==FOLDER)return [i];
-  const fs=await dListar(id);return fs.filter(f=>/^(image|video)\//.test(f.mimeType||''))}
+  const c=await coletarMidia(id);return c.arqs}
 async function deixarPublico(id){try{await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}catch(e){throw new Error('Não consegui liberar o arquivo no Drive: '+e.message)}}
 
 function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
@@ -3203,7 +3218,14 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
   q('#auQ').oninput=()=>{horasEd={};serie()};q('#auFim').oninput=()=>{horasEd={};serie()};
   q('#auTodos').onclick=()=>{const todos=lista.map(f=>f.id);const ok=f=>q('#auTipo').value==='reels'?/^video/.test(f.mimeType):q('#auTipo').value==='feed'?/^image/.test(f.mimeType):true;const alvo=lista.filter(ok).map(f=>f.id);escolhidos=alvo.every(id=>escolhidos.includes(id))?[]:escolhidos.concat(alvo.filter(id=>!escolhidos.includes(id)));pinta()};
   const pinta=()=>{const box=q('#auArqs');if(!lista.length)return;
-    box.innerHTML='<div class="aupick">'+lista.map(f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'}).join('')+'</div>';serie()};
+    const grs=[...new Set(lista.map(f=>f.grupo||''))];
+    const card=f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'};
+    box.innerHTML=grs.length<2?'<div class="aupick">'+lista.map(card).join('')+'</div>':grs.map(g=>{const its=lista.filter(f=>(f.grupo||'')===g),on=its.length&&its.every(f=>escolhidos.includes(f.id));return '<div class="augr"><div class="augh">'+ico('i-folder')+'<b>'+esc(g?g.split('/').join(' › '):'Soltos na pasta')+'</b><span class="muted">'+its.length+'</span><button type="button" class="btn sm'+(on?' primary':'')+'" data-aug="'+esc(g)+'">'+(on?'✓ Esta pasta':'Usar esta pasta')+'</button></div><div class="aupick">'+its.map(card).join('')+'</div></div>'}).join('');serie()};
+  q('#auArqs').addEventListener('click',e=>{const g=e.target.closest('[data-aug]');if(!g)return;const its=lista.filter(f=>(f.grupo||'')===g.dataset.aug);const t=q('#auTipo').value;
+    const ok=its.filter(f=>t==='reels'?/^video/.test(f.mimeType):t==='carrossel'?true:true).map(f=>f.id);
+    if(t!=='carrossel'&&t!=='stories'&&!['reels','feed'].includes(t))return;
+    if(t==='carrossel'&&ok.length>10){toast('Carrossel aceita até 10: peguei as 10 primeiras.')}
+    escolhidos=t==='carrossel'?ok.slice(0,10):ok;horasEd={};pinta()});
   q('#auArqs').onclick=e=>{const b=e.target.closest('[data-auf]');if(!b)return;const id=b.dataset.auf,i=escolhidos.indexOf(id);
     horasEd={};if(i>=0)escolhidos.splice(i,1);else{const t=q('#auTipo').value;if(t!=='carrossel'&&!SER())escolhidos=[];escolhidos.push(id)}pinta()};
   (async()=>{const box=q('#auArqs');
