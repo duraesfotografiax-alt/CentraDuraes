@@ -3039,7 +3039,7 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
   const itens=[];let k=0;
   try{for(const p of ps){k++;const tx=document.getElementById('apTx');if(tx)tx.textContent='Lendo '+k+' de '+ps.length+': '+p.titulo;
       const fs=(await arquivosDoLink(p.drive)).slice(0,30);const id=driveId(p.drive);
-      try{await dLinkPublico(id)}catch(_){for(const f of fs){try{await deixarPublico(f.id)}catch(__){}}}
+      try{await dLinkPublico(id)}catch(_){}for(const f of fs){try{await deixarPublico(f.id)}catch(__){}}
       itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType||''})),status:'aguardando',obs:''});
       const bar=document.getElementById('apBar');if(bar)bar.style.width=Math.round(k/ps.length*100)+'%'}
     const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0};
