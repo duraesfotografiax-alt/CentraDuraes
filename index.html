@@ -2979,18 +2979,26 @@ async function sincProntos_(l,manual){
   const novo=async(origem,titulo,tipo,drive)=>{if(ja.has(origem))return;ja.add(origem);
     await store.add('posts',{loja:l.id,titulo:String(titulo).replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[_]+/g,' ').slice(0,100),tipo,drive,status:'pronto',origem,legenda:l.legPadrao||'',editadoPor:meuMembro()||'Drive',editadoEm:agoraLocal(),quando:'',link:'',obs:'Veio do Drive ('+(l.prontosNome||'Prontos')+')'});n++};
   const ehTipoP=s=>/^(fotos?|v[ií]deos?|videos?|reels|stories|feed|carross[eé]is|carrossel|prontos?|editados?|finalizados?)$/i.test(String(s||'').trim());
+  const ehVidP=s=>/^(v[ií]deos?|videos?|reels|stories)$/i.test(String(s||'').trim());
+  /* pastas que nunca viram card: o que já foi usado ou é bruto */
+  const ignora=s=>/(j[aá]\s*)?(postad|publicad|usad|antig|arquivad|bruto|backup|lixo|n[aã]o\s*usar|\bold\b)/i.test(nrmC(s));
   let alvo=l.prontosId,fs=await dListar(alvo);
   const meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
   if(meses.length){alvo=meses[0].f.id;fs=await dListar(alvo)}
-  const trata=async(lista,dentroTipo)=>{for(const f of lista){
+  const trata=async(lista,dentroTipo,soVideo)=>{for(const f of lista){
     if(f.mimeType===FOLDER){
-      if(!dentroTipo&&ehTipoP(f.name)){await trata(await dListar(f.id),true);continue}
+      if(ignora(f.name)){ignorados.add(f.id);try{for(const x of await dListar(f.id))ignorados.add(x.id)}catch(_){}continue}
+      if(!dentroTipo&&ehTipoP(f.name)){await trata(await dListar(f.id),true,ehVidP(f.name));continue}
+      if(soVideo)continue;
       const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length||!den.some(novoArq))continue;
       const nv=den.filter(x=>/^video/.test(x.mimeType)).length;await novo(f.id,f.name,den.length===1&&nv?'reels':den.length>1?'carrossel':nv?'reels':'feed','https://drive.google.com/drive/folders/'+f.id);continue}
     if(!novoArq(f))continue;
     if(/^video\//.test(f.mimeType||''))await novo(f.id,f.name,'reels','https://drive.google.com/file/d/'+f.id+'/view');
     else if(/^image\//.test(f.mimeType||''))await novo(f.id,f.name,'feed','https://drive.google.com/file/d/'+f.id+'/view')}};
-  await trata(fs,false);
+  const ignorados=new Set();
+  await trata(fs,false,false);
+  /* o que foi movido para "Já postados" (ou parecido) sai de Para programar sozinho */
+  for(const p of S.posts.filter(p=>p.loja===l.id&&p.origem&&p.status==='pronto'&&ignorados.has(p.origem))){try{await store.update('posts',p.id,{status:'descartado'})}catch(_){}}
   try{await store.update('lojas',l.id,{prontosSinc:new Date().toISOString()})}catch(_){}
   return n}
 const prontosFeito={};
@@ -3253,7 +3261,7 @@ async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find
   else if(k==='saiu'&&P)formSaiu(P);
   else if(k==='editar'&&P)formPost(P);
   else if(k==='apagar'||k==='arquivarLoja'){if(!armed['p'+id]){armed['p'+id]=b.textContent;b.textContent='Confirmar?';setTimeout(()=>{if(armed['p'+id]){b.textContent=armed['p'+id];delete armed['p'+id]}},3000);return}delete armed['p'+id];
-    try{if(k==='apagar')await write(()=>store.del('posts',id));else await write(()=>store.update('lojas',id,{ativo:false}))}catch(_){return}closeSheet();toast(k==='apagar'?'Apagado':'Cliente arquivado')}
+    try{if(k==='apagar'&&P&&P.origem)await write(()=>store.update('posts',id,{status:'descartado',pubStatus:''}));else if(k==='apagar')await write(()=>store.del('posts',id));else await write(()=>store.update('lojas',id,{ativo:false}))}catch(_){return}closeSheet();toast(k==='apagar'?'Apagado':'Cliente arquivado')}
 }
 
 /* ---------- Postagens automáticas (Instagram + Facebook) ---------- */
