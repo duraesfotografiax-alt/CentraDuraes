@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0C10">
+<meta name="robots" content="noindex">
+<title>Aprovação de conteúdo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Página que o cliente abre pelo WhatsApp para aprovar os posts antes de irem ao ar. */
+:root{color-scheme:dark;--bg:#0B0C10;--panel:#15171D;--panel2:#1C1F27;--line:#2A2E39;--ink:#F3F4F8;--muted:#A2A7B6;--faint:#6D7283;--ac:#D9A93C;--ac-ink:#111;--ok:#34D399;--warn:#F5B942;
+  --display:"Sora","Segoe UI",system-ui,sans-serif;--body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;-webkit-font-smoothing:antialiased}
+button,textarea,input{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 40px}
+header{padding:28px 0 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+header .lg{height:56px;width:56px;border-radius:14px;background:#000 url('logos/elite.jpg') center/cover no-repeat}
+h1{font-family:var(--display);font-size:clamp(22px,4.5vw,30px);line-height:1.2;margin:0}
+.sub{color:var(--muted);margin:0;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:11px 18px;font-weight:800;font-size:15px;cursor:pointer}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:var(--ac-ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#06281c}
+.btn:disabled{opacity:.6}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:16px 0}
+.ih{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.ih b{flex:1;font-family:var(--display);font-size:17px}
+.tp{font-size:12px;font-weight:800;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#000;scrollbar-width:none}
+.slides>*{flex:0 0 100%;scroll-snap-align:center;max-height:70vh;width:100%;object-fit:contain;background:#000;aspect-ratio:4/5}
+.slides video{aspect-ratio:9/16}
+.dots{display:flex;justify-content:center;gap:5px;padding:8px 0 0}.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--ac)}
+.leg{white-space:pre-wrap;padding:12px 16px;color:var(--ink);line-height:1.5;font-size:14.5px;border-top:1px solid var(--line);margin-top:8px}
+.leg small{display:block;color:var(--faint);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;padding:4px 16px 16px}
+.acts .btn{flex:1;min-width:140px}
+.ajuste{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+textarea,input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px}
+.st{margin:0 16px 16px;padding:10px 14px;border-radius:12px;font-weight:700}
+.st.ok{background:rgba(52,211,153,.14);color:var(--ok)}.st.aj{background:rgba(245,185,66,.14);color:var(--warn)}
+.topo{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:8px}
+.empty{text-align:center;color:var(--muted);padding:80px 16px}.empty b{display:block;font-family:var(--display);font-size:22px;color:var(--ink);margin-bottom:6px}
+.spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--ac);border-radius:50%;animation:g .8s linear infinite;margin:80px auto}@keyframes g{to{transform:rotate(360deg)}}
+footer{text-align:center;color:var(--faint);font-size:12px;padding:10px 0 30px}
+</style>
+</head>
+<body>
+<div id="app"><div class="spin" aria-label="Carregando"></div></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=20261014"></script>
+<script>
+const id=new URLSearchParams(location.search).get('a')||'';
+const app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const thumb=(f,w)=>'https://drive.google.com/thumbnail?id='+encodeURIComponent(f)+'&sz=w'+(w||1200);
+const vid=f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t';
+const TP={reels:'Reels',feed:'Feed',carrossel:'Carrossel',stories:'Stories'};
+let A=null,ref=null,nome='';
+try{nome=localStorage.getItem('aprovNome')||''}catch(_){}
+function vazio(t,s){app.innerHTML='<div class="empty"><b>'+t+'</b>'+s+'</div>'}
+if(!id)vazio('Link incompleto','Confira se o link foi copiado inteiro.');
+else{firebase.initializeApp(self.FIREBASE_CONFIG);ref=firebase.firestore().collection('aprovacoes').doc(id);
+  ref.get().then(d=>{if(!d.exists)return vazio('Link não encontrado','Ele pode ter sido apagado. Fale com a Elite.');A=d.data();pinta();
+    ref.update({aberturas:firebase.firestore.FieldValue.increment(1)}).catch(()=>{})}).catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'))}
+function midia(it){const fs=it.arquivos||[];
+  return '<div class="slides" data-sl>'+fs.map(f=>/^video\//.test(f.mime)?'<video controls playsinline preload="metadata" poster="'+thumb(f.id,900)+'" src="'+vid(f.id)+'"></video>':'<img src="'+thumb(f.id,1400)+'" alt="" loading="lazy" referrerpolicy="no-referrer">').join('')+'</div>'+
+    (fs.length>1?'<div class="dots">'+fs.map((_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')}
+function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando').length;
+  document.title='Aprovação · '+(A.lojaNome||'');
+  app.innerHTML='<div class="wrap"><header><div class="lg"></div><h1>Aprovação de conteúdo</h1><p class="sub">'+esc(A.lojaNome||'')+' · '+its.length+' post'+(its.length>1?'s':'')+'. Veja cada um e toque em <b>Aprovar</b> ou <b>Pedir ajuste</b>.</p></header>'+
+    '<div class="topo"><input type="text" id="nm" placeholder="Seu nome (opcional)" value="'+esc(nome)+'">'+(pend>1?'<button class="btn ok" data-tudo>✓ Aprovar todos ('+pend+')</button>':'')+'</div>'+
+    its.map((it,i)=>'<div class="item"><div class="ih"><b>'+esc(it.titulo)+'</b><span class="tp">'+(TP[it.tipo]||'Post')+'</span></div>'+midia(it)+
+      (it.legenda?'<div class="leg"><small>Legenda</small>'+esc(it.legenda)+'</div>':'')+
+      (it.status==='aprovado'?'<div class="st ok">✓ Aprovado'+(it.por?' por '+esc(it.por):'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">desfazer</button></div>':
+       it.status==='ajuste'?'<div class="st aj">Ajuste pedido: '+esc(it.obs||'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">mudar</button></div>':
+       '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')+
+    '</div>').join('')+'</div><footer>Elite Marketing Digital</footer>';
+  app.querySelectorAll('[data-sl]').forEach(sl=>sl.addEventListener('scroll',()=>{const n=Math.round(sl.scrollLeft/sl.clientWidth),d=sl.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,k)=>x.classList.toggle('on',k===n))},{passive:true}))}
+async function salvar(){const nm=(document.getElementById('nm')||{}).value||'';nome=nm.trim().slice(0,50);try{localStorage.setItem('aprovNome',nome)}catch(_){}
+  await ref.update({itens:A.itens,respEm:new Date().toISOString(),nome});pinta()}
+document.addEventListener('click',async e=>{
+  if(e.target.closest('[data-tudo]')){const nm=(document.getElementById('nm')||{}).value||'';A.itens.forEach(it=>{if(it.status==='aguardando'){it.status='aprovado';it.por=nm.trim().slice(0,50);it.em=new Date().toISOString()}});try{await salvar()}catch(_){alert('Não consegui salvar. Verifique a internet.')}return}
+  const b=e.target.closest('[data-v]');if(!b)return;const i=+b.dataset.i,it=A.itens[i],v=b.dataset.v,nm=((document.getElementById('nm')||{}).value||'').trim().slice(0,50);
+  if(v==='abrirAjuste'){const box=document.getElementById('aj'+i);box.hidden=false;box.querySelector('textarea').focus();return}
+  if(v==='desfazer'){it.status='aguardando';it.obs='';}
+  if(v==='aprovado'){it.status='aprovado';it.por=nm;it.em=new Date().toISOString()}
+  if(v==='ajuste'){const t=document.getElementById('aj'+i).querySelector('textarea').value.trim();if(!t){alert('Escreva o que precisa mudar.');return}it.status='ajuste';it.obs=t.slice(0,500);it.por=nm;it.em=new Date().toISOString()}
+  b.disabled=true;try{await salvar()}catch(_){b.disabled=false;alert('Não consegui salvar. Verifique a internet.')}});
+</script>
+</body>
+</html>

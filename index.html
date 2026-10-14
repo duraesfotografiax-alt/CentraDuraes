@@ -1390,6 +1390,7 @@ document.addEventListener('click',async e=>{
   const crb=e.target.closest('[data-car]');if(crb){carroAcao(crb);return}
   const mtb=e.target.closest('[data-mat]');if(mtb){materialAcao(mtb);return}
   const prb=e.target.closest('[data-prontos]');if(prb){prontosAcao(prb);return}
+  const apt=e.target.closest('[data-aprovtodos]');if(apt){const l=S.lojas.find(x=>x.id===apt.dataset.aprovtodos);if(!l)return;try{await token()}catch(er){toast(er.message);return}enviarAprovacao(S.posts.filter(p=>p.loja===l.id&&p.status==='pronto'&&!aprovDe(p.id)),l);return}
   const rcb=e.target.closest('[data-rc]');if(rcb){recorrenteAcao(rcb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
@@ -3007,6 +3008,28 @@ async function prontosAcao(b){const l=S.lojas.find(x=>x.id===b.dataset.id);if(!l
       await write(()=>store.update('lojas',l.id,{prontosId:p.id}));toast('Pasta Prontos criada no Drive');ajudaProntos(Object.assign({},l,{prontosId:p.id}));return}
     if(k==='sinc'){b.textContent='Conferindo…';const n=await sincProntos(l,true);toast(n?n+' conteúdo'+(n>1?'s novos':' novo')+' em Para programar':'Nada novo na pasta Prontos')}}
   catch(er){toast(er.message||'Não deu certo')}finally{b.disabled=false;b.textContent=t}}
+/* ---------- Aprovação do cliente: manda um link no WhatsApp (grupo do cliente), ele aprova ou pede ajuste, a Central mostra no card ---------- */
+function linkAprov(id){return location.origin+location.pathname.replace(/[^/]*$/,'')+'aprovar.html?a='+id}
+function aprovDe(pid){let ult=null;for(const a of (S.aprovacoes||[]))for(const it of (a.itens||[]))if(it.post===pid&&(!ult||(a.criadoEm||'')>(ult.criadoEm||'')))ult=Object.assign({aid:a.id,criadoEm:a.criadoEm},it);return ult}
+function chipAprov(p){const a=aprovDe(p.id);if(!a)return '';
+  if(a.status==='aprovado')return '<span class="chip rec">✓ Cliente aprovou'+(a.por?' ('+esc(a.por)+')':'')+'</span>';
+  if(a.status==='ajuste')return '<span class="chip late" style="white-space:normal">Pediram ajuste'+(a.obs?': '+esc(a.obs):'')+'</span>';
+  return '<span class="chip eq">Aguardando aprovação</span>'}
+async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){toast('Os conteúdos precisam ter o link do Drive.');return}
+  sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0" id="apTx">Preparando '+ps.length+' conteúdo'+(ps.length>1?'s':'')+'…</p><div class="upbar"><i id="apBar" style="width:5%"></i></div></form>';sheet.hidden=false;
+  const itens=[];let k=0;
+  try{for(const p of ps){k++;const tx=document.getElementById('apTx');if(tx)tx.textContent='Lendo '+k+' de '+ps.length+': '+p.titulo;
+      const fs=(await arquivosDoLink(p.drive)).slice(0,30);const id=driveId(p.drive);
+      try{await dLinkPublico(id)}catch(_){for(const f of fs){try{await deixarPublico(f.id)}catch(__){}}}
+      itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType||''})),status:'aguardando',obs:''});
+      const bar=document.getElementById('apBar');if(bar)bar.style.width=Math.round(k/ps.length*100)+'%'}
+    const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0};
+    const id=idAleatorio();await write(()=>db.collection('aprovacoes').doc(id).set(doc));
+    const msg='Olá, pessoal da '+loja.nome+'! 👋 Seguem '+(ps.length>1?ps.length+' conteúdos':'o conteúdo')+' para aprovação antes de postar. É só abrir, ver e tocar em Aprovar (ou pedir ajuste):\n'+linkAprov(id);
+    sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+
+      '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
+    sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)}
+  catch(er){sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Não deu certo</h2><p class="err">'+esc(er.message||'Erro')+'</p><div class="formacts"><button type="button" class="btn" data-close>Fechar</button></div></form>'}}
 function renderClientes(){
   setTimeout(sincProntosTodos,80);
   segs('cliSeg','cliSeg',[['elite','Lojas · Elite'],['duraes','Clientes · Durães']]);
@@ -3037,7 +3060,7 @@ function renderClientes(){
     if(p.pubStatus==='aguardando')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar agendamento</button>';
     else if(p.pubStatus==='erro')a='<button class="btn sm primary" data-pact="autoRetry" data-id="'+p.id+'">Tentar de novo</button><button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar</button>';
     else if(p.pubStatus==='publicando')a='';
-    else if(p.status==='pronto')a='<button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>';
+    else if(p.status==='pronto')a='<button class="btn sm" data-pact="aprovar" data-id="'+p.id+'">Mandar p/ aprovação</button><button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>';
     else if(p.status==='publicado'&&p.pubFeito&&(p.pubFeito.ig||p.pubFeito.fb))a=(p.pubFeito.ig?'<a class="btn sm" href="'+esc(p.pubFeito.ig)+'" target="_blank" rel="noopener">Ver no Instagram</a>':'')+(p.pubFeito.fb?'<a class="btn sm" href="'+esc(p.pubFeito.fb)+'" target="_blank" rel="noopener">Ver no Facebook</a>':'');
     else if(p.status==='programado')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'" title="A Central publica sozinha no Instagram/Facebook">Agendar na Central</button><button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">'+((p.qtd||1)>1?'Todos saíram ✓':'Saiu ✓')+'</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
@@ -3049,11 +3072,12 @@ function renderClientes(){
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
       (p.status==='publicado'&&(p.qtd||1)>1?'<span>'+p.qtd+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+' · de '+fmtQuando(p.quandoIni||p.publicadoEm)+' até '+fmtQuando(p.quando||p.publicadoEm)+'</span>':'')+
       (p.status==='publicado'&&!((p.qtd||1)>1)?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      (p.status!=='publicado'?chipAprov(p):'')+
       '<div class="acts">'+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
   body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button><button class="btn sm ghost danger" data-loja-rem="'+l.id+'">Remover</button>':'')+'</div>'+prontosBox(l)+blocoIG(l)+
     '<div class="pipe">'+
     col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
-    col('Para programar','#E2B24C',pronto.length,pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
+    col('Para programar','#E2B24C',pronto.length,(pronto.filter(p=>!aprovDe(p.id)).length>1?'<button class="btn sm" data-aprovtodos="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Mandar '+pronto.filter(p=>!aprovDe(p.id)).length+' para aprovação (1 link)</button>':'')+pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
     col('Programado','#4C8DFF',prog.length,prog.map(pc).join(''),'Nada programado.')+
     col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+'</div>';
 }
@@ -3201,6 +3225,7 @@ function formSaiu(pst){
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fSa').onsubmit=async e=>{e.preventDefault();try{await write(()=>store.update('posts',pst.id,{status:'publicado',publicadoEm:pst.quando||agoraLocal(),link:q('#saLink').value.trim()}))}catch(_){return}closeSheet();toast('Marcado como no ar')}}
 async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find(x=>x.id===id);
+  if(k==='aprovar'&&P){try{await token()}catch(er){toast(er.message);return}enviarAprovacao([P],S.lojas.find(x=>x.id===P.loja)||{id:P.loja,nome:lojaNome(P.loja)});return}
   if(k==='auto'&&P){formAuto(P);return}
   if((k==='autoRetry'||k==='autoCancel')&&P){
     const up=k==='autoRetry'?{pubStatus:'aguardando',pubErro:'',quando:P.quando&&P.quando>agoraLocal()?P.quando:agoraLocal()}:{pubStatus:'',pubErro:'',status:(P.pubFeito&&(P.pubFeito.ig||P.pubFeito.fb))?'publicado':'pronto'};
@@ -3472,7 +3497,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
-  store.sub('albuns');store.sub('envios');store.sub('materiais');
+  store.sub('albuns');store.sub('envios');store.sub('materiais');store.sub('aprovacoes');
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');

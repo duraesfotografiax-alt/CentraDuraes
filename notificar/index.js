@@ -146,6 +146,20 @@ async function enviar(u, title, body) {
     await marcar(chave);
   }
 
+  // 0g) Aprovação do cliente: aprovou ou pediu ajuste
+  const desdeAp = new Date(Date.now() - 7 * 864e5).toISOString();
+  const aps = (await db.collection('aprovacoes').where('respEm', '>=', desdeAp).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  for (const ap of aps) {
+    for (const it of (ap.itens || []).filter((x) => x.status === 'aprovado' || x.status === 'ajuste')) {
+      const chave = `aprov_${ap.id}_${it.post}_${it.status}_${String(it.em || '').replace(/[^0-9]/g, '')}`;
+      if (await jaFoi(chave)) continue;
+      const tit = it.status === 'aprovado' ? `Cliente aprovou: ${ap.lojaNome || ''}` : `Cliente pediu ajuste: ${ap.lojaNome || ''}`;
+      const corpo = it.status === 'aprovado' ? `${it.titulo} pode ir para a programação${it.por ? ' (' + it.por + ')' : ''}.` : `${it.titulo}: ${String(it.obs || '').slice(0, 120)}`;
+      for (const u of usuarios) await enviar(u, tit, corpo);
+      await marcar(chave);
+    }
+  }
+
   // 0f) Material bruto novo: avisa a equipe (menos quem subiu)
   const desde = new Date(Date.now() - 3 * 864e5).toISOString();
   const mats = (await db.collection('materiais').where('criadoEm', '>=', desde).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
