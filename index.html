@@ -2287,9 +2287,11 @@ function escolherWhats(texto,num){
 document.addEventListener('click',e=>{const w=e.target.closest('[data-wa]');if(!w)return;e.preventDefault();abrirWhats(decodeURIComponent(w.dataset.wa),w.dataset.wanum||'')});
 /* ---------- Envios (link para o cliente ver e baixar vídeos/fotos em qualidade original) ---------- */
 /* percorre a pasta e as subpastas; cada arquivo guarda o caminho da subpasta (grupo), ex.: "Fotos", "Vídeos/Making of" */
-async function coletarMidia(raizId){const arqs=[],grupos=[];
+/* pastas de coisa já usada (Já postados, Postados, Publicados, Antigos…): ficam de fora na hora de programar */
+const pastaUsada=s=>/(postad|publicad|usad|antig|arquivad|bruto|backup|lixo|n[aã]o\s*usar|\bold\b)/i.test(nrmC(s));
+async function coletarMidia(raizId,semUsadas){const arqs=[],grupos=[];
   const anda=async(id,cam)=>{for(const f of await dListar(id)){
-    if(f.mimeType===FOLDER){const c=cam?cam+'/'+f.name:f.name;grupos.push({id:f.id,nome:c});await anda(f.id,c)}
+    if(f.mimeType===FOLDER){if(semUsadas&&pastaUsada(f.name))continue;const c=cam?cam+'/'+f.name:f.name;grupos.push({id:f.id,nome:c});await anda(f.id,c)}
     else if(/^(video|image)\//.test(f.mimeType||''))arqs.push(Object.assign({},f,{grupo:cam||''}))}};
   await anda(raizId,'');return {arqs,grupos}}
 async function protegerArquivos(arqs,so,onp){let n=0;const fila=arqs.slice();
@@ -3166,7 +3168,7 @@ function formEntrega(T){
   let ultLink='',subs=[];
   const confere=async()=>{const v=q('#enDrive')&&q('#enDrive').value.trim();if(!v||v===ultLink)return;ultLink=v;const box=q('#enSub');box.hidden=true;subs=[];
     const id=driveId(v);if(!id||!driveConectado())return;
-    try{const i=await dInfo(id);if(i.mimeType!==FOLDER)return;const ps=await dListar(id,true);if(!ps.length||q('#enDrive').value.trim()!==v)return;subs=ps;
+    try{const i=await dInfo(id);if(i.mimeType!==FOLDER)return;const ps=(await dListar(id,true)).filter(p=>!pastaUsada(p.name));if(!ps.length||q('#enDrive').value.trim()!==v)return;subs=ps;
       box.innerHTML='<b>Essa pasta tem '+ps.length+' pasta'+(ps.length>1?'s':'')+' dentro</b><span class="muted" style="font-size:14px">'+ps.slice(0,6).map(p=>esc(p.name)).join(' · ')+(ps.length>6?' …':'')+'</span><button type="button" class="btn sm primary" id="enSubOk" style="align-self:flex-start">Criar um conteúdo para cada pasta</button><span class="hint">Cada pasta vira um card em "Para programar", já com o link certo (ex.: cada carrossel na sua pasta).</span>';box.hidden=false;
       q('#enSubOk').onclick=async()=>{const b=q('#enSubOk');b.disabled=true;b.textContent='Lendo as pastas…';const rows=[];
         for(const p of subs){let fs=[];try{fs=(await dListar(p.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''))}catch(_){}
@@ -3291,7 +3293,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-verig]')){S.ver
 
 async function arquivosDoLink(link){const id=driveId(link);if(!id)return [];
   const i=await dInfo(id);if(i.mimeType!==FOLDER)return [i];
-  const c=await coletarMidia(id);return c.arqs}
+  const c=await coletarMidia(id,true);return c.arqs}
 async function deixarPublico(id){try{await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}catch(e){throw new Error('Não consegui liberar o arquivo no Drive: '+e.message)}}
 
 function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
