@@ -30,6 +30,7 @@ h1{font-family:var(--display);font-size:clamp(22px,4.5vw,30px);line-height:1.2;m
 .tp{font-size:12px;font-weight:800;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
 .slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#000;scrollbar-width:none}
 .slides>*{flex:0 0 100%;scroll-snap-align:center;max-height:70vh;width:100%;object-fit:contain;background:#000;aspect-ratio:4/5}
+.vcapa{position:relative;display:block;aspect-ratio:9/16;max-height:70vh;width:100%;background:#000}.vcapa img{width:100%;height:100%;object-fit:contain;display:block}.vcapa span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:30px;display:grid;place-items:center;padding-left:5px;border:2px solid rgba(255,255,255,.8)}
 .slides video,.slides iframe{aspect-ratio:9/16;width:100%;max-height:70vh;border:0;background:#000;display:block}
 .vw{flex:0 0 100%;scroll-snap-align:center;display:flex;flex-direction:column;background:#000}
 .vlink{display:block;text-align:center;padding:8px;font-size:13px;font-weight:700;color:var(--ac);background:var(--panel2)}
@@ -58,7 +59,12 @@ const id=new URLSearchParams(location.search).get('a')||'';
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const thumb=(f,w)=>'https://drive.google.com/thumbnail?id='+encodeURIComponent(f)+'&sz=w'+(w||1200);
-const vid=f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t';
+const KEY=(self.FIREBASE_CONFIG||{}).apiKey||'';
+/* endereços do vídeo, do melhor para o pior: API do Drive (toca liso no iPhone), download direto, link antigo */
+const FONTES=[f=>KEY?'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(f)+'?alt=media&supportsAllDrives=true&key='+encodeURIComponent(KEY):'',
+  f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t',
+  f=>'https://drive.google.com/uc?export=download&id='+encodeURIComponent(f)].map(fn=>f=>fn(f));
+const vid=f=>FONTES.map(fn=>fn(f)).find(Boolean);
 const TP={reels:'Reels',feed:'Feed',carrossel:'Carrossel',stories:'Stories'};
 let A=null,ref=null,nome='';
 try{nome=localStorage.getItem('aprovNome')||''}catch(_){}
@@ -83,8 +89,11 @@ function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando
   app.querySelectorAll('[data-sl]').forEach(sl=>sl.addEventListener('scroll',()=>{const n=Math.round(sl.scrollLeft/sl.clientWidth),d=sl.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,k)=>x.classList.toggle('on',k===n))},{passive:true}))}
 /* se o navegador não conseguir tocar o vídeo direto (formato .MOV/HEVC ou arquivo grande), tenta outro endereço e, por fim, o player do Google Drive */
 document.addEventListener('error',e=>{const v=e.target;if(!(v&&v.tagName==='VIDEO'&&v.dataset.vid))return;const fid=v.dataset.vid;
-  if(!v.dataset.tent){v.dataset.tent='1';v.src='https://drive.google.com/uc?export=download&id='+encodeURIComponent(fid);v.load();return}
-  v.outerHTML='<iframe src="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/preview" allow="autoplay; fullscreen" allowfullscreen title="Vídeo"></iframe>'},true);
+  const lista=FONTES.map(fn=>fn(fid)).filter(Boolean);let n=lista.indexOf(v.getAttribute('src'))+1;
+  if(n>0&&n<lista.length){v.src=lista[n];v.load();return}
+  /* nenhum endereço tocou aqui: mostra a capa com um botão grande que abre o vídeo no Google Drive (sem player do Drive por cima da tela) */
+  v.outerHTML='<a class="vcapa" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener"><img src="'+thumb(fid,900)+'" alt="" referrerpolicy="no-referrer"><span>▶</span></a>';
+  },true);
 async function salvar(){const nm=(document.getElementById('nm')||{}).value||'';nome=nm.trim().slice(0,50);try{localStorage.setItem('aprovNome',nome)}catch(_){}
   await ref.update({itens:A.itens,respEm:new Date().toISOString(),nome});pinta()}
 document.addEventListener('click',async e=>{
