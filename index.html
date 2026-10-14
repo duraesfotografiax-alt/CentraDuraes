@@ -2983,22 +2983,30 @@ async function sincProntos_(l,manual){
   /* pastas que nunca viram card: o que já foi usado ou é bruto */
   const ignora=s=>/(j[aá]\s*)?(postad|publicad|usad|antig|arquivad|bruto|backup|lixo|n[aã]o\s*usar|\bold\b)/i.test(nrmC(s));
   let alvo=l.prontosId,fs=await dListar(alvo);
-  const meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
+  const meses=fs.filter(f=>f.mimeType===FOLDER&&!ignora(f.name)).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
   if(meses.length){alvo=meses[0].f.id;fs=await dListar(alvo)}
+  /* guarda tudo que está dentro de uma pasta ignorada, inclusive subpastas (Já postados › Semana 1 › vídeo) */
+  const marca=async(id,nv)=>{ignorados.add(id);if(nv>3)return;try{for(const x of await dListar(id)){ignorados.add(x.id);if(x.mimeType===FOLDER)await marca(x.id,nv+1)}}catch(_){}};
+  const vistos=new Set();
   const trata=async(lista,dentroTipo,soVideo)=>{for(const f of lista){
     if(f.mimeType===FOLDER){
-      if(ignora(f.name)){ignorados.add(f.id);try{for(const x of await dListar(f.id))ignorados.add(x.id)}catch(_){}continue}
+      if(ignora(f.name)){await marca(f.id,0);continue}
       if(!dentroTipo&&ehTipoP(f.name)){await trata(await dListar(f.id),true,ehVidP(f.name));continue}
       if(soVideo)continue;
-      const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length||!den.some(novoArq))continue;
+      vistos.add(f.id);const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length||!den.some(novoArq))continue;
       const nv=den.filter(x=>/^video/.test(x.mimeType)).length;await novo(f.id,f.name,den.length===1&&nv?'reels':den.length>1?'carrossel':nv?'reels':'feed','https://drive.google.com/drive/folders/'+f.id);continue}
-    if(!novoArq(f))continue;
+    vistos.add(f.id);if(!novoArq(f))continue;
     if(/^video\//.test(f.mimeType||''))await novo(f.id,f.name,'reels','https://drive.google.com/file/d/'+f.id+'/view');
     else if(/^image\//.test(f.mimeType||''))await novo(f.id,f.name,'feed','https://drive.google.com/file/d/'+f.id+'/view')}};
   const ignorados=new Set();
   await trata(fs,false,false);
   /* o que foi movido para "Já postados" (ou parecido) sai de Para programar sozinho */
-  for(const p of S.posts.filter(p=>p.loja===l.id&&p.origem&&p.status==='pronto'&&ignorados.has(p.origem))){try{await store.update('posts',p.id,{status:'descartado'})}catch(_){}}
+  /* card que não está mais nas pastas válidas: confere no Drive onde o arquivo foi parar. Se foi para a lixeira
+     ou para qualquer pasta tipo "Já postados" (em qualquer lugar do Drive), sai de Para programar */
+  const nomes={},nomeDe=async id=>{if(!(id in nomes)){try{nomes[id]=await (await gfetch(DAPI+'/files/'+id+'?fields=name,mimeType,parents,trashed&supportsAllDrives=true')).json()}catch(_){nomes[id]=null}}return nomes[id]};
+  const usado=async id=>{if(ignorados.has(id))return true;let i=await nomeDe(id);if(!i)return false;if(i.trashed||(i.mimeType===FOLDER&&ignora(i.name||'')))return true;
+    for(let k=0;k<6&&i&&i.parents&&i.parents[0];k++){const pid=i.parents[0];if(pid===l.prontosId)return false;i=await nomeDe(pid);if(!i)return false;if(i.trashed||ignora(i.name||''))return true}return false};
+  for(const p of S.posts.filter(p=>p.loja===l.id&&p.origem&&p.status==='pronto'&&!vistos.has(p.origem))){try{if(await usado(p.origem))await store.update('posts',p.id,{status:'descartado'})}catch(_){}}
   try{await store.update('lojas',l.id,{prontosSinc:new Date().toISOString()})}catch(_){}
   return n}
 const prontosFeito={};
