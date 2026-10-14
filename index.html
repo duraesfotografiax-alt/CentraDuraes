@@ -2703,7 +2703,7 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
 /* baixa a pasta inteira num .zip só (sem dividir em partes), gravando direto no disco: Chrome/Edge no computador.
    Cada vídeo vem em 4 pedaços ao mesmo tempo (mais rápido) e dá para parar a qualquer momento. */
 let zipChave=true;
-function streamDrive(a,signal,onBytes){const size=Number(a.size)||0,CH=8*1024*1024,PAR=4,key=(window.FIREBASE_CONFIG||{}).apiKey||'';
+function streamDrive(a,signal,onBytes){const size=Number(a.size)||0,CH=16*1024*1024,PAR=6,key=(window.FIREBASE_CONFIG||{}).apiKey||'';
   const url=k=>DAPI+'/files/'+encodeURIComponent(a.id)+'?alt=media&supportsAllDrives=true'+(k?'&key='+encodeURIComponent(k):'');
   const pede=async(range)=>{const h0=range?{Range:range}:{};let r=null;
     if(zipChave&&key){try{r=await fetch(url(key),{headers:h0,signal});if(!r.ok){if(r.status<500)zipChave=false;r=null}}catch(e){if(signal.aborted)throw e;r=null}}
@@ -2730,7 +2730,7 @@ async function baixarZip(as,nome,b,aoTerminar){
   const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0,ult=0;const usados={};
   const mb=x=>x>=1e9?(x/1e9).toFixed(1).replace('.',',')+' GB':Math.max(0,Math.round(x/1e6))+' MB';
   const pinta=(f)=>{const agora=Date.now();if(!f&&agora-ult<400)return;ult=agora;const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(agora-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
-    dlPainel('<b>Baixando "'+esc(nome)+'"</b><span class="muted">Arquivo '+i+' de '+as.length+' · '+mb(feito)+(total?' de '+mb(total)+' ('+pc+'%)':'')+(v>2e5?' · '+(v/1e6).toFixed(1).replace('.',',')+' MB/s':'')+(rest!=null&&feito>5e6?' · falta ~'+(rest<1?'1':rest)+' min':'')+'</span><div class="upbar"><i style="width:'+pc+'%"></i></div><span class="hint">Deixe a Central aberta até terminar. Pode usar as outras abas.</span><button type="button" class="btn sm ghost danger" data-dlstop style="align-self:flex-start">⏹ Parar download</button>')};
+    dlPainel('<b>Baixando "'+esc(nome)+'"</b><span class="muted">Arquivo '+i+' de '+as.length+' · '+mb(feito)+(total?' de '+mb(total)+' ('+pc+'%)':'')+(v>2e5?' · '+(v/1e6).toFixed(1).replace('.',',')+' MB/s':'')+(rest!=null&&feito>5e6?' · falta ~'+(rest<1?'1':rest)+' min':'')+'</span><div class="upbar"><i style="width:'+pc+'%"></i></div><span class="hint">'+(feito>3e7&&v<2.5e6?'<b style="color:var(--warn)">Está lento?</b> Salve o .zip fora da pasta do OneDrive (ex.: Downloads) e pause o OneDrive enquanto baixa.':'Deixe a Central aberta até terminar. Pode usar as outras abas.')+'</span><button type="button" class="btn sm ghost danger" data-dlstop style="align-self:flex-start">⏹ Parar download</button>')};
   pinta(true);
   try{const {makeZip}=await import('./vendor/client-zip.js');
     async function* arquivos(){for(const a of as){if(ac.signal.aborted)return;i++;pinta(true);
