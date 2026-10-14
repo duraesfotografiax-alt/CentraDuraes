@@ -2966,17 +2966,31 @@ function contaLoja(id){const ps=S.posts.filter(p=>p.loja===id),ag=agoraLocal(),l
     pub:ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).length}}
 /* ---------- Pasta Prontos (CapCut → Drive → Central): cada vídeo / foto / pasta de fotos que cair lá vira um card "Para programar" ---------- */
 function prontosBox(l){if(!l)return '';
-  if(!l.prontosId)return S.adm?'<div class="prontos"><span>'+ico('i-folder')+'<b>Pasta Prontos</b> · exporte do CapCut direto para o Drive e o card aparece aqui sozinho</span><button class="btn sm" data-prontos="ativar" data-id="'+l.id+'">Ativar</button></div>':'';
-  return '<div class="prontos on"><span>'+ico('i-folder')+'<b>Prontos</b> · '+(l.prontosSinc?'conferido '+quandoIso(l.prontosSinc):'ainda não conferido')+'</span><a class="btn sm ghost" href="https://drive.google.com/drive/folders/'+encodeURIComponent(l.prontosId)+'" target="_blank" rel="noopener">Abrir no Drive</a><button class="btn sm primary" data-prontos="subir" data-id="'+l.id+'">Subir do celular</button><input type="file" id="prFiles_'+l.id+'" multiple accept="video/*,image/*" hidden data-prfiles="'+l.id+'"><button class="btn sm" data-prontos="sinc" data-id="'+l.id+'">Conferir agora</button><button class="btn sm ghost" data-prontos="ajuda" data-id="'+l.id+'">Como configurar o CapCut</button></div>'}
-async function sincProntos(l,manual){if(!l||!l.prontosId)return 0;
-  const fs=await dListar(l.prontosId),ja=new Set(S.posts.filter(p=>p.loja===l.id&&p.origem).map(p=>p.origem));let n=0;
+  if(!l.prontosId)return S.adm?'<div class="prontos"><span>'+ico('i-folder')+'<b>Pasta de exportação</b> · exporte do CapCut para o Drive e o card aparece aqui sozinho</span><button class="btn sm" data-prontos="ativar" data-id="'+l.id+'">Criar pasta Prontos</button><button class="btn sm ghost" data-prontos="pasta" data-id="'+l.id+'">Usar uma pasta que já existe</button></div>':'';
+  return '<div class="prontos on"><span>'+ico('i-folder')+'<b>'+esc(l.prontosNome||'Prontos')+'</b> · '+(l.prontosSinc?'conferido '+quandoIso(l.prontosSinc):'ainda não conferido')+'</span><a class="btn sm ghost" href="https://drive.google.com/drive/folders/'+encodeURIComponent(l.prontosId)+'" target="_blank" rel="noopener">Abrir no Drive</a><button class="btn sm primary" data-prontos="subir" data-id="'+l.id+'">Subir do celular</button><input type="file" id="prFiles_'+l.id+'" multiple accept="video/*,image/*" hidden data-prfiles="'+l.id+'"><button class="btn sm" data-prontos="sinc" data-id="'+l.id+'">Conferir agora</button><button class="btn sm ghost" data-prontos="ajuda" data-id="'+l.id+'">Como configurar o CapCut</button>'+(S.adm?'<button class="btn sm ghost" data-prontos="pasta" data-id="'+l.id+'">Trocar pasta</button>':'')+'</div>'}
+/* lê a pasta escolhida da loja. Se tiver meses (Setembro, Outubro…), entra no mais recente; dentro, entra também em "Vídeos"/"Fotos".
+   Vídeo = Reels · foto solta = Feed · pasta com fotos = Carrossel. Só pega o que foi colocado depois de ativar (menos 2 dias). */
+const prontosRodando={};
+function sincProntos(l,manual){if(!l||!l.prontosId)return Promise.resolve(0);if(prontosRodando[l.id])return prontosRodando[l.id];
+  const pr=sincProntos_(l,manual).finally(()=>{delete prontosRodando[l.id]});prontosRodando[l.id]=pr;return pr}
+async function sincProntos_(l,manual){
+  const desde=l.prontosDesde||'',novoArq=f=>!desde||String(f.modifiedTime||f.createdTime||'9')>=desde;
+  const ja=new Set(S.posts.filter(p=>p.loja===l.id&&p.origem).map(p=>p.origem));let n=0;
   const novo=async(origem,titulo,tipo,drive)=>{if(ja.has(origem))return;ja.add(origem);
-    await store.add('posts',{loja:l.id,titulo:String(titulo).replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[_]+/g,' ').slice(0,100),tipo,drive,status:'pronto',origem,legenda:l.legPadrao||'',editadoPor:meuMembro()||'Drive',editadoEm:agoraLocal(),quando:'',link:'',obs:'Veio da pasta Prontos'});n++};
-  for(const f of fs){
-    if(f.mimeType===FOLDER){const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length)continue;
-      const nv=den.filter(x=>/^video/.test(x.mimeType)).length;await novo(f.id,f.name,nv&&nv===den.length&&den.length===1?'reels':den.length>1?'carrossel':nv?'reels':'feed','https://drive.google.com/drive/folders/'+f.id);continue}
+    await store.add('posts',{loja:l.id,titulo:String(titulo).replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[_]+/g,' ').slice(0,100),tipo,drive,status:'pronto',origem,legenda:l.legPadrao||'',editadoPor:meuMembro()||'Drive',editadoEm:agoraLocal(),quando:'',link:'',obs:'Veio do Drive ('+(l.prontosNome||'Prontos')+')'});n++};
+  const ehTipoP=s=>/^(fotos?|v[ií]deos?|videos?|reels|stories|feed|carross[eé]is|carrossel|prontos?|editados?|finalizados?)$/i.test(String(s||'').trim());
+  let alvo=l.prontosId,fs=await dListar(alvo);
+  const meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
+  if(meses.length){alvo=meses[0].f.id;fs=await dListar(alvo)}
+  const trata=async(lista,dentroTipo)=>{for(const f of lista){
+    if(f.mimeType===FOLDER){
+      if(!dentroTipo&&ehTipoP(f.name)){await trata(await dListar(f.id),true);continue}
+      const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length||!den.some(novoArq))continue;
+      const nv=den.filter(x=>/^video/.test(x.mimeType)).length;await novo(f.id,f.name,den.length===1&&nv?'reels':den.length>1?'carrossel':nv?'reels':'feed','https://drive.google.com/drive/folders/'+f.id);continue}
+    if(!novoArq(f))continue;
     if(/^video\//.test(f.mimeType||''))await novo(f.id,f.name,'reels','https://drive.google.com/file/d/'+f.id+'/view');
-    else if(/^image\//.test(f.mimeType||''))await novo(f.id,f.name,'feed','https://drive.google.com/file/d/'+f.id+'/view')}
+    else if(/^image\//.test(f.mimeType||''))await novo(f.id,f.name,'feed','https://drive.google.com/file/d/'+f.id+'/view')}};
+  await trata(fs,false);
   try{await store.update('lojas',l.id,{prontosSinc:new Date().toISOString()})}catch(_){}
   return n}
 const prontosFeito={};
@@ -2996,16 +3010,21 @@ function ajudaProntos(l){
     '<li><b>No CapCut</b>, na hora de exportar, mude o local para:<br><code>Meu Drive › '+esc((S.driveCfg&&S.driveCfg.clientes&&S.driveCfg.clientes.nome)||'Clientes')+' › '+esc(l.nome)+' › Prontos</code></li>'+
     '<li><b>Vídeo</b> exportado vira um card de <b>Reels</b>. <b>Foto</b> solta vira <b>Feed</b>. Uma <b>pasta com várias fotos</b> vira <b>Carrossel</b> (na ordem do nome dos arquivos).</li>'+
     '<li><b>Exportou no celular?</b> Na faixa Prontos da loja, toque em <b>Subir do celular</b> e escolha o vídeo ou as fotos (em Opções, marque <b>Atual</b> para vir original). O card aparece na hora. <b>Várias fotos escolhidas de uma vez viram um carrossel</b>; cada vídeo vira um Reels.</li>'+
+    '<li><b>Já tem pasta organizada por mês?</b> (ex.: Loja › Outubro › Vídeos) Use <b>Trocar pasta</b> e escolha a pasta da loja: a Central entra sozinha no mês mais recente e nas pastas Vídeos/Fotos.</li>'+
     '<li>Quando alguém abre a aba Clientes, a Central confere a pasta (no máximo a cada 5 min) e cria os cards em <b>Para programar</b>, já com a legenda padrão da loja. Também dá para tocar em <b>Conferir agora</b>.</li></ol>'+
     '<p class="hint" style="margin:0">Dica: dê ao arquivo o nome do conteúdo (ex.: "Jeep Renegade 2019"). Esse nome vira o título do card.</p>'+
     '<div class="formacts"><button type="button" class="btn primary" data-close>Entendi</button></div></form>';sheet.hidden=false}
 async function prontosAcao(b){const l=S.lojas.find(x=>x.id===b.dataset.id);if(!l)return;const k=b.dataset.prontos;
   if(k==='ajuda'){ajudaProntos(l);return}
   if(k==='subir'){const inp=document.getElementById('prFiles_'+l.id);if(inp)abrirPicker(inp);return}
+  if(k==='pasta'){try{await token()}catch(er){toast(er.message);return}let ini=l.prontosId||null;if(!ini){try{ini=await pastaDestino({tipo:'elite',loja:l.id,titulo:''})}catch(_){}}
+    abrirSeletor(ini,async f=>{if(f.mimeType!==FOLDER){toast('Escolha uma pasta.');return}
+      try{await write(()=>store.update('lojas',l.id,{prontosId:f.id,prontosNome:f.name,prontosDesde:new Date(Date.now()-2*864e5).toISOString()}));const n=await sincProntos(Object.assign({},l,{prontosId:f.id,prontosNome:f.name,prontosDesde:new Date(Date.now()-2*864e5).toISOString()}),true);
+        toast('Agora a Central acompanha "'+f.name+'"'+(n?' · '+n+' conteúdo'+(n>1?'s novos':' novo'):''))}catch(_){}});return}
   try{await token()}catch(er){toast(er.message);return}
   b.disabled=true;const t=b.textContent;
   try{if(k==='ativar'){b.textContent='Criando…';const base=await pastaDestino({tipo:'elite',loja:l.id,titulo:''});const p=(await dAcharPasta('Prontos',base))||(await dCriarPasta('Prontos',base));
-      await write(()=>store.update('lojas',l.id,{prontosId:p.id}));toast('Pasta Prontos criada no Drive');ajudaProntos(Object.assign({},l,{prontosId:p.id}));return}
+      await write(()=>store.update('lojas',l.id,{prontosId:p.id,prontosNome:'Prontos',prontosDesde:new Date(Date.now()-2*864e5).toISOString()}));toast('Pasta Prontos criada no Drive');ajudaProntos(Object.assign({},l,{prontosId:p.id}));return}
     if(k==='sinc'){b.textContent='Conferindo…';const n=await sincProntos(l,true);toast(n?n+' conteúdo'+(n>1?'s novos':' novo')+' em Para programar':'Nada novo na pasta Prontos')}}
   catch(er){toast(er.message||'Não deu certo')}finally{b.disabled=false;b.textContent=t}}
 /* ---------- Aprovação do cliente: manda um link no WhatsApp (grupo do cliente), ele aprova ou pede ajuste, a Central mostra no card ---------- */
