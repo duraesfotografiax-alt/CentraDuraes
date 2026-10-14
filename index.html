@@ -324,7 +324,7 @@ details.panel[open] summary{margin-bottom:12px}
 .dhero button[aria-pressed="true"]{border-color:var(--gold);background:var(--panel2)}
 .dhero b{display:block;font-family:var(--display);font-size:16px}
 .dhero small{color:var(--muted);font-size:12px}
-.uppanel{position:fixed;right:16px;bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:15;width:min(360px,calc(100% - 32px));background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;font-size:13px}
+.uppanel{position:fixed;right:16px;bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:40;width:min(360px,calc(100% - 32px));background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;font-size:13px}
 @media (min-width:901px){.uppanel{bottom:24px}}
 .upbar{height:8px;border-radius:99px;background:var(--hover);overflow:hidden}
 .upbar i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
@@ -2670,8 +2670,8 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
     '<div class="hint" id="matSel">No iPhone, para vir 100% original: na tela de escolher, toque em <b>Opções</b> e marque <b>Atual</b> (ou escolha pelo app Arquivos). Deixe a tela ligada até terminar.</div></div>'+
     '<div class="err" id="matErr"></div><div class="formacts"><button type="button" class="btn ghost" data-mat="voltar">Voltar</button><button class="btn primary" type="submit">Subir</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=t=>{q('#matErr').textContent=t};
-  if(!m)q('#matLoja').onchange=()=>{q('#matOutW').hidden=q('#matLoja').value!=='__outro'};
-  if(!m)q('#matOutW').hidden=q('#matLoja').value!=='__outro';
+  if(!m)q('#matLoja').onchange=()=>{q('#matOutW').hidden=!q('#matLoja').value.startsWith('__')};
+  if(!m)q('#matOutW').hidden=!q('#matLoja').value.startsWith('__');
   let esperando=false;
   q('#matPick').onclick=()=>{if(driveConectado()){esperando=true;q('#matSel').innerHTML='<b style="color:var(--ink)">Esperando os vídeos…</b> Se escolheu muitos, o iPhone leva um tempo preparando. Espere aparecer a quantidade aqui antes de tocar em Subir.'}abrirPicker(q('#matFiles'),err)};
   q('#matFiles').onchange=e=>{esperando=false;arqs=[...e.target.files];if(!arqs.length){arqs=null;return}const tot=arqs.reduce((s,f)=>s+f.size,0);q('#matSel').innerHTML='<b style="color:var(--ink)">'+arqs.length+' arquivo'+(arqs.length===1?'':'s')+'</b> · '+tamTxt(tot)+' · deixe a tela ligada até terminar'};
@@ -2683,14 +2683,17 @@ function formMaterial(m){const L=lojasOrd(),cfg=S.driveCfg||{};let arqs=null;
     try{let doc=m,pasta=m&&m.pasta;
       if(!m){const lv=q('#matLoja').value,data=q('#matData').value||hoje(),out=q('#matOut')?q('#matOut').value.trim():'';
         if(lv==='__outro'&&!out){err('Escreva o nome.');b.disabled=false;b.textContent='Subir';return}
-        const loja=lv.startsWith('__')?'':lv,nome=loja?lojaNome(loja):lv==='__duraes'?(out||'Durães Fotografia'):out,emp=lv==='__duraes'?'duraes':'elite';
+        const loja=lv.startsWith('__')?'':lv,nome=loja?lojaNome(loja):lv==='__duraes'?(out||'Eventos'):out,emp=lv==='__duraes'?'duraes':'elite';
         doc=(S.materiais||[]).find(x=>x.data===data&&(loja?x.loja===loja:(!x.loja&&x.lojaNome===nome)));
         if(doc)pasta=doc.pasta;
-        else{const base=emp==='duraes'?await pastaDestino({tipo:'duraes'}):loja?await pastaDestino({tipo:'elite',loja,titulo:''}):(cfg.clientes&&cfg.clientes.id);
-          if(!base)throw new Error('O Adm ainda não escolheu as pastas do Drive (aba Drive).');
-          const br=(await dAcharPasta('Brutos',base))||(await dCriarPasta('Brutos',base));
-          const nomeP=data.split('-').reverse().join('-')+(loja?'':' · '+nome);
-          const p=(await dAcharPasta(nomeP,br.id))||(await dCriarPasta(nomeP,br.id));pasta={id:p.id,nome:p.name||nomeP};
+        else{/* padrão: Clientes › Brutos › (loja) › (data) */
+          if(!(cfg.clientes&&cfg.clientes.id))throw new Error('O Adm ainda não escolheu a pasta Clientes (aba Drive).');
+          b.textContent='Preparando a pasta…';
+          const br=(await dAcharPasta('Brutos',cfg.clientes.id))||(await dAcharPasta('Bruto',cfg.clientes.id))||(await dCriarPasta('Brutos',cfg.clientes.id));
+          const nomeL=String(nome||'Outros').replace(/[\\/]/g,'-').trim().slice(0,80);
+          const lp=(await dAcharPasta(nomeL,br.id))||(await dCriarPasta(nomeL,br.id));
+          const nomeP=data.split('-').reverse().join('-');
+          const p=(await dAcharPasta(nomeP,lp.id))||(await dCriarPasta(nomeP,lp.id));pasta={id:p.id,nome:nomeL+' › '+nomeP};
           try{await dLinkPublico(p.id)}catch(_){}
           doc={loja,lojaNome:nome,empresa:emp,data,obs:q('#matObs').value.trim().slice(0,120),pasta,arquivos:[],baixadoPor:[],criadoEm:new Date().toISOString(),criadoPor:meuMembro()||(S.me&&S.me.nome)||''};
           const id=await write(()=>store.add('materiais',doc));doc=Object.assign({id},doc)}}
