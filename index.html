@@ -2714,30 +2714,44 @@ function streamDrive(a,signal,onBytes){const size=Number(a.size)||0,CH=8*1024*10
   let prox=0;const fila=[];
   return new ReadableStream({async pull(c){while(fila.length<PAR&&prox<size){const i0=prox,f0=Math.min(size,i0+CH)-1;const p=pega(i0,f0);p.catch(()=>{});fila.push(p);prox=f0+1}
       if(!fila.length){c.close();return}const buf=await fila.shift();onBytes(buf.length);c.enqueue(buf)}},{highWaterMark:0})}
+/* painel fixo do download: não some quando a tela atualiza; mostra o fim (concluído / parado / erro) até fechar */
+let DL=null;
+function dlPainel(html){let p=document.getElementById('dlPanel');if(!p){p=document.createElement('div');p.id='dlPanel';p.className='uppanel';p.style.left='16px';p.style.right='auto';document.body.appendChild(p);
+    p.addEventListener('click',ev=>{if(ev.target.closest('[data-dlstop]')&&DL)DL.ac.abort();if(ev.target.closest('[data-dlfechar]'))dlPainel(null)})}
+  if(html==null){p.hidden=true;p.innerHTML='';return}p.hidden=false;p.innerHTML=html}
+window.addEventListener('beforeunload',ev=>{if(DL){ev.preventDefault();ev.returnValue=''}});
 async function baixarZip(as,nome,b,aoTerminar){
-  if(b._ac){b._ac.abort();return}
+  if(DL){toast('Já tem um download em andamento (veja o quadro no canto da tela).');return}
   if(!window.showSaveFilePicker){toast('O zip único funciona no Chrome ou no Edge do computador. Use "Abrir no Drive" ou "Um por um".');return}
   if(!as.length){toast('Sem arquivos');return}
   if(!driveConectado()){pedirToken('').then(()=>toast('Google conectado ✓ Toque de novo em Baixar pasta.')).catch(er=>toast(er.message));return}
   let fh;try{fh=await showSaveFilePicker({suggestedName:String(nome).replace(/[\\/:*?"<>|]+/g,'-').slice(0,80)+'.zip',types:[{description:'Arquivo ZIP',accept:{'application/zip':['.zip']}}]})}catch(_){return}
-  const t0=b.innerHTML,ac=new AbortController();b._ac=ac;b.classList.add('danger');b.textContent='Preparando… (toque para parar)';let ws=null;
+  const ac=new AbortController();DL={ac,nome};let ws=null;
+  const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0,ult=0;const usados={};
+  const mb=x=>x>=1e9?(x/1e9).toFixed(1).replace('.',',')+' GB':Math.max(0,Math.round(x/1e6))+' MB';
+  const pinta=(f)=>{const agora=Date.now();if(!f&&agora-ult<400)return;ult=agora;const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(agora-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
+    dlPainel('<b>Baixando "'+esc(nome)+'"</b><span class="muted">Arquivo '+i+' de '+as.length+' · '+mb(feito)+(total?' de '+mb(total)+' ('+pc+'%)':'')+(v>2e5?' · '+(v/1e6).toFixed(1).replace('.',',')+' MB/s':'')+(rest!=null&&feito>5e6?' · falta ~'+(rest<1?'1':rest)+' min':'')+'</span><div class="upbar"><i style="width:'+pc+'%"></i></div><span class="hint">Deixe a Central aberta até terminar. Pode usar as outras abas.</span><button type="button" class="btn sm ghost danger" data-dlstop style="align-self:flex-start">⏹ Parar download</button>')};
+  pinta(true);
   try{const {makeZip}=await import('./vendor/client-zip.js');
-    const total=as.reduce((s,a)=>s+(Number(a.size)||0),0),ini=Date.now();let feito=0,i=0,ult=0;const usados={};
-    const mb=x=>x>=1e9?(x/1e9).toFixed(1).replace('.',',')+' GB':Math.max(0,Math.round(x/1e6))+' MB';
-    const pinta=()=>{const agora=Date.now();if(agora-ult<300)return;ult=agora;const pc=total?Math.min(99,Math.floor(feito/total*100)):0,v=feito/Math.max(1,(agora-ini)/1000),rest=v>0&&total?Math.round((total-feito)/v/60):null;
-      b.textContent='⏹ Parar · '+i+'/'+as.length+' · '+(total?pc+'% de '+mb(total):mb(feito))+(v>2e5?' · '+(v/1e6).toFixed(1).replace('.',',')+' MB/s':'')+(rest!=null&&feito>5e6?' · ~'+(rest<1?'1':rest)+' min':'')};
-    async function* arquivos(){for(const a of as){if(ac.signal.aborted)return;i++;ult=0;pinta();
+    async function* arquivos(){for(const a of as){if(ac.signal.aborted)return;i++;pinta(true);
       let nm=a.nome||('arquivo'+i);if(usados[nm]){const k=nm.lastIndexOf('.');nm=(k>0?nm.slice(0,k):nm)+' ('+(++usados[nm])+')'+(k>0?nm.slice(k):'')}else usados[nm]=1;
       yield {name:nm,input:streamDrive(a,ac.signal,n=>{feito+=n;pinta()}),size:Number(a.size)||undefined,lastModified:new Date()}}}
     ws=await fh.createWritable();await makeZip(arquivos()).pipeTo(ws,{signal:ac.signal});ws=null;
-    toast('Pronto: '+as.length+' arquivos em '+fh.name);aoTerminar&&aoTerminar()}
-  catch(er){try{ws&&await ws.abort()}catch(_){}if(ac.signal.aborted)toast('Download parado.');else toast('O zip parou: '+(er.message||'erro')+'. Tente de novo.')}
-  finally{b._ac=null;b.classList.remove('danger');b.innerHTML=t0;b.disabled=false}}
+    DL=null;dlPainel('<b style="color:var(--pos)">Download concluído ✓</b><span class="muted">'+as.length+' arquivo'+(as.length===1?'':'s')+' · '+mb(total||feito)+' salvos em <b style="color:var(--ink)">'+esc(fh.name)+'</b></span><span class="hint">Abra o arquivo .zip na pasta onde você salvou.</span><button type="button" class="btn sm" data-dlfechar style="align-self:flex-start">Fechar</button>');
+    aoTerminar&&aoTerminar()}
+  catch(er){try{ws&&await ws.abort()}catch(_){}const parou=ac.signal.aborted;DL=null;
+    if(parou){dlPainel('<b>Download parado</b><span class="muted">O arquivo incompleto foi apagado.</span>');setTimeout(()=>{if(!DL)dlPainel(null)},4000)}
+    else dlPainel('<b style="color:var(--neg)">O download parou</b><span class="muted">'+esc(er.message||'Erro de conexão')+'</span><span class="hint">Tente de novo ou use "Abrir no Drive".</span><button type="button" class="btn sm" data-dlfechar style="align-self:flex-start">Fechar</button>')}}
 async function baixarMaterial(m,b){const as=m.arquivos||[];if(!as.length){toast('Sem arquivos');return}
   if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&as.length>1){window.open(matPastaWeb(m),'_blank');return}
-  if(b._parar===false){b._parar=true;return}b._parar=false;const t1=b.innerHTML;
-  for(let k=0;k<as.length;k++){if(b._parar){toast('Parado em '+k+' de '+as.length);break}b.textContent='⏹ Parar · '+(k+1)+' de '+as.length;const a=document.createElement('a');a.href=baixarDireto(as[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1300))}
-  const parou=b._parar;b._parar=undefined;b.disabled=false;if(parou){b.innerHTML=t1;return}b.textContent='Baixado ✓';const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}}
+  if(DL){toast('Já tem um download em andamento (veja o quadro no canto da tela).');return}
+  const ac=new AbortController(),nome=matNome(m)+' '+dCurta(m.data);DL={ac,nome};let k=0;
+  for(;k<as.length;k++){if(ac.signal.aborted)break;
+    dlPainel('<b>Baixando "'+esc(nome)+'" um por um</b><span class="muted">Arquivo '+(k+1)+' de '+as.length+'</span><div class="upbar"><i style="width:'+Math.round(k/as.length*100)+'%"></i></div><span class="hint">O navegador pode pedir para permitir vários downloads: permita. Cada arquivo aparece nos Downloads do navegador.</span><button type="button" class="btn sm ghost danger" data-dlstop style="align-self:flex-start">⏹ Parar</button>');
+    const a=document.createElement('a');a.href=baixarDireto(as[k].id);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();await new Promise(r=>setTimeout(r,1500))}
+  const parou=ac.signal.aborted;DL=null;
+  dlPainel(parou?'<b>Parado</b><span class="muted">'+k+' de '+as.length+' arquivos foram pedidos ao navegador.</span><button type="button" class="btn sm" data-dlfechar style="align-self:flex-start">Fechar</button>':'<b style="color:var(--pos)">Pronto ✓</b><span class="muted">Os '+as.length+' arquivos foram mandados para os Downloads do navegador. Os vídeos grandes podem levar mais um tempo para terminar lá.</span><button type="button" class="btn sm" data-dlfechar style="align-self:flex-start">Fechar</button>');
+  if(parou)return;const eu=meuMembro()||(S.me&&S.me.nome)||'';if(eu&&!(m.baixadoPor||[]).includes(eu))try{await store.update('materiais',m.id,{baixadoPor:(m.baixadoPor||[]).concat([eu])})}catch(_){}}
 function verMaterial(m){const as=m.arquivos||[];
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:760px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">'+esc(matNome(m))+' · '+esc(dCurta(m.data))+'</h2><button type="button" class="btn sm ghost" data-mat="voltar">Voltar</button></div>'+
     '<div class="list">'+as.map(a=>'<div class="row"><span class="carth" style="background-image:url(\''+thumbPub(a.id,240)+'\')"></span><div style="min-width:0"><div class="t">'+esc(a.nome)+'</div><div class="s"><span>'+(/^video/.test(a.mime)?'Vídeo':'Foto')+(a.size?' · '+tamTxt(a.size):'')+'</span></div></div><div class="acts"><a class="btn sm" href="'+esc(baixarDireto(a.id))+'" rel="noopener">'+ico('i-down')+'Baixar</a></div></div>').join('')+'</div></form>';
