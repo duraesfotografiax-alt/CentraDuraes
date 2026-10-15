@@ -70,6 +70,7 @@ service cloud.firestore {
     // Envios: o cliente abre pelo link (id secreto), sem login; só consegue registrar que abriu/baixou
     // Materiais brutos (gravações para editar): só a equipe
     match /materiais/{id} { allow read, write: if ativo(); }
+    match /tarefas/{id} { allow read, write: if ativo(); }
 
     // Aprovação do cliente: quem tem o link vê e responde (só status/obs dos itens); a equipe cria e apaga
     match /aprovacoes/{id} {

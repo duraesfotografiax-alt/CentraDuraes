@@ -74,6 +74,9 @@ async function enviar(u, title, body) {
   }
   if (MODO === 'meta' || MODO === 'paginas') return;
 
+  // Pasta Prontos: vídeo/foto exportado no Drive vira card em "Para programar" sozinho
+  try { await require('./prontos')({ db, agoraIso: agoraIso0, hoje }); } catch (e) { console.error('Prontos:', e.message); }
+
   const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
   const emEdicao = (t) => t.etapa === 'captado' || t.etapa === 'edicao';
   const doUsuario = (u, t) => { const m = membroDe(u); return m && arr(t.captacao).concat(arr(t.edicao)).includes(m); };
@@ -173,6 +176,66 @@ async function enviar(u, title, body) {
     await marcar(chave);
   }
 
+  // 0h) Tarefas da Agenda: nova tarefa, tarefa concluída, lembrete do horário e o que ficou para trás no fim do dia
+  const REP = { diario: 'Todo dia', uteis: 'Dias úteis', semanal: 'Toda semana' };
+  const tarefasAg = (await db.collection('tarefas').get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.ativo !== false);
+  const ocorre = (t, d) => {
+    if (!t.data || d < t.data || (t.fim && d > t.fim)) return false;
+    if (!t.repete) return t.data === d;
+    if (t.repete === 'diario') return true;
+    const w = new Date(d + 'T12:00:00Z').getUTCDay();
+    if (t.repete === 'uteis') return w >= 1 && w <= 5;
+    if (t.repete === 'semanal') return w === new Date(t.data + 'T12:00:00Z').getUTCDay();
+    return false;
+  };
+  const paraT = (t) => { const p = arr(t.para); const alvo = usuarios.filter((u) => !p.length || p.includes(membroDe(u))); return alvo.length ? alvo : usuarios.filter(ehAdm); };
+  const quemT = (t) => (arr(t.para).length ? arr(t.para).join(', ') : 'todos');
+  const recente = new Date(Date.now() - 2 * 864e5).toISOString();
+  for (const t of tarefasAg) {
+    // nova: avisa quem vai fazer (menos quem criou)
+    if (t.criadoEm && t.criadoEm >= recente) {
+      for (const u of paraT(t).filter((u) => !t.criadoPor || membroDe(u) !== t.criadoPor)) {
+        const chave = `tfnova_${t.id}_${u.id}`;
+        if (await jaFoi(chave)) continue;
+        await enviar(u, `Nova tarefa${t.criadoPor ? ' de ' + t.criadoPor : ''}: ${t.titulo}`, `${t.repete ? REP[t.repete] || '' : 'Para ' + dm(t.data)}${t.hora ? ' às ' + t.hora : ''} · ${quemT(t)}${t.obs ? '. ' + t.obs : ''}`);
+        await marcar(chave);
+      }
+    }
+    // concluída: avisa todo mundo (menos quem fez)
+    for (const [d, f] of Object.entries(t.feito || {})) {
+      if (!f || d < addDias(hoje, -2)) continue;
+      for (const u of usuarios.filter((u) => membroDe(u) !== f.por)) {
+        const chave = `tfok_${t.id}_${d}_${u.id}`;
+        if (await jaFoi(chave)) continue;
+        await enviar(u, `${f.por || 'Alguém'} concluiu: ${t.titulo}`, `Tarefa de ${dm(d)} marcada como feita${f.em ? ' às ' + String(f.em).slice(11, 16) : ''}.`);
+        await marcar(chave);
+      }
+    }
+    // lembrete: ~30 min antes do horário
+    if (t.hora && ocorre(t, hoje) && !(t.feito || {})[hoje]) {
+      const [hh, mm] = t.hora.split(':').map(Number);
+      const falta = hh * 60 + mm - min;
+      if (falta >= -5 && falta <= 35) {
+        const chave = `tfhora_${t.id}_${hoje}`;
+        if (!(await jaFoi(chave))) {
+          for (const u of paraT(t)) await enviar(u, `Tarefa ${falta > 0 ? 'em ' + falta + ' min' : 'agora'}: ${t.titulo}`, `Às ${t.hora} · ${quemT(t)}. Marque como feita na Agenda quando terminar.`);
+          await marcar(chave);
+        }
+      }
+    }
+  }
+  // fim do dia (18h): o que ainda falta de hoje
+  if (min >= 18 * 60 && min < 22 * 60) {
+    for (const u of usuarios) {
+      const chave = `tffalta_${u.id}_${hoje}`;
+      if (!arr(u.tokens).length || (await jaFoi(chave))) continue;
+      const m = membroDe(u);
+      const falta = tarefasAg.filter((t) => ocorre(t, hoje) && !(t.feito || {})[hoje] && (!arr(t.para).length || arr(t.para).includes(m) || (!m && ehAdm(u))));
+      if (falta.length) await enviar(u, `Ainda falta ${falta.length} tarefa(s) de hoje`, falta.map((t) => t.titulo).join(', '));
+      await marcar(chave);
+    }
+  }
+
   // 1) Resumo do dia, a partir das 8h
   if (min >= 8 * 60 && min < 22 * 60) {
     for (const u of usuarios) {
@@ -188,6 +251,8 @@ async function enviar(u, title, body) {
       if (am.length) lin.push('Amanhã: ' + am.map((t) => t.titulo).join(', '));
       if (ent.length) lin.push('Entregar até ' + dm(em2) + ': ' + ent.map((t) => t.titulo).join(', '));
       if (atr.length) lin.push('Atrasadas: ' + atr.map((t) => t.titulo).join(', '));
+      const mm = membroDe(u), tfs = tarefasAg.filter((t) => ocorre(t, hoje) && !(t.feito || {})[hoje] && (!arr(t.para).length || arr(t.para).includes(mm) || (!mm && ehAdm(u))));
+      if (tfs.length) lin.unshift('Tarefas de hoje: ' + tfs.map((t) => t.titulo + (t.hora ? ' ' + t.hora : '')).join(', '));
       const progr = posts.filter((p) => p.status === 'pronto' && lojas[p.loja] && (ehAdm(u) || membroDe(u) === (lojas[p.loja].postagem || 'Vanessa')));
       if (progr.length) lin.push('Para programar: ' + progr.length + ' post(s) (' + [...new Set(progr.map((p) => lojas[p.loja].nome))].join(', ') + ')');
       if (ehAdm(u) || u.financeiro === true) { const env = prontosDrive.map((t) => t.titulo); if (env.length) lin.push('Enviar ao cliente: ' + env.join(', ')); }
