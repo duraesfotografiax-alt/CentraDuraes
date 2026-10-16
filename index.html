@@ -613,6 +613,25 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
 .acc{grid-template-columns:auto minmax(0,1fr)}
 .acc .ctl{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding-left:42px}
 .meout{margin-left:auto}
+/* editor de vídeos (chat com o Claude que roda no PC) */
+.edw{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;min-height:62vh}
+.edl{display:flex;flex-direction:column;gap:6px;max-height:72vh;overflow:auto}
+.edl button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:inherit;display:flex;flex-direction:column;gap:3px}
+.edl button[aria-current="true"]{border-color:var(--gold)}
+.edl button b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edl button small{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edc{display:flex;flex-direction:column;min-height:62vh;padding:0;overflow:hidden}
+.edc .edh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.edc .edh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edm{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;max-height:58vh}
+.edb{max-width:82%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.edb.voce{align-self:flex-end;background:var(--gold-bg);border:1px solid rgba(226,178,76,.35)}
+.edb.claude{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+.edb small{display:block;margin-top:5px;font-size:11px;color:var(--faint)}
+.edf{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+.edf textarea{flex:1;min-height:46px;max-height:180px;resize:vertical;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit}
+.edback{display:none}
+@media (max-width:760px){.edw{grid-template-columns:1fr}.edw.aberto .edl{display:none}.edw:not(.aberto) .edc{display:none}.edback{display:inline-flex}.edb{max-width:92%}}
 </style>
 </head>
 <body>
@@ -796,6 +815,17 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
         </div>
       </section>
 
+      <!-- EDITOR DE VÍDEOS -->
+      <section id="tab-editor" hidden>
+        <div class="head">
+          <h1>Editor de vídeos<small>Converse com o Claude que edita os vídeos no PC (video-use + HyperFrames)</small></h1>
+          <div class="sp"></div>
+          <span id="edPonte"></span>
+          <button class="btn primary" data-ed="novo"><svg class="i"><use href="#i-plus"/></svg>Novo vídeo</button>
+        </div>
+        <div class="edw" id="edWrap"><div class="edl" id="edList"></div><div class="panel edc" id="edChat"></div></div>
+      </section>
+
       <!-- EQUIPE -->
       <section id="tab-equipe" hidden>
         <div class="head"><h1>Equipe<small>Quem está com o quê, freelancers e acessos</small></h1></div>
@@ -887,7 +917,7 @@ const ETAPAS = [['agendar','A agendar','#5D6375'],['agendado','Agendado','#4C8DF
 const CAT_ENT = ['Contrato / serviço','Sinal de evento','Mensalidade cliente','Venda de fotos / álbum','Outros'];
 const CAT_SAI = ['Equipamento','Transporte / combustível','Anúncios','Software / assinaturas','Freelancer','Impressão / álbum','Impostos / MEI','Alimentação','Retirada sócio','Outros'];
 const NAV = [
-  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['contratos','Contratos','i-contract',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['envios','Envios','i-send',false],['trafego','Tráfego','i-ads','socio'],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
+  ['resumo','Resumo','i-home',true],['caixa','Caixa','i-wallet',true],['recibos','Recibos','i-receipt',true],['contratos','Contratos','i-contract',true],['producao','Produção','i-board',false],['clientes','Clientes','i-store',false],['drive','Drive','i-drive',false],['albuns','Álbuns','i-album',false],['envios','Envios','i-send',false],['editor','Editor','i-video','dono'],['trafego','Tráfego','i-ads','socio'],['agenda','Agenda','i-cal',false],['equipe','Equipe','i-team',false]
 ];
 
 const S = { ads:[], adsEst:{}, fAds:'ativas', fAdsLoja:'', midP:'todos', recibos:[], contratos:[], fCt:'todas', recCfg:{}, albuns:[], fAlb:'abertos', driveCfg:{}, dRoot:'duraes', dPath:[], dItems:null, dErr:'', unlocked:false, cliSeg:'elite', lojas:[], posts:[], loja:'todas', lanc:[], tar:[], valores:[], freelas:[], usuarios:[], fin:false, owner:false, adm:false, preview:false, canWrite:true,
@@ -960,7 +990,7 @@ function totais(lista,emp){let ent=0,sai=0,rec=0,pag=0;
 function doMes(m){m=m||S.mes;return S.lanc.filter(l=>(l.data||'').slice(0,7)===m)}
 
 /* ---------- casca ---------- */
-function tabs(){return NAV.filter(n=>!n[3]||(n[3]==='socio'?(S.fin&&!S.preview):fin()))}
+function tabs(){return NAV.filter(n=>!n[3]||(n[3]==='dono'?(S.owner&&!S.preview):n[3]==='socio'?(S.fin&&!S.preview):fin()))}
 function setTab(t){if(!tabs().some(n=>n[0]===t))t='producao';S.tab=t;if(t==='drive'){let jaFoi=false;try{jaFoi=localStorage.getItem('gConectou')==='1'}catch(_){}if(driveOk()&&!driveConectado()&&jaFoi&&window.google&&google.accounts){pedirToken('').then(()=>{S.dItems=null;renderDrive()}).catch(()=>{})}setTimeout(renderDrive,0)}try{localStorage.setItem('tab',t)}catch(_){}
   document.querySelectorAll('main > section').forEach(s=>s.hidden=s.id!=='tab-'+t);renderShell();window.scrollTo(0,0)}
 function logoTile(k,lg){const cls='tile '+k+(lg?' lg':'');
@@ -997,7 +1027,7 @@ function render(){
   segs('fPes','pes',[['todos','Todos']].concat(TEAM.map(p=>[p,p])).concat([['fr','Freelas']]));
   renderShell();
   if(fin()){renderResumo();renderCaixa();renderRecibos();renderContratos()}
-  renderBoard();renderClientes();renderAlbuns();renderEnvios();if(S.fin)renderTrafego();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
+  renderBoard();renderClientes();renderAlbuns();renderEnvios();renderEditor();if(S.fin)renderTrafego();renderAgenda();renderEquipe();if(S.tab==='drive'&&!S.dItems)renderDrive();
 }
 
 /* ---------- resumo ---------- */
@@ -2531,6 +2561,48 @@ function escolherWhats(texto,num){
   sheet2.hidden=false;sheet2.querySelectorAll('[data-wap]').forEach(b=>b.onclick=()=>{waSet(b.dataset.wap);fecharSheet2();abrirWhats(texto,num)});
   const c=sheet2.querySelector('[data-close2]');if(c)c.onclick=fecharSheet2}
 document.addEventListener('click',e=>{const w=e.target.closest('[data-wa]');if(!w)return;e.preventDefault();abrirWhats(decodeURIComponent(w.dataset.wa),w.dataset.wanum||'')});
+/* ---------- Editor de vídeos: chat no Firestore; a "ponte" no PC roda o Claude e responde ---------- */
+S.edConvs=[];S.edMsgs=[];S.edPonte={};S.edAberta='';let edMsgUnsub=null;
+function edAssinar(){
+  subs.push(db.collection('editorConversas').onSnapshot(snap=>{S.edConvs=snap.docs.map(d=>Object.assign({id:d.id},d.data()));if(S.tab==='editor')renderEditor()},()=>{S.edConvs=[]}));
+  subs.push(db.collection('config').doc('editorPonte').onSnapshot(d=>{S.edPonte=d.exists?d.data():{};if(S.tab==='editor')edPintaPonte()},()=>{}));
+  subs.push(()=>{if(edMsgUnsub){edMsgUnsub();edMsgUnsub=null}});
+  if(S.edAberta)edAbrir(S.edAberta);
+}
+function edOnline(){const v=S.edPonte&&S.edPonte.vistoEm;return !!v&&(Date.now()-new Date(v).getTime())<120000}
+function edPintaPonte(){const el=document.getElementById('edPonte');if(!el)return;
+  el.innerHTML=edOnline()?'<span class="st on"><i></i>PC ligado'+(S.edPonte.ocupado?' · editando':'')+'</span>':'<span class="st off" title="Ligue o PC e abra a ponte do editor"><i></i>PC desligado</span>'}
+function edStatus(c){const m={fila:['wait','Na fila'],editando:['wait','Editando…'],erro:['bad','Erro'],livre:['on','Pronto']};return m[c.status]||m.livre}
+function edAbrir(id){S.edAberta=id;if(edMsgUnsub){edMsgUnsub();edMsgUnsub=null}S.edMsgs=[];
+  if(id)edMsgUnsub=db.collection('editorMsgs').where('conv','==',id).onSnapshot(snap=>{S.edMsgs=snap.docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(a.em||'').localeCompare(b.em||''));if(S.tab==='editor')edPintaChat()},()=>{});
+  renderEditor()}
+function renderEditor(){const list=document.getElementById('edList');if(!list)return;edPintaPonte();
+  const cs=S.edConvs.slice().sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));
+  document.getElementById('edWrap').classList.toggle('aberto',!!S.edAberta);
+  list.innerHTML=cs.length?cs.map(c=>{const st=edStatus(c);return '<button data-ed="abrir" data-id="'+c.id+'" aria-current="'+(c.id===S.edAberta)+'"><b>'+esc(c.titulo||'Vídeo')+'</b><span class="st '+st[0]+'"><i></i>'+st[1]+'</span><small>'+esc(c.ultimo||'')+'</small></button>'}).join(''):'<div class="panel">'+emptyMsg('Nenhum vídeo ainda','Toque em "Novo vídeo", diga onde estão os brutos no Drive e como quer a edição.')+'</div>';
+  edPintaChat()}
+function edPintaChat(){const box=document.getElementById('edChat');if(!box)return;const c=S.edConvs.find(x=>x.id===S.edAberta);
+  if(!c){box.innerHTML='<div class="empty" style="margin:auto">Escolha um vídeo na lista ou crie um novo.</div>';return}
+  const ocupado=c.status==='fila'||c.status==='editando',st=edStatus(c);
+  const rasc=(document.getElementById('edTxt')||{}).value||'';
+  box.innerHTML='<div class="edh"><button class="btn sm ghost edback" data-ed="voltar">‹ Voltar</button><b>'+esc(c.titulo||'Vídeo')+'</b><span class="st '+st[0]+'"><i></i>'+st[1]+'</span></div>'+
+    '<div class="edm" id="edMsgs">'+(S.edMsgs.length?S.edMsgs.map(m=>'<div class="edb '+(m.de==='voce'?'voce':'claude')+'">'+esc(m.texto)+'<small>'+(m.de==='voce'?esc(m.autor||'Você'):'Claude')+' · '+quandoIso(m.em)+(m.status==='pendente'?' · aguardando o PC':'')+'</small></div>').join(''):'<div class="empty">Escreva o pedido. Ex.: "Edita os vídeos da pasta CLIENTES/Eduardo Motors/Outubro/Yaris no estilo Eduardo Motors, para anúncio."</div>')+
+    (ocupado?'<div class="edb claude"><span class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;display:inline-block;vertical-align:middle"></span> '+(c.status==='fila'?'Na fila do PC…':'Trabalhando no vídeo…')+'</div>':'')+'</div>'+
+    '<form class="edf" id="edForm"><textarea id="edTxt" placeholder="Escreva para o editor… (Ctrl+Enter envia)" aria-label="Mensagem para o editor"></textarea><button class="btn primary" type="submit"'+(ocupado?' disabled':'')+'><svg class="i"><use href="#i-send"/></svg>Enviar</button></form>';
+  document.getElementById('edTxt').value=rasc;
+  const m=document.getElementById('edMsgs');if(m)m.scrollTop=m.scrollHeight}
+async function edEnviar(texto){const c=S.edConvs.find(x=>x.id===S.edAberta);if(!c||!texto.trim())return;const agora=new Date().toISOString();
+  await write(()=>store.add('editorMsgs',{conv:c.id,de:'voce',texto:texto.trim().slice(0,8000),autor:(S.me&&S.me.nome)||'',uid:S.uid,em:agora,status:'pendente'}));
+  await write(()=>store.update('editorConversas',c.id,{status:'fila',atualizadoEm:agora,ultimo:texto.trim().slice(0,90)}));
+  if(!edOnline())toast('O PC está desligado. O pedido fica na fila e sai quando a ponte ligar.')}
+async function edNovo(){const titulo=prompt('Nome do vídeo (ex.: Yaris Eduardo Motors)');if(!titulo||!titulo.trim())return;const agora=new Date().toISOString();
+  const id=await write(()=>store.add('editorConversas',{titulo:titulo.trim().slice(0,80),criadoPor:(S.me&&S.me.nome)||'',criadoEm:agora,atualizadoEm:agora,status:'livre',ultimo:'',sessao:''}));
+  edAbrir(id);setTimeout(()=>{const t=document.getElementById('edTxt');if(t)t.focus()},50)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ed]');if(!b)return;e.preventDefault();const a=b.dataset.ed;
+  if(a==='novo')edNovo();else if(a==='abrir')edAbrir(b.dataset.id);else if(a==='voltar')edAbrir('')});
+document.addEventListener('submit',e=>{if(e.target.id!=='edForm')return;e.preventDefault();const t=document.getElementById('edTxt');const v=t.value;t.value='';edEnviar(v).catch(()=>{t.value=v})});
+document.addEventListener('keydown',e=>{if(e.target.id==='edTxt'&&e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();document.getElementById('edForm').requestSubmit()}});
+setInterval(()=>{if(S.tab==='editor')edPintaPonte()},30000);
 /* ---------- Envios (link para o cliente ver e baixar vídeos/fotos em qualidade original) ---------- */
 /* percorre a pasta e as subpastas; cada arquivo guarda o caminho da subpasta (grupo), ex.: "Fotos", "Vídeos/Making of" */
 /* pastas de coisa já usada (Já postados, Postados, Publicados, Antigos…): ficam de fora na hora de programar */
@@ -3792,7 +3864,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
-  store.sub('albuns');store.sub('envios');store.sub('materiais');store.sub('aprovacoes');store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
+  store.sub('albuns');store.sub('envios');store.sub('materiais');store.sub('aprovacoes');if(dono)edAssinar();store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{}},()=>{}));
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
