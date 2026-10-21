@@ -57,12 +57,54 @@ async function paraJpeg(arq) {
   return { buf, mime: 'image/jpeg', nome: arq.nome.replace(/\.\w+$/, '') + '.jpg', video: false };
 }
 
+// ---------- Conversão de vídeo (quando o Facebook/Instagram recusam o formato) ----------
+const FORMATO_RECUSADO = /formato|format|compat|codec|unsupported|n[aã]o suportad|invalid video|v[ií]deo inv[aá]lido|2207|1363/i;
+async function transcodificar(a) { // converte para MP4 H.264 + AAC, 30 fps, proporção par: aceito em qualquer lugar
+  const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
+  let bin = 'ffmpeg'; try { bin = require('ffmpeg-static') || 'ffmpeg'; } catch (_) {}
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vid-')), ent = path.join(dir, 'entrada'), sai = path.join(dir, 'saida.mp4');
+  try {
+    fs.writeFileSync(ent, a.buf);
+    await new Promise((ok, no) => {
+      const pr = spawn(bin, ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
+        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-r', '30', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', sai], { stdio: 'ignore' });
+      const t = setTimeout(() => { pr.kill('SIGKILL'); no(new Error('A conversão do vídeo demorou demais.')); }, 8 * 60e3);
+      pr.on('error', (e) => { clearTimeout(t); no(new Error('Não consegui converter o vídeo: ' + e.message)); });
+      pr.on('close', (c) => { clearTimeout(t); c === 0 ? ok() : no(new Error('Não consegui converter o vídeo (ffmpeg ' + c + ').')); });
+    });
+    const buf = fs.readFileSync(sai);
+    console.log(`Postagens: vídeo convertido (${Math.round(a.buf.length / 1e6)} MB → ${Math.round(buf.length / 1e6)} MB)`);
+    return { buf, mime: 'video/mp4', nome: String(a.nome || 'video').replace(/\.\w+$/, '') + '.mp4', video: true, convertido: true };
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} }
+}
+
 // ---------- Facebook ----------
 async function fotoOculta(pag, jpg) { // sobe a foto na Página sem publicar e devolve id + endereço público (usado pelo Instagram)
   const r = await gpostArquivo(`${G}/${pag.id}/photos`, { published: 'false', temporary: 'true' }, jpg, pag.token);
   const info = await gget(`${r.id}?fields=images`, pag.token);
   const url = info.images && info.images[0] && info.images[0].source;
   return { id: r.id, url };
+}
+async function fbEsperarReel(pag, id) { // o Facebook processa depois do envio: espera dizer se aceitou ou recusou
+  const fim = Date.now() + 5 * 60e3;
+  while (Date.now() < fim) {
+    let st = {};
+    try { st = (await gget(`${id}?fields=status`, pag.token)).status || {}; } catch (_) { return; }
+    for (const k of ['uploading_phase', 'processing_phase', 'publishing_phase']) {
+      if (st[k] && st[k].status === 'error') throw new Error((st[k].errors && st[k].errors[0] && st[k].errors[0].message) || 'O vídeo não foi aceito pelo Facebook (formato não compatível).');
+    }
+    if (st.video_status === 'error') throw new Error('O vídeo não foi aceito pelo Facebook (formato não compatível).');
+    if (st.video_status === 'ready' || (st.publishing_phase && st.publishing_phase.status === 'complete')) return;
+    await espera(6000);
+  }
+}
+async function fbReel(pag, a, legenda) { // jeito oficial de publicar Reels em Página
+  const ini = await gpost(`${pag.id}/video_reels`, { upload_phase: 'start' }, pag.token);
+  const up = await fetch(ini.upload_url, { method: 'POST', headers: { Authorization: `OAuth ${pag.token}`, offset: '0', file_size: String(a.buf.length) }, body: a.buf });
+  if (!up.ok) { const t = await up.text().catch(() => ''); throw new Error('Facebook recusou o envio do Reels. ' + t.slice(0, 150)); }
+  await gpost(`${pag.id}/video_reels`, { upload_phase: 'finish', video_id: ini.video_id, video_state: 'PUBLISHED', description: legenda }, pag.token);
+  await fbEsperarReel(pag, ini.video_id);
+  return { id: ini.video_id, link: `https://www.facebook.com/reel/${ini.video_id}` };
 }
 async function fbPublicar(pag, tipo, arqs, legenda) {
   if (tipo === 'stories') {
@@ -77,6 +119,10 @@ async function fbPublicar(pag, tipo, arqs, legenda) {
     const f = await fotoOculta(pag, a.jpg);
     const r = await gpost(`${pag.id}/photo_stories`, { photo_id: f.id }, pag.token);
     return { id: r.post_id || f.id, link: `https://www.facebook.com/${pag.id}` };
+  }
+  if (arqs.length === 1 && arqs[0].video && tipo === 'reels') {
+    try { return await fbReel(pag, arqs[0], legenda); }
+    catch (e) { console.error('Facebook Reels (API de reels) falhou, tentando como vídeo comum: ' + e.message); if (FORMATO_RECUSADO.test(e.message)) throw e; }
   }
   if (arqs.length === 1 && arqs[0].video) {
     const r = await gpostArquivo(`${GV}/${pag.id}/videos`, { description: legenda, published: 'true' }, arqs[0], pag.token);
@@ -210,13 +256,21 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (const a of p.arquivos || []) { const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x); arqs.push(x); }
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
       const legenda = String(p.legenda || '').slice(0, 2200);
-      if (p.pubIG && !feito.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda); feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
-        catch (e) { erros.push('Instagram: ' + e.message); }
-      }
-      if (p.pubFB && !feito.fb) {
-        try { const r = await fbPublicar(pag, p.tipo, arqs, legenda); feito.fb = r.link; }
-        catch (e) { erros.push('Facebook: ' + e.message); }
+      for (let tent = 0; tent < 2; tent++) {
+        erros.length = 0;
+        if (p.pubIG && !feito.ig) {
+          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda); feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
+          catch (e) { erros.push('Instagram: ' + e.message); }
+        }
+        if (p.pubFB && !feito.fb) {
+          try { const r = await fbPublicar(pag, p.tipo, arqs, legenda); feito.fb = r.link; }
+          catch (e) { erros.push('Facebook: ' + e.message); }
+        }
+        // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
+        if (!erros.length || tent === 1 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !arqs.some((a) => a.video && !a.convertido)) break;
+        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo e tentando de novo`);
+        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(arqs[i]); }
+        catch (e) { erros.push(e.message); break; }
       }
     } catch (e) { erros.push(e.message); }
 
@@ -246,16 +300,20 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
     for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando)).slice(0, 5)) {
       const a = (p.arquivos || [])[it.i];
       if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; continue; }
-      const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
+      let x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
       const n = it.i + 1;
       const tipo = p.tipo === 'reels' || p.tipo === 'feed' ? p.tipo : 'stories';
       const leg = tipo === 'stories' ? '' : String(it.legenda || p.legenda || '').slice(0, 2200);
+      const comConversao = async (fn) => { // se recusarem o formato do vídeo, converte e tenta mais uma vez
+        try { return await fn(x); }
+        catch (e) { if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) { x = await transcodificar(x); return await fn(x); } throw e; }
+      };
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, tipo, [x], leg); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg)); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
-        try { const r = await fbPublicar(pag, tipo, [x], leg); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
+        try { const r = await comConversao((v) => fbPublicar(pag, tipo, [v], leg)); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Facebook: ${e.message}`); }
       }
       if (erros.length) break;
@@ -278,4 +336,4 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
   }
 }
 
-module.exports = { sincronizarPaginas, publicarAgendados };
+module.exports = { sincronizarPaginas, publicarAgendados, transcodificar };
