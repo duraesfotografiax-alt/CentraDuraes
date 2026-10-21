@@ -87,13 +87,18 @@ function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando
        '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')+
     '</div>').join('')+'</div><footer>Elite Marketing Digital</footer>';
   app.querySelectorAll('[data-sl]').forEach(sl=>sl.addEventListener('scroll',()=>{const n=Math.round(sl.scrollLeft/sl.clientWidth),d=sl.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,k)=>x.classList.toggle('on',k===n))},{passive:true}))}
-/* se o navegador não conseguir tocar o vídeo direto (formato .MOV/HEVC ou arquivo grande), tenta outro endereço e, por fim, o player do Google Drive */
-document.addEventListener('error',e=>{const v=e.target;if(!(v&&v.tagName==='VIDEO'&&v.dataset.vid))return;const fid=v.dataset.vid;
+/* se o navegador não conseguir tocar o vídeo direto (formato .MOV/HEVC, arquivo grande ou limite do Drive), tenta outro endereço e, por fim, mostra a capa com um botão grande que abre o Drive */
+function registraFalha(fid){try{for(const it of (A&&A.itens)||[])if((it.arquivos||[]).some(f=>f.id===fid)){it.falha={em:new Date().toISOString(),ua:(navigator.userAgent||'').slice(0,120)};}
+  ref.update({itens:A.itens}).catch(()=>{})}catch(_){}}
+function proximaFonte(v){if(!(v&&v.tagName==='VIDEO'&&v.dataset.vid))return;const fid=v.dataset.vid;
   const lista=FONTES.map(fn=>fn(fid)).filter(Boolean);let n=lista.indexOf(v.getAttribute('src'))+1;
-  if(n>0&&n<lista.length){v.src=lista[n];v.load();return}
-  /* nenhum endereço tocou aqui: mostra a capa com um botão grande que abre o vídeo no Google Drive (sem player do Drive por cima da tela) */
-  v.outerHTML='<a class="vcapa" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener"><img src="'+thumb(fid,900)+'" alt="" referrerpolicy="no-referrer"><span>▶</span></a>';
-  },true);
+  if(n>0&&n<lista.length){v.src=lista[n];v.load();vigia(v);return}
+  registraFalha(fid);
+  v.outerHTML='<a class="vcapa" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener"><img src="'+thumb(fid,900)+'" alt="" referrerpolicy="no-referrer"><span>▶</span></a>'}
+/* se o vídeo nem começa a carregar em 12 s (sem dar erro), passa para o próximo endereço */
+function vigia(v){clearTimeout(v._t);v._t=setTimeout(()=>{if(v.isConnected&&v.readyState<1&&!v.error)proximaFonte(v)},12000)}
+document.addEventListener('error',e=>proximaFonte(e.target),true);
+new MutationObserver(()=>document.querySelectorAll('video[data-vid]:not([data-vg])').forEach(v=>{v.dataset.vg=1;vigia(v)})).observe(document.getElementById('app'),{childList:true,subtree:true});
 async function salvar(){const nm=(document.getElementById('nm')||{}).value||'';nome=nm.trim().slice(0,50);try{localStorage.setItem('aprovNome',nome)}catch(_){}
   await ref.update({itens:A.itens,respEm:new Date().toISOString(),nome});pinta()}
 document.addEventListener('click',async e=>{
