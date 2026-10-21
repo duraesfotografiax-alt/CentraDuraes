@@ -195,15 +195,17 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   let pags;
   try { pags = await paginas(token); } catch (e) { for (const p of vez) await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: 'Meta: ' + e.message }); return; }
 
-  for (const p of vez.slice(0, 6)) {
+  // até 3 posts ao mesmo tempo: um vídeo demorado no Instagram não segura os outros da fila
+  const fila = vez.slice(0, 9);
+  const processar = async (p) => {
     // trava para não publicar duas vezes
     const ok = await db.runTransaction(async (tx) => { const d = await tx.get(ref.doc(p.id)); if (!d.exists || d.data().pubStatus !== 'aguardando') return false; tx.update(ref.doc(p.id), { pubStatus: 'publicando', pubInicio: new Date().toISOString() }); return true; });
-    if (!ok) continue;
+    if (!ok) return;
     const lj = lojas[p.loja] || {};
     const pag = pags.find((x) => x.id === lj.fbPage) || pags.find((x) => lj.igId && x.ig === lj.igId) || pags.find((x) => x.igUser && lj.instagram && x.igUser.toLowerCase() === String(lj.instagram).replace(/^@/, '').toLowerCase());
     const feito = Object.assign({}, p.pubFeito || {});
     const erros = [];
-    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); continue; }
+    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); return; }
     try {
       if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
       const arqs = [];
@@ -231,7 +233,15 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       console.error(`Postagens: erro ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
       for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}${onde ? ' (saiu só no ' + onde + ')' : ''}. ${erros[0]}`.slice(0, 230));
     }
-  }
+  };
+  const trabalhadores = Array.from({ length: Math.min(3, fila.length) }, async () => {
+    while (fila.length) {
+      const p = fila.shift();
+      try { await processar(p); }
+      catch (e) { console.error('Postagens: falha inesperada em', p.titulo, e.message); try { await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: ('Falha inesperada: ' + e.message).slice(0, 300) }); } catch (_) {} }
+    }
+  });
+  await Promise.all(trabalhadores);
 }
 
 const nomeItem = (t) => (t === 'reels' ? 'Reels' : t === 'feed' ? 'Post' : 'Story');
