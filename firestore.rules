@@ -100,6 +100,19 @@ service cloud.firestore {
       );
     }
 
+    // Editor de vídeos: SÓ o dono conversa (a ponte no PC executa o que for pedido, então ninguém mais pode mandar).
+    // Quem responde é a ponte, com a chave de serviço, que não passa por estas regras.
+    match /editorConversas/{id} { allow read, write: if ehDono(); }
+    match /editorMsgs/{id} {
+      allow read: if ehDono();
+      allow create: if ehDono()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.de == 'voce'
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.texto is string && request.resource.data.texto.size() <= 8000;
+      allow update, delete: if ehDono();
+    }
+
     // Dinheiro: só quem tem o caixa liberado
     match /lanc/{id} { allow read, write: if financeiro(); }
     match /recorrentes/{id} { allow read, write: if financeiro(); }

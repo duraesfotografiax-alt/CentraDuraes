@@ -48,7 +48,18 @@ async function enviar(u, title, body) {
   return res.successCount;
 }
 
-(async () => {
+const INICIO = Date.now();
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+const batimento = () => db.collection('config').doc('robo').set({ vivoEm: new Date().toISOString() }, { merge: true }).catch(() => {});
+const agoraIsoFn = () => { const a = agora(); return `${a.data}T${String(Math.floor(a.min / 60)).padStart(2, '0')}:${String(a.min % 60).padStart(2, '0')}`; };
+const noHorario = () => agora().min >= 5 * 60; // das 5h à meia-noite (Brasília) o robô fica de plantão
+async function carregarUsuarios() {
+  return (await db.collection('usuarios').get()).docs.map((d) => ({ id: d.id, ...d.data() }))
+    .filter((u) => u.ativo === true || String(u.email || '').toLowerCase() === ADMIN_EMAIL);
+}
+
+async function rodada() {
+  await batimento();
   const { data: hoje, min } = agora();
   const amanha = addDias(hoje, 1), em2 = addDias(hoje, 2);
   const usuarios = (await db.collection('usuarios').get()).docs.map((d) => ({ id: d.id, ...d.data() }))
@@ -60,16 +71,20 @@ async function enviar(u, title, body) {
     return;
   }
 
-  // Tráfego pago (Meta): uma vez por hora, ou quando rodar manualmente no modo "meta"
   const agoraIso0 = `${hoje}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-  if (process.env.META_TOKEN && ((min % 60) < 10 || MODO === 'meta')) {
+  // Postagens primeiro: o que está na hora sai antes de qualquer outra tarefa (tráfego, notificações...)
+  const pub = require('./publicar');
+  try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
+  // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
+  const horaChave = agoraIso0.slice(0, 13);
+  const roboDoc = ((await db.collection('config').doc('robo').get()).data()) || {};
+  const fazHora = MODO === 'meta' || MODO === 'paginas' || ((min % 60) < 10 && roboDoc.horaFeita !== horaChave);
+  if (fazHora && process.env.META_TOKEN) await db.collection('config').doc('robo').set({ horaFeita: horaChave }, { merge: true });
+  if (process.env.META_TOKEN && fazHora && MODO !== 'paginas') {
     try { await require('./meta')({ db, usuarios, enviar, jaFoi, marcar, ehAdm, hoje, agoraIso: agoraIso0 }); }
     catch (e) { console.error('Meta:', e.message); await db.collection('anunciosMeta').doc('estado').set({ atualizadoEm: agoraIso0, erro: String(e.message).slice(0, 300) }, { merge: true }); }
   }
-  // Postagens: publica o que está agendado (toda vez) e atualiza a lista de páginas/Instagram (de hora em hora)
-  const pub = require('./publicar');
-  try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
-  if (process.env.META_TOKEN && ((min % 60) < 10 || MODO === 'meta' || MODO === 'paginas')) {
+  if (process.env.META_TOKEN && fazHora) {
     try { await pub.sincronizarPaginas({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens (páginas):', e.message); }
   }
   if (MODO === 'meta' || MODO === 'paginas') return;
@@ -303,4 +318,36 @@ async function enviar(u, title, body) {
     for (const u of para) await enviar(u, `Daqui a pouco: ${t.titulo}`, `${TIPOS[t.tipo] || 'Captação'} às ${t.hora} (${quando})${t.local ? ' · ' + t.local : ''}`);
     await marcar(chave);
   }
+}
+
+// Plantão: o agendador do GitHub atrasa de 30 a 55 minutos, então depois da rodada normal o robô fica
+// uns 9 minutos de olho nos posts agendados (confere a cada 20 s) e, no fim, chama a próxima rodada sozinho.
+async function plantao() {
+  const pub = require('./publicar');
+  let pend = [];
+  const unsub = db.collection('posts').where('pubStatus', 'in', ['aguardando', 'publicando']).onSnapshot(
+    (sn) => { pend = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
+    (e) => console.error('Plantão (escuta):', e.message));
+  const FIM = INICIO + (Number(process.env.PLANTAO_MIN) || 9) * 60e3;
+  let ultTent = 0, ultBat = Date.now();
+  console.log('Plantão ligado por ~9 min');
+  while (Date.now() < FIM) {
+    await espera((Number(process.env.PLANTAO_SEG) || 20) * 1e3);
+    if (Date.now() - ultBat > 120e3) { ultBat = Date.now(); await batimento(); }
+    const agoraIso = agoraIsoFn();
+    const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
+    if (!vencidos.length || Date.now() - ultTent < 45e3) continue;
+    ultTent = Date.now();
+    console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
+    try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
+  }
+  unsub();
+}
+
+(async () => {
+  await rodada();
+  if (MODO !== 'auto' || !noHorario()) return;
+  await plantao();
+  // avisa o workflow para chamar a próxima rodada (só se ainda estiver no horário de plantão)
+  if (noHorario() && process.env.GITHUB_OUTPUT) require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'proxima=sim\n');
 })().catch((e) => { console.error(e); process.exit(1); });

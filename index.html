@@ -161,6 +161,7 @@ h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 .row + .row{border-top:1px solid var(--line)}
 .sugm{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--ac);border-radius:12px;padding:10px 12px;margin-bottom:12px}
 .sugl{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:14px}.sugl small{color:var(--muted)}
+.robost{border-radius:12px;padding:9px 12px;margin:0 0 12px;font-size:13.5px;display:flex;flex-direction:column;gap:2px}.robost.bad{border:1px solid var(--neg);background:color-mix(in srgb,var(--neg) 14%,transparent)}.robost.warn{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}.robost.ok{color:var(--muted);padding:2px 0;font-size:13px}.robost span{color:var(--muted)}.robost.bad b{color:var(--neg)}.robost.warn b{color:var(--warn)}
 .prerr{border:1px solid var(--warn);border-radius:12px;padding:8px 12px;font-size:13.5px;margin-bottom:8px;overflow-wrap:anywhere}.prerr code{font-size:12px}
 .cxext{display:flex;justify-content:flex-end;margin:0 0 10px}
 .exsum{display:grid;grid-template-columns:1fr;gap:6px;margin:12px 0}.exsum div{background:var(--panel2);border-radius:12px;padding:8px 12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}.exsum small{color:var(--muted);font-size:13px}.exsum b{font-size:16px;white-space:nowrap}@media(min-width:640px){.exsum{grid-template-columns:repeat(3,minmax(0,1fr))}.exsum div{display:block}.exsum small{display:block}}
@@ -734,6 +735,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <button class="btn" data-new-post><svg class="i"><use href="#i-plus"/></svg>Conteúdo</button>
           <button class="btn primary" data-new-loja hidden><svg class="i"><use href="#i-plus"/></svg>Cliente</button>
         </div>
+        <div id="roboSt"></div>
         <div class="storetabs" id="lojaTabs" role="tablist" aria-label="Clientes"></div>
         <div id="lojaBody"></div>
       </section>
@@ -3319,8 +3321,18 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
       '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
     sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)}
   catch(er){sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Não deu certo</h2><p class="err">'+esc(er.message||'Erro')+'</p><div class="formacts"><button type="button" class="btn" data-close>Fechar</button></div></form>'}}
+/* aviso do robô de postagem: post que passou do horário e o último sinal de vida do robô */
+function renderRobo(){const el=document.getElementById('roboSt');if(!el)return;
+  const ag=agoraLocal(),esp=(S.posts||[]).filter(p=>p.pubStatus==='aguardando'&&p.quando),atras=esp.filter(p=>p.quando<=ag);
+  const vivo=S.roboCfg&&S.roboCfg.vivoEm?Date.parse(S.roboCfg.vivoEm):0,min=vivo?Math.round((Date.now()-vivo)/6e4):null;
+  const txMin=m=>m==null?'nunca deu sinal':m<2?'agora há pouco':m<60?'há '+m+' min':'há '+Math.round(m/60)+' h';
+  if(S.cliSeg==='duraes'||!esp.length){el.innerHTML='';return}
+  if(atras.length){const p0=atras.slice().sort((a,b)=>a.quando.localeCompare(b.quando))[0],atr=minDiff(ag,p0.quando);
+    el.innerHTML='<div class="robost bad"><b>'+atras.length+' post'+(atras.length>1?'s':'')+' já passou'+(atras.length>1?'ram':'')+' do horário e ainda não saiu'+(atras.length>1?'ram':'')+'</b><span>O mais atrasado está '+atr+' min depois da hora. O robô da Central deu o último sinal '+txMin(min)+'. Se continuar assim, avise o Thiago.</span></div>';return}
+  if(min==null||min>25){el.innerHTML='<div class="robost warn"><b>O robô de postagem está lento</b><span>Último sinal '+txMin(min)+'. Os '+esp.length+' post'+(esp.length>1?'s agendados podem sair':' agendado pode sair')+' com atraso.</span></div>';return}
+  el.innerHTML='<div class="robost ok"><span>'+ico('i-check')+' '+esp.length+' post'+(esp.length>1?'s':'')+' agendado'+(esp.length>1?'s':'')+' · robô conferiu '+txMin(min)+'</span></div>'}
 function renderClientes(){
-  setTimeout(sincProntosTodos,80);
+  setTimeout(sincProntosTodos,80);renderRobo();
   segs('cliSeg','cliSeg',[['elite','Lojas · Elite'],['duraes','Clientes · Durães']]);
   const dur=S.cliSeg==='duraes';
   document.getElementById('cliSub').textContent=dur?'Dos eventos até o material entregue ao cliente':'Do material editado até o post no ar, loja por loja';
@@ -3794,7 +3806,8 @@ function iniciarApp(adm,finOk,dono){
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
   store.sub('albuns');store.sub('envios');store.sub('materiais');store.sub('aprovacoes');store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
-  subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{}},()=>{}));
+  subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{};if(S.tab==='clientes')renderRobo()},()=>{}));
+  setInterval(()=>{if(S.tab==='clientes'&&document.visibilityState==='visible')renderRobo()},60e3);
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}

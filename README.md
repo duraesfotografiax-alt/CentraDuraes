@@ -347,6 +347,19 @@ Cada trabalho tem o campo **Material**: **Fotos**, **Vídeo** ou **Fotos + víde
 
 ---
 
+## Aba Editor (vídeos editados pelo Claude no PC)
+
+Só o dono vê e usa esta aba. Você conversa com o Claude como num chat, e quem edita é o PC do Thiago (video-use + HyperFrames, pasta `Desktop\Claude\Editor de Videos`). O vídeo pronto vai para uma subpasta "Editados" dentro da pasta do Drive de onde vieram os brutos.
+
+- O PC precisa estar **ligado** e com a ponte aberta: dois cliques em `C:\Users\thiag\ponte-editor\iniciar-ponte.bat`. A aba mostra "PC ligado" ou "PC desligado".
+- Pedido mandado com o PC desligado fica na fila e sai quando a ponte ligar.
+- Travas: só as mensagens do e-mail do dono são executadas (pelas regras do Firebase e de novo na ponte), um pedido por vez, no máximo 60 minutos cada, e o Claude não tem acesso à internet nem ao navegador.
+
+**Configuração (uma vez só):**
+1. Publique o `firestore.rules` novo (Firebase > Firestore Database > Regras).
+2. Firebase > Configurações do projeto > **Contas de serviço** > **Gerar nova chave privada**. Salve o arquivo como `C:\Users\thiag\ponte-editor\chave-firebase.json`. Não coloque esse arquivo no GitHub nem no Drive: ele dá acesso total ao banco.
+3. Faça login no Claude do PC uma vez: abra o terminal, rode `%USERPROFILE%\.local\bin\claude.exe` e digite `/login`.
+
 ## Aba Tráfego pago (campanhas do Meta)
 
 A aba **Tráfego** mostra todas as contas de anúncio dos clientes. Ela aparece só para quem vê o caixa, e não precisa de PIN.
