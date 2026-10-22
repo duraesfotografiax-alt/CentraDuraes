@@ -3682,34 +3682,50 @@ function formMassa(l){const pg=pagDaLoja(l);
     .sort((x,y)=>((y.a&&y.a.status==='aprovado')-(x.a&&x.a.status==='aprovado'))||String((x.a&&x.a.em)||'').localeCompare(String((y.a&&y.a.em)||''))||(x.p.titulo||'').localeCompare(y.p.titulo||'','pt',{numeric:true}));
   const sel=new Set(ps.filter(x=>x.a&&x.a.status==='aprovado').map(x=>x.p.id));
   const agora=agoraLocal();
-  sheet.innerHTML='<form id="fMa" novalidate style="max-width:640px"><h2>Agendar em massa</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(l.nome)+'</b> · os marcados entram na fila da Central, um em cada horário livre.</p>'+
+  sheet.innerHTML='<form id="fMa" novalidate style="max-width:640px"><h2>Agendar em massa</h2><p class="muted" style="margin:0;font-size:14px"><b style="color:var(--ink)">'+esc(l.nome)+'</b> · os marcados entram na fila da Central, na ordem da lista.</p>'+
     (pg?'':'<div class="pushbox" style="color:var(--warn);font-size:14px">Esta loja ainda não está ligada a uma Página/Instagram. '+(S.adm?'Feche e use "Editar cliente".':'Peça ao Thiago para ligar.')+'</div>')+
-    '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Conteúdos<span><button type="button" class="btn sm ghost" id="maAp">Só aprovados</button> <button type="button" class="btn sm ghost" id="maTd">Todos</button></span></span><div id="maLista" style="display:grid;gap:6px">'+
-      (ps.length?ps.map(({p,a})=>{const okA=a&&a.status==='aprovado',aj=a&&a.status==='ajuste';return '<label class="row" style="display:flex;gap:10px;align-items:center;padding:8px 10px;cursor:pointer;'+(aj?'opacity:.55':'')+'"><input type="checkbox" data-mp="'+p.id+'" style="width:18px;height:18px"'+(sel.has(p.id)?' checked':'')+(aj?' disabled':'')+'><span style="min-width:0;flex:1"><b style="display:block;overflow-wrap:anywhere">'+esc(p.titulo)+'</b><small class="muted">'+esc(TPOST[p.tipo]||'Post')+'</small></span>'+(okA?'<span class="chip rec">✓ aprovado</span>':aj?'<span class="chip late">pediu ajuste</span>':a?'<span class="chip eq">aguardando</span>':'<span class="chip eq">sem aprovação</span>')+'</label>'}).join(''):'<p class="hint" style="margin:0">Nada em "Para programar" nesta loja.</p>')+'</div></div>'+
-    '<div class="two"><div class="fld"><label for="maH">Horários de cada dia</label><input id="maH" value="'+esc(l.autoHoras||'09:00, 12:00, 19:00')+'" placeholder="09:00, 12:00, 19:00"><span class="hint">Cada conteúdo ocupa o próximo horário livre. Horários que já têm post agendado são pulados.</span></div>'+
+    '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Conteúdos<span><button type="button" class="btn sm ghost" id="maAp">Só aprovados</button> <button type="button" class="btn sm ghost" id="maTd">Todos</button></span></span><div id="maLista" style="display:grid;gap:6px"></div><span class="hint">Use ▲ ▼ para mudar a ordem. O horário de cada um já vem preenchido e dá para trocar o dia e a hora de qualquer post (ele fica marcado como "manual").</span></div>'+
+    '<div class="two"><div class="fld"><label for="maH">Horários de cada dia (para os automáticos)</label><input id="maH" value="'+esc(l.autoHoras||'09:00, 12:00, 19:00')+'" placeholder="09:00, 12:00, 19:00"><span class="hint">Cada conteúdo ocupa o próximo horário livre. Horários que já têm post agendado são pulados.</span></div>'+
     '<div class="fld"><label for="maD">Começar em</label><input id="maD" type="date" value="'+agora.slice(0,10)+'" min="'+agora.slice(0,10)+'"></div></div>'+
     '<div class="fld"><span class="l">Onde publicar</span><div class="checks"><label><input type="checkbox" id="maIG" '+(pg&&pg.ig&&l.autoIG!==false?'checked':'')+(pg&&pg.ig?'':' disabled')+'> Instagram'+(pg&&pg.igUser?' (@'+esc(pg.igUser)+')':'')+'</label><label><input type="checkbox" id="maFB" '+(pg&&l.autoFB?'checked':'')+(pg?'':' disabled')+'> Facebook'+(pg?' ('+esc(pg.nome)+')':'')+'</label></div></div>'+
     '<div class="two"><div class="fld"><label for="maColab">Convidar como colaborador</label><input id="maColab" value="'+esc(l.colab||'')+'" placeholder="@conta (até 3)"></div><div class="fld"><label for="maMarc">Marcar nas fotos</label><input id="maMarc" value="'+esc(l.marcar||'')+'" placeholder="@pessoa"></div></div>'+
-    '<div class="fld"><span class="l">Como vai ficar</span><div id="maPrev" class="hint" style="line-height:1.7"></div></div>'+
     '<div class="fld"><label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600"><input type="checkbox" id="maAuto" style="width:18px;height:18px;margin-top:2px"'+(l.autoAprov?' checked':'')+(S.adm?'':' disabled')+'> <span>Daqui para frente, agendar sozinho quando o cliente aprovar<small class="muted" style="display:block;font-weight:500">O robô põe o post aprovado no próximo horário livre acima, no Instagram'+(pg&&l.autoFB?' e no Facebook':'')+', e avisa a equipe.'+(S.adm?'':' (só o Adm liga isso)')+'</small></span></label></div>'+
     '<div class="err" id="maErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit" id="maOk">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#maErr').textContent=m};
-  const escolhidos=()=>ps.filter(x=>q('[data-mp="'+x.p.id+'"]').checked).map(x=>x);
+  const ord=ps.slice(),man={};
+  const escolhidos=()=>ord.filter(x=>sel.has(x.p.id));
   const desde=()=>{const d=q('#maD').value||agora.slice(0,10);if(d>agora.slice(0,10))return d+'T00:00';const t=new Date(agora);t.setMinutes(t.getMinutes()+15);return iso(t)+'T'+pad(t.getHours())+':'+pad(t.getMinutes())};
   const nArq=x=>{const t=x.p.tipo||'feed';if(!['stories','reels','feed'].includes(t))return 1;const fs=x.a&&x.a.arquivos?arquivosPorTipo(t,x.a.arquivos):[];return Math.max(1,fs.length)};
-  const prev=()=>{const es=escolhidos(),box=q('#maPrev'),ok=q('#maOk');ok.textContent=es.length?'Agendar '+es.length:(S.adm?'Salvar':'Agendar');
-    if(!es.length){box.textContent='Marque os conteúdos que quer agendar.';return}
-    const oc=ocupadosLoja(l.id),hs=lerHorasM(q('#maH').value),d0=desde();
-    box.innerHTML=es.map((x,i)=>{const n=nArq(x),h=livresM(hs,n,d0,oc);const ms=modelosLoja(l),sl=semLegenda(x.p)&&!(x.a&&x.a.legenda&&String(x.a.legenda).trim()),fp=formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[]);
-      return '<div>'+(i+1)+'. <b style="color:var(--ink)">'+esc(x.p.titulo)+'</b> → '+h.slice(0,2).map(fmtQuando).join(' · ')+(h.length>2?' … '+fmtQuando(h[h.length-1]):'')+(n>1?' <small>('+n+' arquivos)</small>':'')+(sl?(ms.length?' <small style="color:var(--gold)">· legenda: modelo da loja</small>':' <small style="color:var(--neg)">· ⚠ sem legenda</small>'):'')+(fp?'<br><small style="color:var(--neg)">⚠ '+esc(fp)+'</small>':'')+'</div>'}).join('')};
-  sheet.addEventListener('change',e=>{if(e.target.closest('[data-mp],#maH,#maD'))prev()});q('#maH').oninput=prev;
-  q('#maAp').onclick=()=>{ps.forEach(x=>{const c=q('[data-mp="'+x.p.id+'"]');if(!c.disabled)c.checked=!!(x.a&&x.a.status==='aprovado')});prev()};
-  q('#maTd').onclick=()=>{ps.forEach(x=>{const c=q('[data-mp="'+x.p.id+'"]');if(!c.disabled)c.checked=true});prev()};
-  prev();
+  /* horários de um item: manual (o escolhido + os próximos livres, se for série) ou os próximos livres da loja */
+  const slotsItem=(x,n,oc,hs,d0)=>man[x.p.id]?[man[x.p.id]].concat(n>1?livresM(hs,n-1,man[x.p.id],oc):[]):livresM(hs,n,d0,oc);
+  const ocInicial=es=>{const oc=ocupadosLoja(l.id);es.forEach(x=>{if(man[x.p.id])oc.add(man[x.p.id])});return oc};
+  const calc=()=>{const es=escolhidos(),oc=ocInicial(es),hs=lerHorasM(q('#maH').value),d0=desde(),out={};es.forEach(x=>{out[x.p.id]=slotsItem(x,nArq(x),oc,hs,d0)});return out};
+  const lista=()=>{const box=q('#maLista'),slots=calc(),ms=modelosLoja(l);
+    q('#maOk').textContent=sel.size?'Agendar '+sel.size:(S.adm?'Salvar':'Agendar');
+    if(!ord.length){box.innerHTML='<p class="hint" style="margin:0">Nada em "Para programar" nesta loja.</p>';return}
+    let k=0;box.innerHTML=ord.map((x,i)=>{const p=x.p,a=x.a,okA=a&&a.status==='aprovado',aj=a&&a.status==='ajuste',on=sel.has(p.id),h=slots[p.id]||[],n=nArq(x),
+      sl=semLegenda(p)&&!(a&&a.legenda&&String(a.legenda).trim()),fp=formatoProb(p.tipo||'feed',a&&a.arquivos||[]);if(on)k++;
+      return '<div class="row" style="display:grid;grid-template-columns:auto auto 1fr;gap:8px 10px;align-items:start;padding:8px 10px;'+(aj?'opacity:.55':'')+'">'+
+        '<span style="display:grid;gap:2px"><button type="button" class="btn sm ghost" data-mv="-1" data-i="'+i+'" aria-label="Subir"'+(i?'':' disabled')+' style="padding:2px 8px">▲</button><button type="button" class="btn sm ghost" data-mv="1" data-i="'+i+'" aria-label="Descer"'+(i<ord.length-1?'':' disabled')+' style="padding:2px 8px">▼</button></span>'+
+        '<input type="checkbox" data-mp="'+p.id+'" style="width:18px;height:18px;margin-top:6px"'+(on?' checked':'')+(aj?' disabled':'')+' aria-label="Agendar '+esc(p.titulo)+'">'+
+        '<div style="min-width:0"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="overflow-wrap:anywhere">'+(on?k+'. ':'')+esc(p.titulo)+'</b><small class="muted">'+esc(TPOST[p.tipo]||'Post')+(n>1?' · '+n+' arquivos':'')+'</small>'+(okA?'<span class="chip rec">✓ aprovado</span>':aj?'<span class="chip late">pediu ajuste</span>':a?'<span class="chip eq">aguardando</span>':'<span class="chip eq">sem aprovação</span>')+'</div>'+
+        (on?'<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="datetime-local" data-mt="'+p.id+'" value="'+esc(h[0]||'')+'" min="'+agora+'" style="max-width:210px'+(man[p.id]?';border-color:var(--gold)':'')+'">'+(man[p.id]?'<button type="button" class="btn sm ghost" data-auto="'+p.id+'">↺ automático</button>':'')+(n>1&&h.length>1?'<small class="muted">até '+esc(fmtQuando(h[h.length-1]))+'</small>':'')+'</div>':'')+
+        (on&&sl?'<small style="display:block;margin-top:4px;color:var('+(ms.length?'--gold':'--neg')+')">'+(ms.length?'legenda: modelo da loja':'⚠ sem legenda')+'</small>':'')+(on&&fp?'<small style="display:block;margin-top:4px;color:var(--neg)">⚠ '+esc(fp)+'</small>':'')+'</div></div>'}).join('')};
+  const prev=lista;
+  sheet.addEventListener('change',e=>{const c=e.target.closest('[data-mp]');if(c){c.checked?sel.add(c.dataset.mp):sel.delete(c.dataset.mp);if(!c.checked)delete man[c.dataset.mp];lista();return}
+    const t=e.target.closest('[data-mt]');if(t){if(t.value)man[t.dataset.mt]=t.value;else delete man[t.dataset.mt];lista();return}
+    if(e.target.closest('#maH,#maD'))lista()});
+  sheet.addEventListener('click',e=>{const m=e.target.closest('[data-mv]');if(m){const i=+m.dataset.i,j=i+(+m.dataset.mv);if(j>=0&&j<ord.length){[ord[i],ord[j]]=[ord[j],ord[i]];lista()}return}
+    const au=e.target.closest('[data-auto]');if(au){delete man[au.dataset.auto];lista()}});
+  q('#maH').oninput=lista;
+  q('#maAp').onclick=()=>{ps.forEach(x=>{if(x.a&&x.a.status==='ajuste')return;if(x.a&&x.a.status==='aprovado')sel.add(x.p.id);else{sel.delete(x.p.id);delete man[x.p.id]}});lista()};
+  q('#maTd').onclick=()=>{ps.forEach(x=>{if(!(x.a&&x.a.status==='ajuste'))sel.add(x.p.id)});lista()};
+  lista();
   q('#fMa').onsubmit=async e=>{e.preventDefault();const es=escolhidos(),ig=q('#maIG').checked,fb=q('#maFB').checked,horasTx=q('#maH').value.trim(),auto=q('#maAuto').checked;
     if(es.length&&!pg)return err('Ligue a loja a uma Página/Instagram antes (Editar cliente).');
     if(es.length&&!ig&&!fb)return err('Marque Instagram, Facebook ou os dois.');
     if(!es.length&&!S.adm)return err('Marque pelo menos um conteúdo.');
+    const passou=es.find(x=>man[x.p.id]&&man[x.p.id]<=agoraLocal());if(passou)return err('O horário de "'+passou.p.titulo+'" já passou. Escolha uma data e hora futuras.');
     const ms=modelosLoja(l),semL=es.filter(x=>semLegenda(x.p)&&!(x.a&&x.a.legenda&&String(x.a.legenda).trim())),fprob=es.map(x=>[x,formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[])]).filter(y=>y[1]);
     if(es.length&&fprob.length)return err('Formato errado em "'+fprob[0][0].p.titulo+'": '+fprob[0][1]+(fprob.length>1?' (e mais '+(fprob.length-1)+')':'')+' Desmarque para agendar os outros.');
     if(es.length&&semL.length&&!ms.length)return err('Sem legenda: '+semL.slice(0,3).map(x=>x.p.titulo).join(', ')+(semL.length>3?'…':'')+'. Abra o card e escreva (ou cadastre modelos de legenda em Editar cliente).');
@@ -3719,12 +3735,12 @@ function formMassa(l){const pg=pagDaLoja(l);
       if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
       if(!es.length){closeSheet();toast(auto?'Pronto: a Central agenda sozinha o que o cliente aprovar':'Configuração salva');return}
       const needTok=es.some(x=>!(x.a&&x.a.arquivos&&x.a.arquivos.length));if(needTok)await token();
-      const oc=ocupadosLoja(l.id),hs=lerHorasM(horasTx),d0=desde();let ok=0,pulou=[],ultimo='';
+      const oc=ocInicial(es),hs=lerHorasM(horasTx),d0=desde();let ok=0,pulou=[],ultimo='';
       for(const x of es){const p=x.p,tipo=p.tipo||'feed';
         let fs=x.a&&x.a.arquivos&&x.a.arquivos.length?x.a.arquivos.map(f=>({id:f.id,name:f.nome,mimeType:f.mime})):await arquivosDoLink(p.drive);
         fs=arquivosPorTipo(tipo,fs);if(!fs.length){pulou.push(p.titulo);continue}
         if(!(x.a&&x.a.arquivos&&x.a.arquivos.length))for(const f of fs){try{await deixarPublico(f.id)}catch(_){}}
-        const serie=['stories','reels','feed'].includes(tipo)&&fs.length>1,n=serie?fs.length:1,h=livresM(hs,n,d0,oc);
+        const serie=['stories','reels','feed'].includes(tipo)&&fs.length>1,n=serie?fs.length:1,h=slotsItem(x,n,oc,hs,d0);
         const temV=fs.some(f=>/^video\//.test(f.mimeType||'')),fbOk=fb&&!(tipo==='carrossel'&&temV);
         let leg=String(p.legenda||(x.a&&x.a.legenda)||l.legPadrao||'').trim();if(!leg&&tipo!=='stories'&&ms.length){leg=ms[modI%ms.length];modI++}
         const doc={tipo,legenda:leg.slice(0,2200),colab:tipo==='stories'?[]:colabL,marcar:tipo==='stories'?[]:marcL,avisoAuto:'',quando:h[0],pubIG:ig,pubFB:fbOk,arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
