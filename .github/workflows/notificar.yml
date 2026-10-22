@@ -1,4 +1,4 @@
-      name: Notificações da Central
+name: Notificações da Central
 
 on:
   schedule:
