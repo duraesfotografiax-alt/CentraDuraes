@@ -3692,7 +3692,8 @@ function formMassa(l){const pg=pagDaLoja(l);
     '<div class="fld"><label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600"><input type="checkbox" id="maAuto" style="width:18px;height:18px;margin-top:2px"'+(l.autoAprov?' checked':'')+(S.adm?'':' disabled')+'> <span>Daqui para frente, agendar sozinho quando o cliente aprovar<small class="muted" style="display:block;font-weight:500">O robô põe o post aprovado no próximo horário livre acima, no Instagram'+(pg&&l.autoFB?' e no Facebook':'')+', e avisa a equipe.'+(S.adm?'':' (só o Adm liga isso)')+'</small></span></label></div>'+
     '<div class="err" id="maErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit" id="maOk">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#maErr').textContent=m};
-  const ord=ps.slice(),man={};
+  const ord=ps.slice(),man={},leg={},opsSt={},busy=new Set();let modM=+l.legIdx||0;
+  const legDe=x=>String(x.p.id in leg?leg[x.p.id]:(x.p.legenda||(x.a&&x.a.legenda)||l.legPadrao||'')).trim();
   const escolhidos=()=>ord.filter(x=>sel.has(x.p.id));
   const desde=()=>{const d=q('#maD').value||agora.slice(0,10);if(d>agora.slice(0,10))return d+'T00:00';const t=new Date(agora);t.setMinutes(t.getMinutes()+15);return iso(t)+'T'+pad(t.getHours())+':'+pad(t.getMinutes())};
   const nArq=x=>{const t=x.p.tipo||'feed';if(!['stories','reels','feed'].includes(t))return 1;const fs=x.a&&x.a.arquivos?arquivosPorTipo(t,x.a.arquivos):[];return Math.max(1,fs.length)};
@@ -3704,13 +3705,13 @@ function formMassa(l){const pg=pagDaLoja(l);
     q('#maOk').textContent=sel.size?'Agendar '+sel.size:(S.adm?'Salvar':'Agendar');
     if(!ord.length){box.innerHTML='<p class="hint" style="margin:0">Nada em "Para programar" nesta loja.</p>';return}
     let k=0;box.innerHTML=ord.map((x,i)=>{const p=x.p,a=x.a,okA=a&&a.status==='aprovado',aj=a&&a.status==='ajuste',on=sel.has(p.id),h=slots[p.id]||[],n=nArq(x),
-      sl=semLegenda(p)&&!(a&&a.legenda&&String(a.legenda).trim()),fp=formatoProb(p.tipo||'feed',a&&a.arquivos||[]);if(on)k++;
+      sl=p.tipo!=='stories'&&!legDe(x),fp=formatoProb(p.tipo||'feed',a&&a.arquivos||[]);if(on)k++;
       return '<div class="row" style="display:grid;grid-template-columns:auto auto 1fr;gap:8px 10px;align-items:start;padding:8px 10px;'+(aj?'opacity:.55':'')+'">'+
         '<span style="display:grid;gap:2px"><button type="button" class="btn sm ghost" data-mv="-1" data-i="'+i+'" aria-label="Subir"'+(i?'':' disabled')+' style="padding:2px 8px">▲</button><button type="button" class="btn sm ghost" data-mv="1" data-i="'+i+'" aria-label="Descer"'+(i<ord.length-1?'':' disabled')+' style="padding:2px 8px">▼</button></span>'+
         '<input type="checkbox" data-mp="'+p.id+'" style="width:18px;height:18px;margin-top:6px"'+(on?' checked':'')+(aj?' disabled':'')+' aria-label="Agendar '+esc(p.titulo)+'">'+
         '<div style="min-width:0"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="overflow-wrap:anywhere">'+(on?k+'. ':'')+esc(p.titulo)+'</b><small class="muted">'+esc(TPOST[p.tipo]||'Post')+(n>1?' · '+n+' arquivos':'')+'</small>'+(okA?'<span class="chip rec">✓ aprovado</span>':aj?'<span class="chip late">pediu ajuste</span>':a?'<span class="chip eq">aguardando</span>':'<span class="chip eq">sem aprovação</span>')+'</div>'+
         (on?'<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="datetime-local" data-mt="'+p.id+'" value="'+esc(h[0]||'')+'" min="'+agora+'" style="max-width:210px'+(man[p.id]?';border-color:var(--gold)':'')+'">'+(man[p.id]?'<button type="button" class="btn sm ghost" data-auto="'+p.id+'">↺ automático</button>':'')+(n>1&&h.length>1?'<small class="muted">até '+esc(fmtQuando(h[h.length-1]))+'</small>':'')+'</div>':'')+
-        (on&&sl?'<small style="display:block;margin-top:4px;color:var('+(ms.length?'--gold':'--neg')+')">'+(ms.length?'legenda: modelo da loja':'⚠ sem legenda')+'</small>':'')+(on&&fp?'<small style="display:block;margin-top:4px;color:var(--neg)">⚠ '+esc(fp)+'</small>':'')+'</div></div>'}).join('')};
+        (on&&p.tipo!=='stories'?'<div style="margin-top:6px"><textarea data-ml="'+p.id+'" rows="3" maxlength="2200" placeholder="Legenda'+(ms.length?' (vazia = usa um modelo da loja)':'')+'" style="width:100%">'+esc(leg[p.id]!==undefined?leg[p.id]:(p.legenda||(a&&a.legenda)||l.legPadrao||''))+'</textarea><div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap"><button type="button" class="btn sm ghost" data-mmod="'+p.id+'">Usar modelo</button><button type="button" class="btn sm ghost" data-mia="'+p.id+'"'+(busy.has(p.id)?' disabled':'')+'>'+(busy.has(p.id)?'Gerando…':'Gerar com IA')+'</button></div>'+(opsSt[p.id]?'<div style="display:grid;gap:6px;margin-top:4px">'+opsSt[p.id].map((o,k)=>'<button type="button" class="btn" data-mop="'+p.id+'|'+k+'" style="text-align:left;white-space:pre-wrap;height:auto;padding:10px 12px;font-weight:500">'+esc(o)+'</button>').join('')+'</div>':'')+'</div>':'')+(on&&sl&&ms.length?'<small style="display:block;margin-top:4px;color:var(--gold)">vazia: vai usar um modelo da loja</small>':'')+(on&&sl&&!ms.length?'<small style="display:block;margin-top:4px;color:var(--neg)">⚠ sem legenda</small>':'')+(on&&fp?'<small style="display:block;margin-top:4px;color:var(--neg)">⚠ '+esc(fp)+'</small>':'')+'</div></div>'}).join('')};
   const prev=lista;
   sheet.addEventListener('change',e=>{const c=e.target.closest('[data-mp]');if(c){c.checked?sel.add(c.dataset.mp):sel.delete(c.dataset.mp);if(!c.checked)delete man[c.dataset.mp];lista();return}
     const t=e.target.closest('[data-mt]');if(t){if(t.value)man[t.dataset.mt]=t.value;else delete man[t.dataset.mt];lista();return}
@@ -3718,6 +3719,11 @@ function formMassa(l){const pg=pagDaLoja(l);
   sheet.addEventListener('click',e=>{const m=e.target.closest('[data-mv]');if(m){const i=+m.dataset.i,j=i+(+m.dataset.mv);if(j>=0&&j<ord.length){[ord[i],ord[j]]=[ord[j],ord[i]];lista()}return}
     const au=e.target.closest('[data-auto]');if(au){delete man[au.dataset.auto];lista()}});
   q('#maH').oninput=lista;
+  sheet.addEventListener('input',e=>{const t=e.target.closest('[data-ml]');if(t)leg[t.dataset.ml]=t.value});
+  sheet.addEventListener('click',e=>{const m=e.target.closest('[data-mmod]');if(m){const ms=modelosLoja(l);if(!ms.length){toast('Esta loja ainda não tem modelos de legenda. Cadastre em Editar cliente.');return}leg[m.dataset.mmod]=ms[modM%ms.length];modM++;lista();return}
+    const o=e.target.closest('[data-mop]');if(o){const [id,k]=o.dataset.mop.split('|');leg[id]=opsSt[id][+k];delete opsSt[id];lista();return}
+    const ia=e.target.closest('[data-mia]');if(ia){const id=ia.dataset.mia,x=ord.find(y=>y.p.id===id);busy.add(id);lista();
+      gerarLegendaIA(l,{titulo:x.p.titulo,tipo:x.p.tipo,nota:''},ops=>{busy.delete(id);opsSt[id]=ops;lista()},er=>{busy.delete(id);lista();toast(er)})}});
   q('#maAp').onclick=()=>{ps.forEach(x=>{if(x.a&&x.a.status==='ajuste')return;if(x.a&&x.a.status==='aprovado')sel.add(x.p.id);else{sel.delete(x.p.id);delete man[x.p.id]}});lista()};
   q('#maTd').onclick=()=>{ps.forEach(x=>{if(!(x.a&&x.a.status==='ajuste'))sel.add(x.p.id)});lista()};
   lista();
@@ -3726,10 +3732,10 @@ function formMassa(l){const pg=pagDaLoja(l);
     if(es.length&&!ig&&!fb)return err('Marque Instagram, Facebook ou os dois.');
     if(!es.length&&!S.adm)return err('Marque pelo menos um conteúdo.');
     const passou=es.find(x=>man[x.p.id]&&man[x.p.id]<=agoraLocal());if(passou)return err('O horário de "'+passou.p.titulo+'" já passou. Escolha uma data e hora futuras.');
-    const ms=modelosLoja(l),semL=es.filter(x=>semLegenda(x.p)&&!(x.a&&x.a.legenda&&String(x.a.legenda).trim())),fprob=es.map(x=>[x,formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[])]).filter(y=>y[1]);
+    const ms=modelosLoja(l),semL=es.filter(x=>x.p.tipo!=='stories'&&!legDe(x)),fprob=es.map(x=>[x,formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[])]).filter(y=>y[1]);
     if(es.length&&fprob.length)return err('Formato errado em "'+fprob[0][0].p.titulo+'": '+fprob[0][1]+(fprob.length>1?' (e mais '+(fprob.length-1)+')':'')+' Desmarque para agendar os outros.');
     if(es.length&&semL.length&&!ms.length)return err('Sem legenda: '+semL.slice(0,3).map(x=>x.p.titulo).join(', ')+(semL.length>3?'…':'')+'. Abra o card e escreva (ou cadastre modelos de legenda em Editar cliente).');
-    const colabL=usersTx(q('#maColab').value),marcL=usersTx(q('#maMarc').value);let modI=+l.legIdx||0;
+    const colabL=usersTx(q('#maColab').value),marcL=usersTx(q('#maMarc').value);let modI=modM;
     const b=q('#maOk');b.disabled=true;b.textContent='Agendando…';
     try{
       if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
@@ -3742,8 +3748,8 @@ function formMassa(l){const pg=pagDaLoja(l);
         if(!(x.a&&x.a.arquivos&&x.a.arquivos.length))for(const f of fs){try{await deixarPublico(f.id)}catch(_){}}
         const serie=['stories','reels','feed'].includes(tipo)&&fs.length>1,n=serie?fs.length:1,h=slotsItem(x,n,oc,hs,d0);
         const temV=fs.some(f=>/^video\//.test(f.mimeType||'')),fbOk=fb&&!(tipo==='carrossel'&&temV);
-        let leg=String(p.legenda||(x.a&&x.a.legenda)||l.legPadrao||'').trim();if(!leg&&tipo!=='stories'&&ms.length){leg=ms[modI%ms.length];modI++}
-        const doc={tipo,legenda:leg.slice(0,2200),colab:tipo==='stories'?[]:colabL,marcar:tipo==='stories'?[]:marcL,avisoAuto:'',quando:h[0],pubIG:ig,pubFB:fbOk,arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+        let lg=legDe(x);if(!lg&&tipo!=='stories'&&ms.length){lg=ms[modI%ms.length];modI++}
+        const doc={tipo,legenda:lg.slice(0,2200),colab:tipo==='stories'?[]:colabL,marcar:tipo==='stories'?[]:marcL,avisoAuto:'',quando:h[0],pubIG:ig,pubFB:fbOk,arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
           fila:serie?h.map((t,i)=>({i,quando:t,ig:'',fb:'',legenda:''})):[],agenda:serie?h:[],qtd:serie?h.length:1,quandoIni:h[0],quandoFim:h[h.length-1]};
         await write(()=>store.update('posts',p.id,doc));ok++;ultimo=h[h.length-1]}
       if(S.adm&&modI!==(+l.legIdx||0)){try{await write(()=>store.update('lojas',l.id,{legIdx:modI}))}catch(_){}}
