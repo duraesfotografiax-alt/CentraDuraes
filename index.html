@@ -1715,7 +1715,7 @@ const GID=String(self.GOOGLE_CLIENT_ID||'');
 const DSCOPE='https://www.googleapis.com/auth/drive';
 const DAPI='https://www.googleapis.com/drive/v3';
 const FOLDER='application/vnd.google-apps.folder';
-const DF='nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,shortcutDetails)';
+const DF='nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,shortcutDetails,imageMediaMetadata(width,height,rotation))';
 let gTok=null,gExp=0,tokenClient=null;
 try{const x=JSON.parse(localStorage.getItem('gtokEmp')||'null');if(x&&x[1]>Date.now()){gTok=x[0];gExp=x[1]}}catch(_){}
 const sheet2=document.getElementById('sheet2');
@@ -1757,7 +1757,7 @@ async function dListar(id,soPastas){
 async function dCriarPasta(nome,pai){const j=await(await gfetch(DAPI+'/files?supportsAllDrives=true&fields=id,name,webViewLink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,mimeType:FOLDER,parents:[pai]})})).json();return j}
 async function dAcharPasta(nome,pai){const q="'"+pai+"' in parents and trashed=false and mimeType='"+FOLDER+"' and name='"+String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
   const j=await(await gfetch(DAPI+'/files?q='+encodeURIComponent(q)+'&fields=files(id,name,webViewLink)&supportsAllDrives=true&includeItemsFromAllDrives=true')).json();return (j.files||[])[0]||null}
-async function dInfo(id){return (await gfetch(DAPI+'/files/'+id+'?fields=id,name,webViewLink,mimeType&supportsAllDrives=true')).json()}
+async function dInfo(id){return (await gfetch(DAPI+'/files/'+id+'?fields=id,name,webViewLink,mimeType,imageMediaMetadata(width,height,rotation)&supportsAllDrives=true')).json()}
 async function dSessao(file,pai){const t=await token();
   const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Type':file.type||'application/octet-stream','X-Upload-Content-Length':String(file.size)},body:JSON.stringify({name:file.name,parents:[pai]})});
   if(!r.ok)throw new Error('Falha ao iniciar envio de '+file.name+' ('+r.status+')');
@@ -3316,7 +3316,7 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
       const fs=(await arquivosDoLink(p.drive)).slice(0,30);const id=driveId(p.drive);
       try{await dLinkPublico(id)}catch(_){}for(const f of fs){try{await deixarPublico(f.id)}catch(__){}}
       for(const f of fs){if(!(await publicoOk(f.id)))barrados.push(f.name||f.id)}
-      itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType||''})),status:'aguardando',obs:''});
+      itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType||''},dimsDe(f))),status:'aguardando',obs:''});
       const bar=document.getElementById('apBar');if(bar)bar.style.width=Math.round(k/ps.length*100)+'%'}
     const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0};
     const id=idAleatorio();await write(()=>db.collection('aprovacoes').doc(id).set(doc));
@@ -3378,6 +3378,7 @@ function renderClientes(){
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
       (p.status==='publicado'&&(p.qtd||1)>1?'<span>'+p.qtd+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+' · de '+fmtQuando(p.quandoIni||p.publicadoEm)+' até '+fmtQuando(p.quando||p.publicadoEm)+'</span>':'')+
       (p.status==='publicado'&&!((p.qtd||1)>1)?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      (p.status!=='publicado'&&semLegenda(p)?'<span class="chip late">Sem legenda</span>':'')+(p.avisoAuto&&p.status==='pronto'?'<span class="chip late" style="white-space:normal">'+esc(p.avisoAuto)+'</span>':'')+(p.pubAviso?'<span class="chip eq" style="white-space:normal">'+esc(p.pubAviso)+'</span>':'')+
       (p.status!=='publicado'?chipAprov(p):'')+
       '<div class="acts">'+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
   body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button><button class="btn sm ghost danger" data-loja-rem="'+l.id+'">Remover</button>':'')+'</div>'+prontosBox(l)+blocoIG(l)+
@@ -3413,12 +3414,15 @@ function formLoja(l,depois,nomeSug){const novo=!l;l=l||{nome:nomeSug||'',instagr
   '<div class="two"><div class="fld"><label for="ljIg">Instagram</label><input id="ljIg" value="'+esc(l.instagram)+'" placeholder="@usuario"></div>'+
   '<div class="fld"><label for="ljResp">Quem programa os posts</label><select id="ljResp">'+opts(TEAM,l.postagem||'Vanessa')+'</select></div></div>'+
   '<div class="fld"><label for="ljLeg">Legenda padrão (opcional)</label><textarea id="ljLeg" rows="3" maxlength="2200" placeholder="Ex.: 📍 Av. Brasil, 123 · 📲 WhatsApp (19) 99999-9999 · #carros #seminovos">'+esc(l.legPadrao||'')+'</textarea><span class="hint">Já vem escrita em todo post novo desta loja. Vocês só completam o começo.</span></div>'+
+  '<div class="fld"><label for="ljMod">Modelos de legenda (opcional)</label><textarea id="ljMod" rows="5" placeholder="Escreva um modelo e pule uma linha em branco para o próximo.">'+esc(modelosLoja(l).join('\n\n'))+'</textarea><span class="hint">Quando um post ficar sem legenda, a Central usa um modelo, um de cada vez. Também aparecem no botão "Usar modelo da loja".</span></div>'+
+  '<div class="two"><div class="fld"><label for="ljSobre">Sobre a loja (para a IA)</label><input id="ljSobre" value="'+esc(l.sobre||'')+'" placeholder="Ex.: loja de carros seminovos em Campinas"></div><div class="fld"><label for="ljTom">Tom de voz</label><input id="ljTom" value="'+esc(l.tom||'')+'" placeholder="Ex.: direto, animado, sem gírias"></div></div>'+
+  '<div class="two"><div class="fld"><label for="ljColab">Colaborador padrão</label><input id="ljColab" value="'+esc(l.colab||'')+'" placeholder="@conta"></div><div class="fld"><label for="ljMarc">Marcar padrão</label><input id="ljMarc" value="'+esc(l.marcar||'')+'" placeholder="@pessoa"></div></div>'+
   '<div class="fld"><label for="ljPag">Instagram / Facebook (para a Central publicar)</label><select id="ljPag">'+opts([['','— automático pelo @ do Instagram —']].concat(paginasMeta().map(p=>[p.id,p.nome+(p.igUser?' · @'+p.igUser:' · sem Instagram')])),l.fbPage||'')+'</select><span class="hint">'+(paginasMeta().length?'Lista das Páginas liberadas para o usuário "Central" no Meta.':'Nenhuma Página liberada ainda: atribua as Páginas ao usuário "Central" no Meta (passo a passo no LEIA-ME).')+'</span></div>'+
   '<div class="err" id="ljErr"></div><div class="formacts"><div class="left">'+(novo?'':'<button type="button" class="btn sm ghost danger" data-loja-rem="'+l.id+'">Remover cliente</button>')+'</div><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Salvar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fLj').onsubmit=async e=>{e.preventDefault();const nome=q('#ljNome').value.trim();if(!nome){q('#ljErr').textContent='Escreva o nome da loja.';return}
     const pgS=paginasMeta().find(p=>p.id===q('#ljPag').value);
-    const doc=Object.assign({},l,{nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true,fbPage:pgS?pgS.id:'',igId:pgS?pgS.ig||'':'',legPadrao:q('#ljLeg').value.trim().slice(0,2200)});delete doc.id;
+    const doc=Object.assign({},l,{nome:nome.slice(0,60),instagram:q('#ljIg').value.trim().replace(/^@/,'').slice(0,40),postagem:q('#ljResp').value,ativo:true,fbPage:pgS?pgS.id:'',igId:pgS?pgS.ig||'':'',legPadrao:q('#ljLeg').value.trim().slice(0,2200),legModelos:q('#ljMod').value.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).slice(0,12),sobre:q('#ljSobre').value.trim().slice(0,200),tom:q('#ljTom').value.trim().slice(0,120),colab:q('#ljColab').value.trim().slice(0,80),marcar:q('#ljMarc').value.trim().slice(0,80)});delete doc.id;
     if(pgS&&pgS.igUser&&!doc.instagram)doc.instagram=pgS.igUser;
     try{const id=await write(()=>novo?store.add('lojas',doc):store.set('lojas',l.id,doc));if(novo&&id){S.loja=id;if(depois)depois(id)}}catch(_){return}
     closeSheet();toast(novo?'Cliente cadastrado':'Cliente atualizado')};
@@ -3574,12 +3578,20 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     '<div class="two"><div class="fld"><label for="auTipo">Formato</label><select id="auTipo">'+opts(Object.entries(TPOST),pst.tipo||'reels')+'</select></div>'+
     '<div class="fld"><label for="auQ">Data e hora</label><input id="auQ" type="datetime-local" value="'+esc(quando)+'"><div class="checks" style="margin-top:6px"><label><input type="checkbox" id="auJa"> Publicar agora (em até 10 min)</label></div></div></div>'+
     '<div class="fld" id="auLegW"><label for="auLeg">Legenda</label><textarea id="auLeg" rows="5" maxlength="2200" placeholder="Texto do post, emojis e #hashtags">'+esc(pst.legenda||(l&&l.legPadrao)||'')+'</textarea><span class="hint" id="auCont"></span></div>'+
+    '<div class="fld" id="auLegAj"><div class="checks"><button type="button" class="btn sm" id="auMod">Usar modelo da loja</button><button type="button" class="btn sm" id="auIA">Gerar com IA</button></div><input id="auNota" placeholder="O que aparece ou é dito no vídeo? (ajuda a IA, opcional)" style="margin-top:6px"><div id="auOps" style="display:grid;gap:6px;margin-top:6px"></div></div>'+
+    '<div class="two" id="auTagW"><div class="fld"><label for="auColab">Convidar como colaborador</label><input id="auColab" value="'+esc(arr(pst.colab).length?arr(pst.colab).map(u=>'@'+u).join(' '):(l&&l.colab)||'')+'" placeholder="@conta (até 3)"><span class="hint">O post aparece nas duas contas quando aceitarem o convite.</span></div><div class="fld"><label for="auMarc">Marcar na foto</label><input id="auMarc" value="'+esc(arr(pst.marcar).length?arr(pst.marcar).map(u=>'@'+u).join(' '):(l&&l.marcar)||'')+'" placeholder="@pessoa"><span class="hint">Só em fotos, no centro da imagem; dá para ajustar no Instagram.</span></div></div>'+
     '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Arquivos do Drive<button type="button" class="btn sm ghost" id="auTodos" hidden>Marcar todos</button></span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
     '<div class="fld" id="auSerieW" hidden><label for="auFim" id="auFimL">Último sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span><div id="auLegs" class="auLegs"></div></div>'+
     '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#auErr').textContent=m};
-  const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';q('#auLegW').hidden=q('#auTipo').value==='stories'};
+  const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';const st=q('#auTipo').value==='stories';q('#auLegW').hidden=st;q('#auLegAj').hidden=st;q('#auTagW').hidden=st};
   const dica=()=>{const t=q('#auTipo').value;q('#auDica').textContent=t==='carrossel'?'Escolha de 2 a 10 arquivos, na ordem em que vão aparecer.':t==='reels'?'Escolha 1 ou vários vídeos (vertical 9:16). Com vários, cada vídeo vira um Reels separado, um de cada vez, até a data do último.':t==='stories'?'Escolha 1 ou vários (fotos ou vídeos verticais), na ordem em que vão sair. Com vários, a Central solta um de cada vez, espalhados até a data do último.':'Escolha 1 ou várias fotos. Com várias, cada uma vira um post separado, espalhados até a data do último.'};
+  let modI=+(l&&l.legIdx)||0,avisouLeg=false;
+  q('#auMod').onclick=()=>{const ms=modelosLoja(l);if(!ms.length){toast('Esta loja ainda não tem modelos de legenda. Cadastre em Editar cliente.');return}q('#auLeg').value=ms[modI%ms.length];modI++;cont()};
+  q('#auIA').onclick=()=>{const b=q('#auIA');b.disabled=true;b.textContent='Gerando… (até 1 min)';
+    gerarLegendaIA(l||{},{titulo:pst.titulo,tipo:q('#auTipo').value,nota:q('#auNota').value.trim()},ops=>{b.disabled=false;b.textContent='Gerar de novo';
+      q('#auOps').innerHTML=ops.map((o,i)=>'<button type="button" class="btn" data-op="'+i+'" style="text-align:left;white-space:pre-wrap;height:auto;padding:10px 12px;font-weight:500">'+esc(o)+'</button>').join('');
+      q('#auOps').onclick=e=>{const x=e.target.closest('[data-op]');if(!x)return;q('#auLeg').value=ops[+x.dataset.op];q('#auOps').innerHTML='';cont()}},er=>{b.disabled=false;b.textContent='Gerar com IA';toast(er)})};
   q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{const t=q('#auTipo').value;cont();dica();pinta()};cont();dica();
   q('#auJa').onchange=()=>{q('#auQ').disabled=q('#auJa').checked;serie()};
   const SER=()=>['stories','reels','feed'].includes(q('#auTipo').value),ehSerie=()=>SER()&&escolhidos.length>1,nomeS=()=>({stories:'stories',reels:'reels',feed:'posts'})[q('#auTipo').value]||'posts';
@@ -3632,14 +3644,32 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     if(serieOn&&!hs)return err('Escolha quando sai o último (depois do primeiro).');
     sheet.querySelectorAll('#auLegs textarea').forEach(x=>{legs[x.dataset.lg]=x.value});
     if((leg.match(/#[\wÀ-ÿ]+/g)||[]).length>30)return err('O Instagram aceita no máximo 30 hashtags.');
+    const fp=formatoProb(tipo,sel.map(f=>Object.assign({nome:f.name,mime:f.mimeType},dimsDe(f))));if(fp)return err(fp);
+    if(tipo!=='stories'){const semL=serieOn?!(leg.trim()||sel.every(f=>String(legs[f.id]||'').trim())):!leg.trim();
+      if(semL&&!avisouLeg){avisouLeg=true;return err('Este post está sem legenda. Escreva uma, use um modelo da loja ou gere com IA. Para postar assim mesmo, toque em Agendar de novo.')}}
+    const colab=tipo==='stories'?[]:usersTx(q('#auColab').value),marcar=tipo==='stories'?[]:usersTx(q('#auMarc').value);
     const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
     try{for(const f of sel)await deixarPublico(f.id);
-      const doc={tipo,legenda:leg.slice(0,2200),quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,arquivos:sel.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar,avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,arquivos:sel.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
         fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:'',legenda:tipo==='stories'?'':String(legs[sel[i].id]||'').trim().slice(0,2200)})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
       await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' '+(({stories:'stories',reels:'reels',feed:'posts'})[tipo])+' agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook'].filter(Boolean).join(' + '))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};
 }
 
+/* ---------- Legenda, marcação e formato do post ---------- */
+function dimsDe(f){const m=f&&f.imageMediaMetadata;if(!m||!m.width||!m.height)return {};const g=(m.rotation||0)%2===1;return {w:g?m.height:m.width,h:g?m.width:m.height}}
+/* só confere FOTOS (vídeo pode vir girado do celular e dar alarme falso) */
+function formatoProb(tipo,fs){for(const f of fs){const w=+f.w,h=+f.h;if(!w||!h||!/^image\//.test(f.mime||f.mimeType||''))continue;const r=w/h,n=f.nome||f.name||'';
+  if(tipo==='feed'||tipo==='carrossel'){if(r<0.78)return 'A foto '+n+' é vertical de story (9:16). No feed o Instagram recusa ou corta: use 4:5, ou mude o Formato para Stories.';if(r>1.92)return 'A foto '+n+' é larga demais para o feed.'}}return ''}
+function usersTx(t){return (Array.isArray(t)?t:String(t||'').split(/[,\s]+/)).map(u=>String(u).replace(/^@/,'').trim()).filter(Boolean).slice(0,3)}
+function modelosLoja(l){return arr(l&&l.legModelos).length?arr(l.legModelos):String((l&&l.legModelos)||'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean)}
+function semLegenda(p){return p&&p.tipo!=='stories'&&!String(p.legenda||'').trim()&&!(Array.isArray(p.fila)&&p.fila.length>1&&p.fila.every(x=>String(x.legenda||'').trim()))}
+/* pede 3 legendas à IA (o robô responde em segundos) */
+function gerarLegendaIA(l,dados,onOpcoes,onErro){const id=idAleatorio();let un=null,t=null;
+  const fim=()=>{if(un)un();clearTimeout(t);db.collection('legendas').doc(id).delete().catch(()=>{})};
+  db.collection('legendas').doc(id).set({loja:l.id,lojaNome:l.nome,sobre:l.sobre||'',tom:l.tom||'',base:l.legPadrao||'',titulo:dados.titulo||'',tipo:dados.tipo||'',nota:dados.nota||'',status:'pedido',em:new Date().toISOString()}).then(()=>{
+    un=db.collection('legendas').doc(id).onSnapshot(d=>{const x=d.data();if(!x)return;if(x.status==='pronto'){fim();onOpcoes(x.opcoes||[])}else if(x.status==='erro'){fim();onErro(x.erro||'Não deu certo')}});
+    t=setTimeout(()=>{fim();onErro('O robô não respondeu ainda. Tente de novo em alguns minutos ou use um modelo da loja.')},90000)}).catch(e=>onErro(e.message||'Não deu certo'))}
 /* ---------- Agendar em massa (posts aprovados) + "agendar sozinho ao aprovar" ---------- */
 function lerHorasM(t){const o=[];for(const m of String(t||'').matchAll(/\b(\d{1,2})[:h](\d{2})?\b/g)){const h=+m[1],mi=+(m[2]||0);if(h<24&&mi<60)o.push(pad(h)+':'+pad(mi))}const u=[...new Set(o)].sort();return u.length?u:['09:00','12:00','19:00']}
 function ocupadosLoja(lid){const s=new Set();for(const p of S.posts||[]){if(p.loja!==lid||!['aguardando','publicando'].includes(p.pubStatus))continue;if(p.quando)s.add(String(p.quando).slice(0,16));arr(p.fila).forEach(x=>x&&x.quando&&s.add(String(x.quando).slice(0,16)))}return s}
@@ -3659,6 +3689,7 @@ function formMassa(l){const pg=pagDaLoja(l);
     '<div class="two"><div class="fld"><label for="maH">Horários de cada dia</label><input id="maH" value="'+esc(l.autoHoras||'09:00, 12:00, 19:00')+'" placeholder="09:00, 12:00, 19:00"><span class="hint">Cada conteúdo ocupa o próximo horário livre. Horários que já têm post agendado são pulados.</span></div>'+
     '<div class="fld"><label for="maD">Começar em</label><input id="maD" type="date" value="'+agora.slice(0,10)+'" min="'+agora.slice(0,10)+'"></div></div>'+
     '<div class="fld"><span class="l">Onde publicar</span><div class="checks"><label><input type="checkbox" id="maIG" '+(pg&&pg.ig&&l.autoIG!==false?'checked':'')+(pg&&pg.ig?'':' disabled')+'> Instagram'+(pg&&pg.igUser?' (@'+esc(pg.igUser)+')':'')+'</label><label><input type="checkbox" id="maFB" '+(pg&&l.autoFB?'checked':'')+(pg?'':' disabled')+'> Facebook'+(pg?' ('+esc(pg.nome)+')':'')+'</label></div></div>'+
+    '<div class="two"><div class="fld"><label for="maColab">Convidar como colaborador</label><input id="maColab" value="'+esc(l.colab||'')+'" placeholder="@conta (até 3)"></div><div class="fld"><label for="maMarc">Marcar nas fotos</label><input id="maMarc" value="'+esc(l.marcar||'')+'" placeholder="@pessoa"></div></div>'+
     '<div class="fld"><span class="l">Como vai ficar</span><div id="maPrev" class="hint" style="line-height:1.7"></div></div>'+
     '<div class="fld"><label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600"><input type="checkbox" id="maAuto" style="width:18px;height:18px;margin-top:2px"'+(l.autoAprov?' checked':'')+(S.adm?'':' disabled')+'> <span>Daqui para frente, agendar sozinho quando o cliente aprovar<small class="muted" style="display:block;font-weight:500">O robô põe o post aprovado no próximo horário livre acima, no Instagram'+(pg&&l.autoFB?' e no Facebook':'')+', e avisa a equipe.'+(S.adm?'':' (só o Adm liga isso)')+'</small></span></label></div>'+
     '<div class="err" id="maErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit" id="maOk">Agendar</button></div></form>';
@@ -3669,7 +3700,8 @@ function formMassa(l){const pg=pagDaLoja(l);
   const prev=()=>{const es=escolhidos(),box=q('#maPrev'),ok=q('#maOk');ok.textContent=es.length?'Agendar '+es.length:(S.adm?'Salvar':'Agendar');
     if(!es.length){box.textContent='Marque os conteúdos que quer agendar.';return}
     const oc=ocupadosLoja(l.id),hs=lerHorasM(q('#maH').value),d0=desde();
-    box.innerHTML=es.map((x,i)=>{const n=nArq(x),h=livresM(hs,n,d0,oc);return '<div>'+(i+1)+'. <b style="color:var(--ink)">'+esc(x.p.titulo)+'</b> → '+h.slice(0,2).map(fmtQuando).join(' · ')+(h.length>2?' … '+fmtQuando(h[h.length-1]):'')+(n>1?' <small>('+n+' arquivos)</small>':'')+'</div>'}).join('')};
+    box.innerHTML=es.map((x,i)=>{const n=nArq(x),h=livresM(hs,n,d0,oc);const ms=modelosLoja(l),sl=semLegenda(x.p)&&!(x.a&&x.a.legenda&&String(x.a.legenda).trim()),fp=formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[]);
+      return '<div>'+(i+1)+'. <b style="color:var(--ink)">'+esc(x.p.titulo)+'</b> → '+h.slice(0,2).map(fmtQuando).join(' · ')+(h.length>2?' … '+fmtQuando(h[h.length-1]):'')+(n>1?' <small>('+n+' arquivos)</small>':'')+(sl?(ms.length?' <small style="color:var(--gold)">· legenda: modelo da loja</small>':' <small style="color:var(--neg)">· ⚠ sem legenda</small>'):'')+(fp?'<br><small style="color:var(--neg)">⚠ '+esc(fp)+'</small>':'')+'</div>'}).join('')};
   sheet.addEventListener('change',e=>{if(e.target.closest('[data-mp],#maH,#maD'))prev()});q('#maH').oninput=prev;
   q('#maAp').onclick=()=>{ps.forEach(x=>{const c=q('[data-mp="'+x.p.id+'"]');if(!c.disabled)c.checked=!!(x.a&&x.a.status==='aprovado')});prev()};
   q('#maTd').onclick=()=>{ps.forEach(x=>{const c=q('[data-mp="'+x.p.id+'"]');if(!c.disabled)c.checked=true});prev()};
@@ -3678,9 +3710,13 @@ function formMassa(l){const pg=pagDaLoja(l);
     if(es.length&&!pg)return err('Ligue a loja a uma Página/Instagram antes (Editar cliente).');
     if(es.length&&!ig&&!fb)return err('Marque Instagram, Facebook ou os dois.');
     if(!es.length&&!S.adm)return err('Marque pelo menos um conteúdo.');
+    const ms=modelosLoja(l),semL=es.filter(x=>semLegenda(x.p)&&!(x.a&&x.a.legenda&&String(x.a.legenda).trim())),fprob=es.map(x=>[x,formatoProb(x.p.tipo||'feed',x.a&&x.a.arquivos||[])]).filter(y=>y[1]);
+    if(es.length&&fprob.length)return err('Formato errado em "'+fprob[0][0].p.titulo+'": '+fprob[0][1]+(fprob.length>1?' (e mais '+(fprob.length-1)+')':'')+' Desmarque para agendar os outros.');
+    if(es.length&&semL.length&&!ms.length)return err('Sem legenda: '+semL.slice(0,3).map(x=>x.p.titulo).join(', ')+(semL.length>3?'…':'')+'. Abra o card e escreva (ou cadastre modelos de legenda em Editar cliente).');
+    const colabL=usersTx(q('#maColab').value),marcL=usersTx(q('#maMarc').value);let modI=+l.legIdx||0;
     const b=q('#maOk');b.disabled=true;b.textContent='Agendando…';
     try{
-      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb}));
+      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
       if(!es.length){closeSheet();toast(auto?'Pronto: a Central agenda sozinha o que o cliente aprovar':'Configuração salva');return}
       const needTok=es.some(x=>!(x.a&&x.a.arquivos&&x.a.arquivos.length));if(needTok)await token();
       const oc=ocupadosLoja(l.id),hs=lerHorasM(horasTx),d0=desde();let ok=0,pulou=[],ultimo='';
@@ -3690,9 +3726,11 @@ function formMassa(l){const pg=pagDaLoja(l);
         if(!(x.a&&x.a.arquivos&&x.a.arquivos.length))for(const f of fs){try{await deixarPublico(f.id)}catch(_){}}
         const serie=['stories','reels','feed'].includes(tipo)&&fs.length>1,n=serie?fs.length:1,h=livresM(hs,n,d0,oc);
         const temV=fs.some(f=>/^video\//.test(f.mimeType||'')),fbOk=fb&&!(tipo==='carrossel'&&temV);
-        const doc={tipo,legenda:String(p.legenda||(l.legPadrao||'')).slice(0,2200),quando:h[0],pubIG:ig,pubFB:fbOk,arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+        let leg=String(p.legenda||(x.a&&x.a.legenda)||l.legPadrao||'').trim();if(!leg&&tipo!=='stories'&&ms.length){leg=ms[modI%ms.length];modI++}
+        const doc={tipo,legenda:leg.slice(0,2200),colab:tipo==='stories'?[]:colabL,marcar:tipo==='stories'?[]:marcL,avisoAuto:'',quando:h[0],pubIG:ig,pubFB:fbOk,arquivos:fs.map(f=>({id:f.id,nome:f.name,mime:f.mimeType})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
           fila:serie?h.map((t,i)=>({i,quando:t,ig:'',fb:'',legenda:''})):[],agenda:serie?h:[],qtd:serie?h.length:1,quandoIni:h[0],quandoFim:h[h.length-1]};
         await write(()=>store.update('posts',p.id,doc));ok++;ultimo=h[h.length-1]}
+      if(S.adm&&modI!==(+l.legIdx||0)){try{await write(()=>store.update('lojas',l.id,{legIdx:modI}))}catch(_){}}
       closeSheet();toast(ok+' agendado'+(ok===1?'':'s')+(ultimo?' · até '+fmtQuando(ultimo):'')+(pulou.length?' · '+pulou.length+' sem arquivo compatível':''))}
     catch(er){err(er.message||'Não deu certo');b.disabled=false;prev()}};
 }

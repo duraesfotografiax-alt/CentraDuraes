@@ -38,6 +38,20 @@ function escolherArquivos(tipo, fs) {
   return fs;
 }
 
+// Formato errado para o destino? (usa a largura/altura que o app guardou na aprovação)
+function formatoProblema(tipo, fs) {
+  // só confere fotos (vídeo pode vir girado do celular e dar alarme falso)
+  for (const f of fs) {
+    const w = +f.w, h = +f.h; if (!w || !h || !/^image\//.test(f.mime || '')) continue;
+    const r = w / h;
+    if ((tipo === 'feed' || tipo === 'carrossel') && r < 0.78) return 'a foto ' + (f.nome || '') + ' é vertical de story (9:16); no feed o Instagram recusa ou corta. Use 4:5 ou mude para Stories';
+    if ((tipo === 'feed' || tipo === 'carrossel') && r > 1.92) return 'a foto ' + (f.nome || '') + ' é larga demais para o feed';
+  }
+  return '';
+}
+const lerUsers = (t) => (Array.isArray(t) ? t : String(t || '').split(/[,\s]+/)).map((u) => String(u).replace(/^@/, '').trim()).filter(Boolean).slice(0, 3);
+const listaModelos = (l) => (Array.isArray(l.legModelos) ? l.legModelos : String(l.legModelos || '').split(/\n-{3,}\n|\n{2,}/)).map((x) => String(x).trim()).filter(Boolean);
+
 module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehAdm, membroDe }) {
   const lojas = {};
   (await db.collection('lojas').get()).docs.forEach((d) => { const l = d.data(); if (l.autoAprov && l.ativo !== false) lojas[d.id] = { id: d.id, ...l }; });
@@ -67,6 +81,19 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
     const tipo = p.tipo || it.tipo || 'feed';
     let fs = escolherArquivos(tipo, arr(it.arquivos));
     if (!fs.length) { console.log(`Aprovados: ${lj.nome} · ${p.titulo}: sem arquivo compatível com ${tipo}, ficou em Para programar`); continue; }
+    const prob = formatoProblema(tipo, fs);
+    let leg = String(p.legenda || it.legenda || lj.legPadrao || '').trim();
+    let avisoNovo = prob ? 'Não agendou sozinho: ' + prob + '.' : '';
+    if (!avisoNovo && tipo !== 'stories' && !leg) {
+      const ms = listaModelos(lj);
+      if (ms.length) { const i = (+lj.legIdx || 0) % ms.length; leg = ms[i]; lj.legIdx = i + 1; try { await db.collection('lojas').doc(lj.id).update({ legIdx: lj.legIdx }); } catch (_) {} }
+      else avisoNovo = 'Não agendou sozinho: falta a legenda (cadastre modelos de legenda na loja).';
+    }
+    if (avisoNovo) {
+      console.log(`Aprovados: ${lj.nome} · ${p.titulo}: ${avisoNovo}`);
+      if (p.avisoAuto !== avisoNovo) { try { await db.collection('posts').doc(p.id).update({ avisoAuto: avisoNovo }); } catch (_) {} }
+      continue;
+    }
     const serie = ['stories', 'reels', 'feed'].includes(tipo) && fs.length > 1;
     const n = serie ? fs.length : 1;
     const set = (ocup[lj.id] = ocup[lj.id] || new Set());
@@ -77,7 +104,7 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
     const ig = lj.autoIG !== false;
     if (!ig && !fb) continue;
     const doc = {
-      tipo, legenda: String(p.legenda || it.legenda || lj.legPadrao || '').slice(0, 2200), quando: hs[0], pubIG: ig, pubFB: fb,
+      tipo, legenda: leg.slice(0, 2200), colab: lerUsers(lj.colab), marcar: lerUsers(lj.marcar), avisoAuto: '', quando: hs[0], pubIG: ig, pubFB: fb,
       arquivos: fs.map((f) => ({ id: f.id, nome: f.nome || f.name || '', mime: f.mime || '' })), pubStatus: 'aguardando', pubErro: '', pubFeito: {}, status: 'programado',
       programadoPor: 'Automático (aprovado pelo cliente)', programadoEm: agoraIso, autoAprov: true,
       fila: serie ? hs.map((t, i) => ({ i, quando: t, ig: '', fb: '', legenda: '' })) : [], agenda: serie ? hs : [], qtd: serie ? hs.length : 1, quandoIni: hs[0], quandoFim: hs[hs.length - 1],

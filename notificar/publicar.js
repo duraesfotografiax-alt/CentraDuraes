@@ -58,7 +58,7 @@ async function paraJpeg(arq) {
 }
 
 // ---------- Conversão de vídeo (quando o Facebook/Instagram recusam o formato) ----------
-const FORMATO_RECUSADO = /formato|format|compat|codec|unsupported|n[aã]o suportad|invalid video|v[ií]deo inv[aá]lido|2207|1363/i;
+const FORMATO_RECUSADO = /formato|format|compat|codec|unsupported|n[aã]o suportad|invalid video|v[ií]deo inv[aá]lido|2207|1363|processing\s*failed|process.*fail|n[aã]o conseguiu processar|recusou o envio do v[ií]deo|demorou demais para processar/i;
 async function transcodificar(a) { // converte para MP4 H.264 + AAC, 30 fps, proporção par: aceito em qualquer lugar
   const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
   let bin = 'ffmpeg'; try { bin = require('ffmpeg-static') || 'ffmpeg'; } catch (_) {}
@@ -67,7 +67,7 @@ async function transcodificar(a) { // converte para MP4 H.264 + AAC, 30 fps, pro
     fs.writeFileSync(ent, a.buf);
     await new Promise((ok, no) => {
       const pr = spawn(bin, ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
-        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-r', '30', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', sai], { stdio: 'ignore' });
+        '-vf', "scale='min(1080,iw)':-2", '-r', '30', '-profile:v', 'high', '-level', '4.1', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', sai], { stdio: 'ignore' });
       const t = setTimeout(() => { pr.kill('SIGKILL'); no(new Error('A conversão do vídeo demorou demais.')); }, 8 * 60e3);
       pr.on('error', (e) => { clearTimeout(t); no(new Error('Não consegui converter o vídeo: ' + e.message)); });
       pr.on('close', (c) => { clearTimeout(t); c === 0 ? ok() : no(new Error('Não consegui converter o vídeo (ffmpeg ' + c + ').')); });
@@ -166,7 +166,23 @@ async function igVideo(pag, tipoMidia, a, extra) {
   await esperarPronto(c.id, pag.token);
   return c.id;
 }
-async function igPublicar(pag, tipo, arqs, legenda) {
+const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
+// Convite de colaborador e marcação de pessoas. Se o Instagram recusar (conta não aceita convite, usuário inexistente...), publica sem eles e avisa.
+async function igPublicar(pag, tipo, arqs, legenda, ex) {
+  const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar);
+  if (tipo === 'stories' || (!colab.length && !marcar.length)) return igPublicarBase(pag, tipo, arqs, legenda, {});
+  try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar }); }
+  catch (e) {
+    if (!/colab|collaborat|user_tag|tag|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
+    console.log('Postagens: Instagram recusou colaborador/marcação (' + String(e.message).slice(0, 120) + '), publicando sem eles');
+    const r = await igPublicarBase(pag, tipo, arqs, legenda, {});
+    r.aviso = 'Saiu sem colaborador/marcação: ' + String(e.message).slice(0, 120);
+    return r;
+  }
+}
+async function igPublicarBase(pag, tipo, arqs, legenda, ex) {
+  const colabP = ex.colab && ex.colab.length ? { collaborators: JSON.stringify(ex.colab) } : {};
+  const tagsP = ex.marcar && ex.marcar.length ? { user_tags: JSON.stringify(ex.marcar.map((u) => ({ username: u, x: 0.5, y: 0.5 }))) } : {};
   let container;
   if (tipo === 'stories') {
     const a = arqs[0];
@@ -174,15 +190,15 @@ async function igPublicar(pag, tipo, arqs, legenda) {
     else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, { media_type: 'STORIES', image_url: f.url }, pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else if (arqs.length === 1) {
     const a = arqs[0];
-    if (a.video) container = await igVideo(pag, 'REELS', a, { caption: legenda, share_to_feed: 'true' });
-    else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, { image_url: f.url, caption: legenda }, pag.token)).id; await esperarPronto(container, pag.token, 3); }
+    if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP));
+    else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, Object.assign({ image_url: f.url, caption: legenda }, colabP, tagsP), pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else {
     const filhos = [];
     for (const a of arqs) {
       if (a.video) filhos.push(await igVideo(pag, 'VIDEO', a, { is_carousel_item: 'true' }));
-      else { const f = await fotoOculta(pag, a.jpg); const id = (await gpost(`${pag.ig}/media`, { image_url: f.url, is_carousel_item: 'true' }, pag.token)).id; await esperarPronto(id, pag.token, 3); filhos.push(id); }
+      else { const f = await fotoOculta(pag, a.jpg); const id = (await gpost(`${pag.ig}/media`, Object.assign({ image_url: f.url, is_carousel_item: 'true' }, tagsP), pag.token)).id; await esperarPronto(id, pag.token, 3); filhos.push(id); }
     }
-    container = (await gpost(`${pag.ig}/media`, { media_type: 'CAROUSEL', children: filhos.join(','), caption: legenda }, pag.token)).id;
+    container = (await gpost(`${pag.ig}/media`, Object.assign({ media_type: 'CAROUSEL', children: filhos.join(','), caption: legenda }, colabP), pag.token)).id;
     await esperarPronto(container, pag.token, 5);
   }
   const pub = await gpost(`${pag.ig}/media_publish`, { creation_id: container }, pag.token);
@@ -241,15 +257,17 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   let pags;
   try { pags = await paginas(token); } catch (e) { for (const p of vez) await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: 'Meta: ' + e.message }); return; }
 
-  for (const p of vez.slice(0, 6)) {
+  // até 3 posts ao mesmo tempo: um vídeo demorado no Instagram não segura os outros da fila
+  const fila = vez.slice(0, 9);
+  const processar = async (p) => {
     // trava para não publicar duas vezes
     const ok = await db.runTransaction(async (tx) => { const d = await tx.get(ref.doc(p.id)); if (!d.exists || d.data().pubStatus !== 'aguardando') return false; tx.update(ref.doc(p.id), { pubStatus: 'publicando', pubInicio: new Date().toISOString() }); return true; });
-    if (!ok) continue;
+    if (!ok) return;
     const lj = lojas[p.loja] || {};
     const pag = pags.find((x) => x.id === lj.fbPage) || pags.find((x) => lj.igId && x.ig === lj.igId) || pags.find((x) => x.igUser && lj.instagram && x.igUser.toLowerCase() === String(lj.instagram).replace(/^@/, '').toLowerCase());
     const feito = Object.assign({}, p.pubFeito || {});
-    const erros = [];
-    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); continue; }
+    const erros = []; let aviso = '';
+    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); return; }
     try {
       if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
       const arqs = [];
@@ -259,7 +277,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (let tent = 0; tent < 2; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
-          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda); feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
+          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
           catch (e) { erros.push('Instagram: ' + e.message); }
         }
         if (p.pubFB && !feito.fb) {
@@ -277,7 +295,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
     const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook'].filter(Boolean).join(' e ');
     const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
     if (!erros.length) {
-      await ref.doc(p.id).update({ pubStatus: 'publicado', pubFeito: feito, pubErro: '', status: 'publicado', publicadoEm: agoraIso, link: feito.ig || feito.fb || p.link || '', verificado: true });
+      await ref.doc(p.id).update({ pubStatus: 'publicado', pubFeito: feito, pubErro: '', pubAviso: aviso, status: 'publicado', publicadoEm: agoraIso, link: feito.ig || feito.fb || p.link || '', verificado: true });
       console.log(`Postagens: publicado ${lj.nome} · ${p.titulo} (${onde})`);
       for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `${p.titulo} saiu no ${onde}.`);
     } else {
@@ -285,7 +303,15 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       console.error(`Postagens: erro ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
       for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}${onde ? ' (saiu só no ' + onde + ')' : ''}. ${erros[0]}`.slice(0, 230));
     }
-  }
+  };
+  const trabalhadores = Array.from({ length: Math.min(3, fila.length) }, async () => {
+    while (fila.length) {
+      const p = fila.shift();
+      try { await processar(p); }
+      catch (e) { console.error('Postagens: falha inesperada em', p.titulo, e.message); try { await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: ('Falha inesperada: ' + e.message).slice(0, 300) }); } catch (_) {} }
+    }
+  });
+  await Promise.all(trabalhadores);
 }
 
 const nomeItem = (t) => (t === 'reels' ? 'Reels' : t === 'feed' ? 'Post' : 'Story');
@@ -309,7 +335,7 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
         catch (e) { if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) { x = await transcodificar(x); return await fn(x); } throw e; }
       };
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg)); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
