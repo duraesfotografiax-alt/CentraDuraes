@@ -1,4 +1,4 @@
-name: Notificações da Central
+      name: Notificações da Central
 
 on:
   schedule:
@@ -51,4 +51,4 @@ jobs:
         if: steps.robo.outputs.proxima == 'sim'
         run: gh workflow run notificar.yml --ref "${{ github.ref_name }}" -f modo=auto
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}  
