@@ -59,22 +59,50 @@ async function paraJpeg(arq) {
 
 // ---------- Conversão de vídeo (quando o Facebook/Instagram recusam o formato) ----------
 const FORMATO_RECUSADO = /formato|format|compat|codec|unsupported|n[aã]o suportad|invalid video|v[ií]deo inv[aá]lido|2207|1363|processing\s*failed|process.*fail|n[aã]o conseguiu processar|recusou o envio do v[ií]deo|demorou demais para processar/i;
-async function transcodificar(a) { // converte para MP4 H.264 + AAC, 30 fps, proporção par: aceito em qualquer lugar
+// Lê codec, tamanho, duração e áudio do vídeo (usa o ffmpeg; serve para o aviso de erro ficar claro)
+async function infoVideo(buf) {
+  const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
+  let bin = 'ffmpeg'; try { bin = require('ffmpeg-static') || 'ffmpeg'; } catch (_) {}
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inf-')), ent = path.join(dir, 'entrada');
+  try {
+    fs.writeFileSync(ent, buf);
+    const err = await new Promise((ok) => { let t = ''; const pr = spawn(bin, ['-hide_banner', '-i', ent], { stdio: ['ignore', 'ignore', 'pipe'] }); pr.stderr.on('data', (d) => { t += d; }); pr.on('error', () => ok('')); pr.on('close', () => ok(t)); });
+    const v = (err.match(/Video: ([^\n]+)/) || [])[1] || '', au = (err.match(/Audio: ([^\n]+)/) || [])[1] || '', du = (err.match(/Duration: (\d+):(\d+):(\d+)/) || []);
+    const seg = du.length ? (+du[1]) * 3600 + (+du[2]) * 60 + (+du[3]) : 0;
+    const cod = (v.match(/^([a-z0-9]+)/i) || [])[1] || '?', res = (v.match(/(\d{3,5})x(\d{3,5})/) || []).slice(1).join('x') || '?', fps = (v.match(/([\d.]+) fps/) || [])[1] || '?';
+    return { audio: !!au, seg, txt: `${cod} ${res} ${fps}fps ${seg}s ${au ? 'com áudio' : 'sem áudio'} ${Math.round(buf.length / 1e6)}MB` };
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} }
+}
+// Converte para MP4 H.264 + AAC. seguro = receita mais rígida (1080x1920 exato, 30 fps constante, áudio estéreo sempre presente), usada se a primeira conversão também for recusada
+async function transcodificar(a, seguro, tipo) {
   const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
   let bin = 'ffmpeg'; try { bin = require('ffmpeg-static') || 'ffmpeg'; } catch (_) {}
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vid-')), ent = path.join(dir, 'entrada'), sai = path.join(dir, 'saida.mp4');
   try {
     fs.writeFileSync(ent, a.buf);
+    let args;
+    if (!seguro) {
+      args = ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-maxrate', '8M', '-bufsize', '16M', '-pix_fmt', 'yuv420p',
+        '-vf', "scale='min(1080,iw)':-2", '-r', '30', '-profile:v', 'high', '-level', '4.1', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', sai];
+    } else {
+      const inf = await infoVideo(a.buf).catch(() => ({ audio: true }));
+      const vert = tipo === 'reels' || tipo === 'stories';
+      const vf = vert ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : "scale='min(1080,iw)':-2,setsar=1,format=yuv420p";
+      args = inf.audio
+        ? ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0']
+        : ['-y', '-i', ent, '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100', '-map', '0:v:0', '-map', '1:a:0', '-shortest'];
+      args.push('-vf', vf, '-r', '30', '-fps_mode', 'cfr', '-c:v', 'libx264', '-profile:v', 'main', '-level', '4.0', '-preset', 'veryfast', '-crf', '25', '-maxrate', '6M', '-bufsize', '12M', '-g', '60', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-movflags', '+faststart', sai);
+    }
     await new Promise((ok, no) => {
-      const pr = spawn(bin, ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
-        '-vf', "scale='min(1080,iw)':-2", '-r', '30', '-profile:v', 'high', '-level', '4.1', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', sai], { stdio: 'ignore' });
+      const pr = spawn(bin, args, { stdio: 'ignore' });
       const t = setTimeout(() => { pr.kill('SIGKILL'); no(new Error('A conversão do vídeo demorou demais.')); }, 8 * 60e3);
       pr.on('error', (e) => { clearTimeout(t); no(new Error('Não consegui converter o vídeo: ' + e.message)); });
       pr.on('close', (c) => { clearTimeout(t); c === 0 ? ok() : no(new Error('Não consegui converter o vídeo (ffmpeg ' + c + ').')); });
     });
     const buf = fs.readFileSync(sai);
-    console.log(`Postagens: vídeo convertido (${Math.round(a.buf.length / 1e6)} MB → ${Math.round(buf.length / 1e6)} MB)`);
-    return { buf, mime: 'video/mp4', nome: String(a.nome || 'video').replace(/\.\w+$/, '') + '.mp4', video: true, convertido: true };
+    console.log(`Postagens: vídeo convertido${seguro ? ' (receita segura)' : ''} (${Math.round(a.buf.length / 1e6)} MB → ${Math.round(buf.length / 1e6)} MB)`);
+    return { buf, mime: 'video/mp4', nome: String(a.nome || 'video').replace(/\.\w+$/, '') + '.mp4', video: true, convertido: seguro ? 2 : 1 };
   } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} }
 }
 
@@ -274,7 +302,8 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (const a of p.arquivos || []) { const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x); arqs.push(x); }
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
       const legenda = String(p.legenda || '').slice(0, 2200);
-      for (let tent = 0; tent < 2; tent++) {
+      const orig = arqs.slice(); let infoOrig = '';
+      for (let tent = 0; tent < 3; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
           try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
@@ -285,11 +314,13 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
           catch (e) { erros.push('Facebook: ' + e.message); }
         }
         // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
-        if (!erros.length || tent === 1 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !arqs.some((a) => a.video && !a.convertido)) break;
-        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo e tentando de novo`);
-        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(arqs[i]); }
+        if (!erros.length || tent === 2 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
+        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'padrão' : 'receita segura'}) e tentando de novo`);
+        if (!infoOrig) { const v0 = orig.find((a) => a.video); try { infoOrig = (await infoVideo(v0.buf)).txt; } catch (_) {} }
+        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(orig[i], tent === 1, p.tipo); }
         catch (e) { erros.push(e.message); break; }
       }
+      if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 2 vezes]`);
     } catch (e) { erros.push(e.message); }
 
     const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook'].filter(Boolean).join(' e ');
@@ -332,7 +363,14 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
       const leg = tipo === 'stories' ? '' : String(it.legenda || p.legenda || '').slice(0, 2200);
       const comConversao = async (fn) => { // se recusarem o formato do vídeo, converte e tenta mais uma vez
         try { return await fn(x); }
-        catch (e) { if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) { x = await transcodificar(x); return await fn(x); } throw e; }
+        catch (e) {
+          if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) {
+            const orig = x; x = await transcodificar(orig);
+            try { return await fn(x); }
+            catch (e2) { if (!FORMATO_RECUSADO.test(e2.message)) throw e2; x = await transcodificar(orig, true, tipo); return await fn(x); }
+          }
+          throw e;
+        }
       };
       if (p.pubIG && !it.ig) {
         try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
