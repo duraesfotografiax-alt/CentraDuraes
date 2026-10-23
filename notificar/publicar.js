@@ -187,12 +187,40 @@ async function esperarPronto(container, token, maxMin = 12) {
   }
   throw new Error('O Instagram demorou demais para processar o vídeo. Tente de novo.');
 }
+// Plano B do Instagram: sobe o vídeo na Página do Facebook sem publicar, pega o endereço público e entrega ao Instagram por esse endereço
+async function igVideoPorUrl(pag, tipoMidia, a, extra) {
+  const v = await gpostArquivo(`${G}/${pag.id}/videos`, { published: 'false', title: 'Central (temporário)' }, a, pag.token);
+  let src = '';
+  const fim = Date.now() + 6 * 60e3;
+  while (Date.now() < fim) {
+    const j = await gget(`${v.id}?fields=source,status`, pag.token).catch(() => ({}));
+    if (j.status && j.status.video_status === 'error') throw new Error('O Facebook também não aceitou o vídeo (formato não compatível).');
+    if (j.source && (!j.status || j.status.video_status === 'ready')) { src = j.source; break; }
+    await espera(6000);
+  }
+  try {
+    if (!src) throw new Error('Não consegui o endereço do vídeo no Facebook para entregar ao Instagram.');
+    const c = await gpost(`${pag.ig}/media`, Object.assign({ media_type: tipoMidia, video_url: src }, extra), pag.token);
+    await esperarPronto(c.id, pag.token);
+    return c.id;
+  } finally {
+    try { await fetch(`${G}/${v.id}?access_token=${encodeURIComponent(pag.token)}`, { method: 'DELETE' }); } catch (_) {}
+  }
+}
 async function igVideo(pag, tipoMidia, a, extra) {
-  const c = await gpost(`${pag.ig}/media`, Object.assign({ media_type: tipoMidia, upload_type: 'resumable' }, extra), pag.token);
-  const up = await fetch(c.uri || `https://rupload.facebook.com/ig-api-upload/${VERSAO}/${c.id}`, { method: 'POST', headers: { Authorization: `OAuth ${pag.token}`, offset: '0', file_size: String(a.buf.length) }, body: a.buf });
-  if (!up.ok) { const t = await up.text().catch(() => ''); throw new Error('Instagram recusou o envio do vídeo. ' + t.slice(0, 150)); }
-  await esperarPronto(c.id, pag.token);
-  return c.id;
+  let erroDireto = '';
+  try {
+    const c = await gpost(`${pag.ig}/media`, Object.assign({ media_type: tipoMidia, upload_type: 'resumable' }, extra), pag.token);
+    const up = await fetch(c.uri || `https://rupload.facebook.com/ig-api-upload/${VERSAO}/${c.id}`, { method: 'POST', headers: { Authorization: `OAuth ${pag.token}`, offset: '0', file_size: String(a.buf.length) }, body: a.buf });
+    if (!up.ok) { const t = await up.text().catch(() => ''); throw new Error(`Instagram recusou o envio do vídeo (HTTP ${up.status}, ${Math.round(a.buf.length / 1e6)} MB). ` + t.slice(0, 150)); }
+    await esperarPronto(c.id, pag.token);
+    return c.id;
+  } catch (e) {
+    erroDireto = e.message;
+    console.log('Postagens: envio direto ao Instagram falhou (' + erroDireto.slice(0, 160) + '), tentando pelo Facebook (plano B)');
+  }
+  try { return await igVideoPorUrl(pag, tipoMidia, a, extra); }
+  catch (e2) { throw new Error(erroDireto + ' | Plano B (via Facebook): ' + e2.message); }
 }
 const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
 // Convite de colaborador e marcação de pessoas. Se o Instagram recusar (conta não aceita convite, usuário inexistente...), publica sem eles e avisa.
