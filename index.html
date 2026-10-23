@@ -1896,7 +1896,7 @@ async function renderDrive(){
       return '<div class="ditem'+(pasta?' folder':'')+'" data-dv="item" data-id="'+f.id+'" tabindex="0">'+
         '<div class="th">'+(!pasta&&f.thumbnailLink?'<img src="'+esc(f.thumbnailLink)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createRange().createContextualFragment(\'<svg class=&quot;i&quot;><use href=&quot;#i-file&quot;/></svg>\'))">':ico(pasta?'i-folder':vid?'i-video':'i-file'))+'</div>'+
         '<div class="nm">'+esc(f.name)+'</div><div class="mt">'+(pasta?'Pasta':(f.size?Math.max(1,Math.round(f.size/1e6))+' MB':''))+(f.modifiedTime?' · '+dCurta(f.modifiedTime.slice(0,10)):'')+'</div>'+
-        '<div class="mini"><button data-dv="copiar" data-id="'+f.id+'" aria-label="Copiar link">Link</button>'+(pasta?'<button data-dv="usar" data-id="'+f.id+'">Usar no fluxo</button>':'')+'<button data-dv="excluir" data-id="'+f.id+'" class="del" aria-label="Excluir">'+ico('i-x')+'</button></div></div>'}).join('')+'</div>'
+        '<div class="mini"><button data-dv="zap" data-id="'+f.id+'" aria-label="Mandar pelo WhatsApp">WhatsApp</button><button data-dv="copiar" data-id="'+f.id+'" aria-label="Copiar link">Link</button>'+(pasta?'<button data-dv="usar" data-id="'+f.id+'">Usar no fluxo</button>':'')+'<button data-dv="excluir" data-id="'+f.id+'" class="del" aria-label="Excluir">'+ico('i-x')+'</button></div></div>'}).join('')+'</div>'
       :'<div class="panel">'+emptyMsg('Pasta vazia','Use "Subir pasta" para enviar o material do computador.')+'</div>'}
   catch(e){const L=document.getElementById('dList');if(L)L.innerHTML='<div class="panel"><p class="err" style="margin:0">'+esc(e.message)+'</p></div>'}
 }
@@ -1917,6 +1917,7 @@ async function driveClique(b,e){const k=b.dataset.dv;e.stopPropagation&&e.stopPr
     if(k==='uppasta'){escolherUpload('pasta');return}
     if(k==='uparq'){escolherUpload('arq');return}
     if(k==='novapasta'){const nome=prompt('Nome da nova pasta:');if(!nome)return;await dCriarPasta(nome.trim().slice(0,100),S.dPath[S.dPath.length-1].id);renderDrive();return}
+    if(k==='zap'){formZap(b.dataset.id);return}
     if(k==='copiar'){const i=await dInfo(b.dataset.id);dCopiar(i.webViewLink);return}
     if(k==='abrir'){const i=await dInfo(b.dataset.id);window.open(i.webViewLink,'_blank','noopener');return}
     if(k==='usar'){const i=await dInfo(b.dataset.id);usarNoFluxo(i);return}
@@ -2512,6 +2513,37 @@ async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.c
 
 function imgReduzida(f,max){return new Promise((ok,er)=>{const r=new FileReader();r.onerror=er;r.onload=()=>{const im=new Image();im.onerror=er;im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);ok(cv.toDataURL('image/png'))};im.src=r.result};r.readAsDataURL(f)})}
 
+/* ---------- Drive → WhatsApp: manda o arquivo (ou o link) direto, no WhatsApp Business ou no pessoal ---------- */
+function zapNumero(t){let d=String(t||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;return d}
+async function baixarArquivoDrive(f,onProg){const r=await gfetch(DAPI+'/files/'+encodeURIComponent(f.id)+'?alt=media&supportsAllDrives=true'),tot=+f.size||+r.headers.get('content-length')||0;
+  if(!r.body||!r.body.getReader)return await r.blob();
+  const rd=r.body.getReader(),pe=[];let n=0;for(;;){const {done,value}=await rd.read();if(done)break;pe.push(value);n+=value.length;if(onProg&&tot)onProg(Math.min(99,Math.round(n/tot*100)))}
+  return new Blob(pe,{type:f.mimeType||'application/octet-stream'})}
+function formZap(id){const f=(S.dItems||[]).find(x=>x.id===id);if(!f)return;const pasta=f.mimeType===FOLDER,mb=f.size?Math.max(1,Math.round(f.size/1e6)):0;
+  let app=waPref()||'business',pronto=null;
+  sheet2.innerHTML='<form novalidate onsubmit="return false" style="max-width:440px"><h2>Mandar pelo WhatsApp</h2><p style="margin:0;font-size:15px;overflow-wrap:anywhere"><b>'+esc(f.name)+'</b>'+(mb?' <span class="muted">· '+mb+' MB</span>':'')+'</p>'+
+    '<div class="fld"><span class="l">Qual WhatsApp</span><div class="seg pills" id="zapApp"><button type="button" data-v="business" aria-pressed="'+(app==='business')+'">WhatsApp Business</button><button type="button" data-v="pessoal" aria-pressed="'+(app==='pessoal')+'">WhatsApp pessoal</button></div><span class="hint">Vale para o envio do link. No envio do arquivo, você escolhe na lista que o aparelho abre (aparecem os dois WhatsApp, se estiverem instalados).</span></div>'+
+    '<div class="fld"><label for="zapNum">Número do cliente (opcional)</label><input id="zapNum" inputmode="tel" placeholder="(19) 99999-9999"><span class="hint">Para abrir direto a conversa dele, no envio do link.</span></div>'+
+    '<div class="cxacts">'+(pasta?'':'<button type="button" class="btn primary" id="zapArq">Enviar o arquivo</button>')+'<button type="button" class="btn'+(pasta?' primary':'')+'" id="zapLink">Enviar só o link</button></div>'+
+    '<div class="hint" id="zapSt" style="margin-top:8px"></div><div class="formacts"><button type="button" class="btn ghost" data-x2="fechar">Fechar</button></div></form>';
+  sheet2.hidden=false;const q=x=>sheet2.querySelector(x),st=t=>{q('#zapSt').textContent=t};
+  q('[data-x2="fechar"]').onclick=fecharSheet2;
+  q('#zapApp').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;app=b.dataset.v;waSet(app);q('#zapApp').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===app))};
+  q('#zapLink').onclick=async()=>{const b=q('#zapLink');b.disabled=true;st('Liberando o link…');
+    try{if(!pasta)await deixarPublico(f.id)}catch(_){st('Não consegui liberar o link para qualquer pessoa. O cliente só abre se tiver acesso ao Drive.')}
+    waSet(app);const link=f.webViewLink||(await dInfo(f.id)).webViewLink;b.disabled=false;
+    abrirWhats('Olá! Segue '+(pasta?'a pasta':'o arquivo')+': '+link,zapNumero(q('#zapNum').value))};
+  const q2=q('#zapArq');if(!q2)return;
+  const baixa=async()=>{const b=q('#zapArq');
+    if(mb>400){st('Arquivo grande demais para mandar direto do navegador ('+mb+' MB). Use "Enviar só o link".');return}
+    b.disabled=true;b.textContent='Baixando… 0%';st('Baixando do Drive para este aparelho. Mantenha esta tela aberta.');
+    try{const blob=await baixarArquivoDrive(f,p=>{b.textContent='Baixando… '+p+'%'});const file=new File([blob],f.name,{type:f.mimeType||blob.type});pronto=file;
+      if(navigator.canShare&&navigator.canShare({files:[file]})){b.disabled=false;b.textContent='Escolher o WhatsApp e enviar';b.onclick=compartilha;st('Pronto! Toque no botão para abrir a lista de aplicativos e escolher o WhatsApp.')}
+      else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);
+        b.disabled=false;b.textContent='Enviar o arquivo';b.onclick=baixa;st('Este navegador não deixa mandar o arquivo direto para o WhatsApp. Baixei o arquivo: abra o WhatsApp (Web ou programa) e arraste o arquivo para a conversa.');waSet(app);abrirWhats('',zapNumero(q('#zapNum').value))}}
+    catch(er){b.disabled=false;b.textContent='Enviar o arquivo';b.onclick=baixa;st(er.message||'Não deu certo')}};
+  const compartilha=async()=>{try{await navigator.share({files:[pronto]});toast('Enviado para o WhatsApp');fecharSheet2()}catch(er){if(er&&er.name==='AbortError')return;st('O aparelho não deixou compartilhar: '+(er.message||er.name)+'. Use "Enviar só o link".')}};
+  q2.onclick=baixa}
 /* ---------- WhatsApp: abre no app certo (Business ou pessoal), lembrando a escolha neste aparelho ---------- */
 function waPref(){try{return localStorage.getItem('waApp')||''}catch(_){return ''}}
 function waSet(v){try{localStorage.setItem('waApp',v)}catch(_){}}
