@@ -207,6 +207,23 @@ async function igVideoPorUrl(pag, tipoMidia, a, extra) {
     try { await fetch(`${G}/${v.id}?access_token=${encodeURIComponent(pag.token)}`, { method: 'DELETE' }); } catch (_) {}
   }
 }
+// Diagnóstico quando o Instagram recusa por todos os caminhos: confere token, permissões, limite e conta
+async function diagnosticoIG(pag) {
+  const o = [];
+  const t = pag.token;
+  try { const j = (await (await fetch(`${G}/debug_token?input_token=${encodeURIComponent(t)}&access_token=${encodeURIComponent(t)}`)).json()).data || {};
+    o.push(`token ${j.is_valid === false ? 'INVÁLIDO' : j.is_valid ? 'válido' : '?'} tipo=${j.type || '?'} expira=${j.expires_at ? new Date(j.expires_at * 1000).toISOString().slice(0, 10) : 'nunca'}`);
+    const sc = j.scopes || []; const faltam = ['instagram_basic', 'instagram_content_publish', 'pages_read_engagement', 'pages_show_list'].filter((x) => !sc.includes(x));
+    if (j.scopes) o.push(faltam.length ? 'FALTAM permissões: ' + faltam.join(',') : 'permissões ok');
+    if (j.error) o.push('debug_token: ' + (j.error.message || '').slice(0, 80));
+  } catch (e) { o.push('token: não consegui conferir'); }
+  try { const j = await gget(`${pag.ig}?fields=username,media_count`, t); o.push(`conta @${j.username} (${j.media_count} posts) acessível`); } catch (e) { o.push('conta IG: ' + e.message.slice(0, 100)); }
+  try { const j = await gget(`${pag.ig}/content_publishing_limit?fields=quota_usage,config`, t); const d = (j.data || [])[0] || {}; o.push(`limite de publicação: ${d.quota_usage}/${(d.config || {}).quota_total}`); } catch (e) { o.push('limite: ' + e.message.slice(0, 100)); }
+  try { const j = await gget(`${pag.ig}/media?fields=media_type,timestamp&limit=3`, t); o.push('últimos posts: ' + (j.data || []).map((m) => m.media_type + ' ' + String(m.timestamp).slice(5, 16)).join(', ')); } catch (e) { o.push('lista posts: ' + e.message.slice(0, 80)); }
+  const txt = o.join(' | ');
+  console.log('Diagnóstico Instagram (' + (pag.igUser || pag.ig) + '): ' + txt);
+  return txt;
+}
 async function igVideo(pag, tipoMidia, a, extra) {
   let erroDireto = '';
   try {
@@ -220,7 +237,7 @@ async function igVideo(pag, tipoMidia, a, extra) {
     console.log('Postagens: envio direto ao Instagram falhou (' + erroDireto.slice(0, 160) + '), tentando pelo Facebook (plano B)');
   }
   try { return await igVideoPorUrl(pag, tipoMidia, a, extra); }
-  catch (e2) { throw new Error(erroDireto + ' | Plano B (via Facebook): ' + e2.message); }
+  catch (e2) { let dg = ''; try { dg = await diagnosticoIG(pag); } catch (_) {} throw new Error(erroDireto + ' | Plano B (via Facebook): ' + e2.message + (dg ? ' | DIAGNÓSTICO: ' + dg : '')); }
 }
 const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
 // Convite de colaborador e marcação de pessoas. Se o Instagram recusar (conta não aceita convite, usuário inexistente...), publica sem eles e avisa.
@@ -358,7 +375,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       console.log(`Postagens: publicado ${lj.nome} · ${p.titulo} (${onde})`);
       for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `${p.titulo} saiu no ${onde}.`);
     } else {
-      await ref.doc(p.id).update({ pubStatus: 'erro', pubFeito: feito, pubErro: erros.join(' · ').slice(0, 500) });
+      await ref.doc(p.id).update({ pubStatus: 'erro', pubFeito: feito, pubErro: erros.join(' · ').slice(0, 1200) });
       console.error(`Postagens: erro ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
       for (const u of para) await enviar(u, `Não consegui publicar: ${lj.nome || 'cliente'}`, `${p.titulo}${onde ? ' (saiu só no ' + onde + ')' : ''}. ${erros[0]}`.slice(0, 230));
     }
