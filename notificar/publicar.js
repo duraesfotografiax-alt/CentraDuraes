@@ -87,12 +87,14 @@ async function transcodificar(a, seguro, tipo) {
     } else {
       const inf = await infoVideo(a.buf).catch(() => ({ audio: true }));
       const vert = tipo === 'reels' || tipo === 'stories';
-      const vf = vert ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : "scale='min(1080,iw)':-2,setsar=1,format=yuv420p";
+      const minima = seguro === 2; // 3ª tentativa: 720p, sem metadados, sem B-frames, áudio refeito
+      const vf = minima && vert ? 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : vert ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : "scale='min(1080,iw)':-2,setsar=1,format=yuv420p";
       args = inf.audio
         ? ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0']
         : ['-y', '-i', ent, '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100', '-map', '0:v:0', '-map', '1:a:0', '-shortest'];
-      args.push('-vf', vf, '-r', '30', '-fps_mode', 'cfr', '-c:v', 'libx264', '-profile:v', 'main', '-level', '4.0', '-preset', 'veryfast', '-crf', '25', '-maxrate', '6M', '-bufsize', '12M', '-g', '60', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-movflags', '+faststart', sai);
+      if (minima) args.push('-map_metadata', '-1', '-map_chapters', '-1', '-sn', '-dn', '-af', 'aresample=async=1');
+      args.push('-vf', vf, '-r', '30', '-fps_mode', 'cfr', '-c:v', 'libx264', '-profile:v', 'main', '-level', minima ? '3.1' : '4.0', '-preset', 'veryfast', '-crf', minima ? '27' : '25', '-maxrate', minima ? '3M' : '6M', '-bufsize', minima ? '6M' : '12M', '-g', '60', '-bf', minima ? '0' : '2', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', minima ? '96k' : '128k', '-ac', '2', '-ar', '44100', '-movflags', '+faststart', sai);
     }
     await new Promise((ok, no) => {
       const pr = spawn(bin, args, { stdio: 'ignore' });
@@ -101,8 +103,8 @@ async function transcodificar(a, seguro, tipo) {
       pr.on('close', (c) => { clearTimeout(t); c === 0 ? ok() : no(new Error('Não consegui converter o vídeo (ffmpeg ' + c + ').')); });
     });
     const buf = fs.readFileSync(sai);
-    console.log(`Postagens: vídeo convertido${seguro ? ' (receita segura)' : ''} (${Math.round(a.buf.length / 1e6)} MB → ${Math.round(buf.length / 1e6)} MB)`);
-    return { buf, mime: 'video/mp4', nome: String(a.nome || 'video').replace(/\.\w+$/, '') + '.mp4', video: true, convertido: seguro ? 2 : 1 };
+    console.log(`Postagens: vídeo convertido${seguro ? (seguro === 2 ? ' (receita mínima)' : ' (receita segura)') : ''} (${Math.round(a.buf.length / 1e6)} MB → ${Math.round(buf.length / 1e6)} MB)`);
+    return { buf, mime: 'video/mp4', nome: String(a.nome || 'video').replace(/\.\w+$/, '') + '.mp4', video: true, convertido: seguro === 2 ? 3 : seguro ? 2 : 1 };
   } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} }
 }
 
@@ -236,7 +238,7 @@ async function igVideo(pag, tipoMidia, a, extra) {
     erroDireto = e.message;
     console.log('Postagens: envio direto ao Instagram falhou (' + erroDireto.slice(0, 160) + '), tentando pelo Facebook (plano B)');
   }
-  try { return await igVideoPorUrl(pag, tipoMidia, a, extra); }
+  try { try { return await igVideoPorUrl(pag, tipoMidia, a, extra); } catch (e1) { console.log('Postagens: plano B falhou (' + e1.message.slice(0, 120) + '), esperando 30 s e tentando mais uma vez'); await espera(30000); return await igVideoPorUrl(pag, tipoMidia, a, extra); } }
   catch (e2) { let dg = ''; try { dg = await diagnosticoIG(pag); } catch (_) {} throw new Error(erroDireto + ' | Plano B (via Facebook): ' + e2.message + (dg ? ' | DIAGNÓSTICO: ' + dg : '')); }
 }
 const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
@@ -348,7 +350,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
       const legenda = String(p.legenda || '').slice(0, 2200);
       const orig = arqs.slice(); let infoOrig = '';
-      for (let tent = 0; tent < 3; tent++) {
+      for (let tent = 0; tent < 4; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
           try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
@@ -359,13 +361,13 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
           catch (e) { erros.push('Facebook: ' + e.message); }
         }
         // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
-        if (!erros.length || tent === 2 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
-        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'padrão' : 'receita segura'}) e tentando de novo`);
+        if (!erros.length || tent === 3 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
+        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'padrão' : tent === 1 ? 'receita segura' : 'receita mínima'}) e tentando de novo`);
         if (!infoOrig) { const v0 = orig.find((a) => a.video); try { infoOrig = (await infoVideo(v0.buf)).txt; } catch (_) {} }
-        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(orig[i], tent === 1, p.tipo); }
+        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(orig[i], tent === 0 ? false : tent === 1 ? true : 2, p.tipo); }
         catch (e) { erros.push(e.message); break; }
       }
-      if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 2 vezes]`);
+      if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 3 vezes]`);
     } catch (e) { erros.push(e.message); }
 
     const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook'].filter(Boolean).join(' e ');
@@ -412,7 +414,12 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
           if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) {
             const orig = x; x = await transcodificar(orig);
             try { return await fn(x); }
-            catch (e2) { if (!FORMATO_RECUSADO.test(e2.message)) throw e2; x = await transcodificar(orig, true, tipo); return await fn(x); }
+            catch (e2) {
+              if (!FORMATO_RECUSADO.test(e2.message)) throw e2;
+              x = await transcodificar(orig, true, tipo);
+              try { return await fn(x); }
+              catch (e3) { if (!FORMATO_RECUSADO.test(e3.message)) throw e3; x = await transcodificar(orig, 2, tipo); return await fn(x); }
+            }
           }
           throw e;
         }
