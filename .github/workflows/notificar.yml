@@ -2,7 +2,9 @@ name: Notificações da Central
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # a cada 10 minutos (o GitHub pode atrasar alguns minutos)
+    # O agendador do GitHub atrasa muito (às vezes 30 a 55 min). Minutos "quebrados" atrasam menos que :00/:30,
+    # e servem de reserva: o robô se chama sozinho no fim de cada rodada (veja o último passo).
+    - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch:
     inputs:
       modo:
@@ -11,9 +13,14 @@ on:
         type: choice
         options: [teste, auto, meta, paginas]
 
+# uma rodada de cada vez; se chegar outra enquanto uma roda, ela espera (só a mais nova da fila é mantida)
 concurrency:
   group: central-robo
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write   # só para o robô chamar a próxima rodada dele mesmo
 
 jobs:
   notificar:
@@ -24,11 +31,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: notificar/node_modules
+          key: robo-modules-${{ hashFiles('notificar/package.json') }}
       - run: npm install --prefix notificar --no-audit --no-fund
-      - run: node notificar/index.js
+      - id: robo
+        run: node notificar/index.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           APP_URL: https://duraesfotografiax-alt.github.io/CentraDuraes/
           ADMIN_EMAIL: duraesfotografiax@gmail.com
           MODO: ${{ github.event.inputs.modo || 'auto' }}
           META_TOKEN: ${{ secrets.META_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Das 5h à meia-noite, cada rodada (~10 min, conferindo os posts a cada 20 s) chama a próxima assim que termina.
+      # Se algo der errado, a corrente para e o agendador do GitHub (acima) religa depois.
+      - name: Próxima rodada
+        if: steps.robo.outputs.proxima == 'sim'
+        run: gh workflow run notificar.yml --ref "${{ github.ref_name }}" -f modo=auto
+        env:
+          GH_TOKEN: ${{ github.token }}  
