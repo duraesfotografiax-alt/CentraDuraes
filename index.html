@@ -3401,7 +3401,7 @@ function renderClientes(){
     if(p.pubStatus==='aguardando')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar agendamento</button>';
     else if(p.pubStatus==='erro')a='<button class="btn sm primary" data-pact="autoRetry" data-id="'+p.id+'">Tentar de novo</button><button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar</button>';
     else if(p.pubStatus==='publicando')a='';
-    else if(p.status==='pronto')a='<button class="btn sm" data-pact="aprovar" data-id="'+p.id+'">Mandar p/ aprovação</button><button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>';
+    else if(p.status==='pronto')a='<button class="btn sm" data-pact="aprovar" data-id="'+p.id+'">Mandar p/ aprovação</button><button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>'+((S.tar||[]).some(t=>t.id===p.tar)?'<button class="btn sm ghost" data-pact="devolver" data-id="'+p.id+'" title="Devolve o serviço para Em edição e tira este conteúdo daqui">Devolver à edição</button>':'');
     else if(p.status==='publicado'&&p.pubFeito&&(p.pubFeito.ig||p.pubFeito.fb))a=(p.pubFeito.ig?'<a class="btn sm" href="'+esc(p.pubFeito.ig)+'" target="_blank" rel="noopener">Ver no Instagram</a>':'')+(p.pubFeito.fb?'<a class="btn sm" href="'+esc(p.pubFeito.fb)+'" target="_blank" rel="noopener">Ver no Facebook</a>':'');
     else if(p.status==='programado')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'" title="A Central publica sozinha no Instagram/Facebook">Agendar na Central</button><button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">'+((p.qtd||1)>1?'Todos saíram ✓':'Saiu ✓')+'</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
@@ -3413,6 +3413,7 @@ function renderClientes(){
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
       (p.status==='publicado'&&(p.qtd||1)>1?'<span>'+p.qtd+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+' · de '+fmtQuando(p.quandoIni||p.publicadoEm)+' até '+fmtQuando(p.quando||p.publicadoEm)+'</span>':'')+
       (p.status==='publicado'&&!((p.qtd||1)>1)?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      (p.tar&&p.status==='pronto'?(()=>{const T=(S.tar||[]).find(t=>t.id===p.tar);return T?'<span class="hint">Serviço: '+esc(T.titulo)+(T.entregueAuto?' · passou para Entregue sozinho':'')+'</span>':''})():'')+
       (p.status!=='publicado'&&semLegenda(p)?'<span class="chip late">Sem legenda</span>':'')+(p.avisoAuto&&p.status==='pronto'?'<span class="chip late" style="white-space:normal">'+esc(p.avisoAuto)+'</span>':'')+(p.pubAviso?'<span class="chip eq" style="white-space:normal">'+esc(p.pubAviso)+'</span>':'')+
       (p.status!=='publicado'?chipAprov(p):'')+
       '<div class="acts">'+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
@@ -3570,6 +3571,10 @@ function formSaiu(pst){
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   q('#fSa').onsubmit=async e=>{e.preventDefault();try{await write(()=>store.update('posts',pst.id,{status:'publicado',publicadoEm:pst.quando||agoraLocal(),link:q('#saLink').value.trim()}))}catch(_){return}closeSheet();toast('Marcado como no ar')}}
 async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find(x=>x.id===id);
+  if(k==='devolver'&&P){const T=(S.tar||[]).find(t=>t.id===P.tar);if(!T){toast('Não achei o serviço ligado a este conteúdo.');return}
+    const irmaos=S.posts.filter(x=>x.tar===T.id&&x.status==='pronto'&&!x.pubStatus);
+    try{await write(()=>store.update('tar',T.id,{etapa:'edicao',entregueEm:'',entregueAuto:false}));for(const x of irmaos)await write(()=>store.update('posts',x.id,{status:'descartado'}))}catch(_){return}
+    toast('Serviço "'+T.titulo+'" voltou para Em edição'+(irmaos.length?' · '+irmaos.length+' conteúdo'+(irmaos.length>1?'s saíram':' saiu')+' de Para programar':''));return}
   if(k==='aprovar'&&P){try{await token()}catch(er){toast(er.message);return}enviarAprovacao([P],S.lojas.find(x=>x.id===P.loja)||{id:P.loja,nome:lojaNome(P.loja)});return}
   if(k==='auto'&&P){formAuto(P);return}
   if((k==='autoRetry'||k==='autoCancel')&&P){

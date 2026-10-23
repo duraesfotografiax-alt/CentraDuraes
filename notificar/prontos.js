@@ -22,7 +22,10 @@ function mesDaPasta(nome, hoje) {
   return (+y) * 100 + mo;
 }
 
+const trasDe = (hoje, n) => new Date(Date.parse(hoje + 'T12:00:00Z') - n * 864e5).toISOString().slice(0, 10) + 'T00:00';
+
 module.exports = async function prontos({ db, agoraIso, hoje }) {
+  let abertos = null;
   const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   const lojas = (await db.collection('lojas').get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((l) => l.prontosId && l.ativo !== false);
   await db.collection('config').doc('robo').set({ email: sa.client_email, prontosEm: agoraIso }, { merge: true });
@@ -52,10 +55,11 @@ module.exports = async function prontos({ db, agoraIso, hoje }) {
       const ja = new Set(posts.filter((p) => p.origem).map((p) => p.origem));
       const desde = l.prontosDesde || '';
       const novoArq = (f) => !desde || String(f.modifiedTime || f.createdTime || '9') >= desde;
-      let n = 0;
+      let n = 0; const criados = [];
       const novo = async (origem, titulo, tipo, drive) => {
         if (ja.has(origem)) return; ja.add(origem);
-        await db.collection('posts').add({ loja: l.id, titulo: String(titulo).replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[_]+/g, ' ').slice(0, 100), tipo, drive, status: 'pronto', origem, legenda: l.legPadrao || '', editadoPor: 'Drive', editadoEm: agoraIso, quando: '', link: '', obs: 'Veio do Drive (' + (l.prontosNome || 'Prontos') + ')' });
+        const nr = await db.collection('posts').add({ loja: l.id, titulo: String(titulo).replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[_]+/g, ' ').slice(0, 100), tipo, drive, status: 'pronto', origem, legenda: l.legPadrao || '', editadoPor: 'Drive', editadoEm: agoraIso, quando: '', link: '', obs: 'Veio do Drive (' + (l.prontosNome || 'Prontos') + ')' });
+        criados.push({ id: nr.id, titulo: String(titulo) });
         n++;
       };
       let fs = await listar(l.prontosId);
@@ -83,6 +87,22 @@ module.exports = async function prontos({ db, agoraIso, hoje }) {
         }
       };
       await trata(fs, false, false);
+      // Liga os cards novos ao serviço da Produção: o arquivo chegou no Drive, então o serviço mais antigo da loja que está em edição passa para "Entregue"
+      try {
+        const sem = posts.filter((p) => p.origem && !p.tar && !p.tarTentado && p.status === 'pronto' && String(p.editadoEm || '') >= trasDe(hoje, 2));
+        const lote = [...new Map([...sem.map((p) => [p.id, p.id]), ...criados.map((c) => [c.id, c.id])]).values()];
+        if (lote.length) {
+          if (!abertos) abertos = (await db.collection('tar').where('etapa', 'in', ['captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+          const meus = abertos.filter((t) => t.loja === l.id && t.empresa !== 'duraes').sort((a, b) => ((a.etapa === 'edicao' ? 0 : 1) - (b.etapa === 'edicao' ? 0 : 1)) || String(a.prazo || a.data || 'z').localeCompare(String(b.prazo || b.data || 'z')));
+          const job = meus[0];
+          if (job) {
+            await db.collection('tar').doc(job.id).update({ etapa: 'entregue', entregueEm: hoje, entregueAuto: true, entregueAutoEm: agoraIso, drive: job.drive || '' });
+            abertos = abertos.filter((t) => t.id !== job.id);
+            console.log(`Prontos ${l.nome}: serviço "${job.titulo}" passou para Entregue (${lote.length} conteúdo(s) no Drive)`);
+          }
+          for (const id of lote) await db.collection('posts').doc(id).update(Object.assign({ tarTentado: true }, job ? { tar: job.id } : {}));
+        }
+      } catch (e) { console.error('Prontos (ligar serviço):', e.message); }
       // card cujo arquivo foi para "Já postados" (em qualquer lugar) ou para a lixeira: sai de Para programar
       const usado = async (id) => {
         if (ignorados.has(id)) return true;
