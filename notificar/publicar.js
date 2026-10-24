@@ -88,7 +88,7 @@ async function transcodificar(a, seguro, tipo) {
       const inf = await infoVideo(a.buf).catch(() => ({ audio: true }));
       const vert = tipo === 'reels' || tipo === 'stories';
       const minima = seguro === 2; // 3ª tentativa: 720p, sem metadados, sem B-frames, áudio refeito
-      const vf = minima && vert ? 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : vert ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : "scale='min(1080,iw)':-2,setsar=1,format=yuv420p";
+      const vf = minima && !vert ? "scale='min(720,iw)':-2,setsar=1,format=yuv420p" : minima && vert ? 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : vert ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1,format=yuv420p' : "scale='min(1080,iw)':-2,setsar=1,format=yuv420p";
       args = inf.audio
         ? ['-y', '-i', ent, '-map', '0:v:0', '-map', '0:a:0']
         : ['-y', '-i', ent, '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100', '-map', '0:v:0', '-map', '1:a:0', '-shortest'];
@@ -238,7 +238,7 @@ async function igVideo(pag, tipoMidia, a, extra) {
     erroDireto = e.message;
     console.log('Postagens: envio direto ao Instagram falhou (' + erroDireto.slice(0, 160) + '), tentando pelo Facebook (plano B)');
   }
-  try { try { return await igVideoPorUrl(pag, tipoMidia, a, extra); } catch (e1) { console.log('Postagens: plano B falhou (' + e1.message.slice(0, 120) + '), esperando 30 s e tentando mais uma vez'); await espera(30000); return await igVideoPorUrl(pag, tipoMidia, a, extra); } }
+  try { return await igVideoPorUrl(pag, tipoMidia, a, extra); }
   catch (e2) { let dg = ''; try { dg = await diagnosticoIG(pag); } catch (_) {} throw new Error(erroDireto + ' | Plano B (via Facebook): ' + e2.message + (dg ? ' | DIAGNÓSTICO: ' + dg : '')); }
 }
 const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
@@ -248,7 +248,7 @@ async function igPublicar(pag, tipo, arqs, legenda, ex) {
   if (tipo === 'stories' || (!colab.length && !marcar.length)) return igPublicarBase(pag, tipo, arqs, legenda, {});
   try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar }); }
   catch (e) {
-    if (!/colab|collaborat|user_tag|tag|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
+    if (FORMATO_RECUSADO.test(e.message || '') || !/colab|collaborat|user_tags?\b|\btags?\b|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
     console.log('Postagens: Instagram recusou colaborador/marcação (' + String(e.message).slice(0, 120) + '), publicando sem eles');
     const r = await igPublicarBase(pag, tipo, arqs, legenda, {});
     r.aviso = 'Saiu sem colaborador/marcação: ' + String(e.message).slice(0, 120);
@@ -350,7 +350,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
       const legenda = String(p.legenda || '').slice(0, 2200);
       const orig = arqs.slice(); let infoOrig = '';
-      for (let tent = 0; tent < 4; tent++) {
+      for (let tent = 0; tent < 3; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
           try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
@@ -361,13 +361,13 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
           catch (e) { erros.push('Facebook: ' + e.message); }
         }
         // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
-        if (!erros.length || tent === 3 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
-        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'padrão' : tent === 1 ? 'receita segura' : 'receita mínima'}) e tentando de novo`);
+        if (!erros.length || tent === 2 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
+        console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'receita mínima' : 'receita segura'}) e tentando de novo`);
         if (!infoOrig) { const v0 = orig.find((a) => a.video); try { infoOrig = (await infoVideo(v0.buf)).txt; } catch (_) {} }
-        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(orig[i], tent === 0 ? false : tent === 1 ? true : 2, p.tipo); }
+        try { for (let i = 0; i < arqs.length; i++) if (arqs[i].video) arqs[i] = await transcodificar(orig[i], tent === 0 ? 2 : true, p.tipo); }
         catch (e) { erros.push(e.message); break; }
       }
-      if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 3 vezes]`);
+      if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 2 vezes]`);
     } catch (e) { erros.push(e.message); }
 
     const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook'].filter(Boolean).join(' e ');
@@ -412,14 +412,9 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
         try { return await fn(x); }
         catch (e) {
           if (x.video && !x.convertido && FORMATO_RECUSADO.test(e.message)) {
-            const orig = x; x = await transcodificar(orig);
+            const orig = x; x = await transcodificar(orig, 2, tipo);
             try { return await fn(x); }
-            catch (e2) {
-              if (!FORMATO_RECUSADO.test(e2.message)) throw e2;
-              x = await transcodificar(orig, true, tipo);
-              try { return await fn(x); }
-              catch (e3) { if (!FORMATO_RECUSADO.test(e3.message)) throw e3; x = await transcodificar(orig, 2, tipo); return await fn(x); }
-            }
+            catch (e2) { if (!FORMATO_RECUSADO.test(e2.message)) throw e2; x = await transcodificar(orig, true, tipo); return await fn(x); }
           }
           throw e;
         }
