@@ -39,16 +39,8 @@ function escolherArquivos(tipo, fs) {
 }
 
 // Formato errado para o destino? (usa a largura/altura que o app guardou na aprovação)
-function formatoProblema(tipo, fs) {
-  // só confere fotos (vídeo pode vir girado do celular e dar alarme falso)
-  for (const f of fs) {
-    const w = +f.w, h = +f.h; if (!w || !h || !/^image\//.test(f.mime || '')) continue;
-    const r = w / h;
-    if ((tipo === 'feed' || tipo === 'carrossel') && r < 0.78) return 'a foto ' + (f.nome || '') + ' é vertical de story (9:16); no feed o Instagram recusa ou corta. Use 4:5 ou mude para Stories';
-    if ((tipo === 'feed' || tipo === 'carrossel') && r > 1.92) return 'a foto ' + (f.nome || '') + ' é larga demais para o feed';
-  }
-  return '';
-}
+// Fotos de story (9:16) no feed: o robô corta sozinho para 4:5 na hora de publicar, então não bloqueia mais.
+function formatoProblema() { return ''; }
 const lerUsers = (t) => (Array.isArray(t) ? t : String(t || '').split(/[,\s]+/)).map((u) => String(u).replace(/^@/, '').trim()).filter(Boolean).slice(0, 3);
 const listaModelos = (l) => (Array.isArray(l.legModelos) ? l.legModelos : String(l.legModelos || '').split(/\n-{3,}\n|\n{2,}/)).map((x) => String(x).trim()).filter(Boolean);
 
@@ -102,12 +94,13 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
     const temVideo = fs.some((f) => /^video\//.test(f.mime || ''));
     const fb = !!lj.autoFB && !(tipo === 'carrossel' && temVideo);
     const ig = lj.autoIG !== false;
+    const tt = !!lj.autoTT && !!(lj.tiktok && lj.tiktok.ligado) && temVideo && (tipo === 'reels' || tipo === 'feed');
     if (!ig && !fb) continue;
     const doc = {
-      tipo, legenda: leg.slice(0, 2200), colab: lerUsers(lj.colab), marcar: lerUsers(lj.marcar), avisoAuto: '', quando: hs[0], pubIG: ig, pubFB: fb,
+      tipo, legenda: leg.slice(0, 2200), colab: lerUsers(lj.colab), marcar: lerUsers(lj.marcar), avisoAuto: '', quando: hs[0], pubIG: ig, pubFB: fb, pubTT: tt,
       arquivos: fs.map((f) => ({ id: f.id, nome: f.nome || f.name || '', mime: f.mime || '' })), pubStatus: 'aguardando', pubErro: '', pubFeito: {}, status: 'programado',
       programadoPor: 'Automático (aprovado pelo cliente)', programadoEm: agoraIso, autoAprov: true,
-      fila: serie ? hs.map((t, i) => ({ i, quando: t, ig: '', fb: '', legenda: '' })) : [], agenda: serie ? hs : [], qtd: serie ? hs.length : 1, quandoIni: hs[0], quandoFim: hs[hs.length - 1],
+      fila: serie ? hs.map((t, i) => ({ i, quando: t, ig: '', fb: '', tt: '', legenda: '' })) : [], agenda: serie ? hs : [], qtd: serie ? hs.length : 1, quandoIni: hs[0], quandoFim: hs[hs.length - 1],
     };
     try {
       await db.collection('posts').doc(p.id).update(doc);

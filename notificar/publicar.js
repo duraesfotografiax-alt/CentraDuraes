@@ -51,9 +51,21 @@ async function baixar(a) {
   const mime = /^(image|video)\//.test(a.mime || '') ? a.mime : tipo.split(';')[0];
   return { buf, mime, nome: a.nome || 'arquivo', video: /^video\//.test(mime) };
 }
-async function paraJpeg(arq) {
+// Foto para o Instagram/Facebook. No feed e no carrossel o Instagram só aceita de 4:5 (vertical) até 1.91:1 (largo):
+// foto de story (9:16, como as que chegam pelo WhatsApp) é cortada no centro para 4:5; fora do feed fica como está.
+async function paraJpeg(arq, tipo, corte) {
+  const pos = Math.min(100, Math.max(0, corte == null || isNaN(+corte) ? 50 : +corte)) / 100; // 0 = topo, 1 = base
   const sharp = require('sharp');
-  const buf = await sharp(arq.buf).rotate().resize({ width: 1440, height: 1800, fit: 'inside', withoutEnlargement: true }).flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer();
+  let img = sharp(arq.buf).rotate();
+  let cortou = '';
+  if (tipo === 'feed' || tipo === 'carrossel') {
+    const m = await sharp(await sharp(arq.buf).rotate().toBuffer()).metadata();
+    const r = m.width / m.height;
+    if (r < 0.8) { const h = Math.round(m.width / 0.8); img = sharp(await sharp(arq.buf).rotate().extract({ left: 0, top: Math.max(0, Math.round((m.height - h) * pos)), width: m.width, height: Math.min(h, m.height) }).toBuffer()); cortou = 'cortada para 4:5'; }
+    else if (r > 1.91) { const w = Math.round(m.height * 1.91); img = sharp(await sharp(arq.buf).rotate().extract({ left: Math.max(0, Math.round((m.width - w) / 2)), top: 0, width: Math.min(w, m.width), height: m.height }).toBuffer()); cortou = 'cortada para 1.91:1'; }
+  }
+  const buf = await img.resize({ width: 1440, height: 1800, fit: 'inside', withoutEnlargement: true }).flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer();
+  if (cortou) console.log(`Postagens: foto ${arq.nome} ${cortou}`);
   return { buf, mime: 'image/jpeg', nome: arq.nome.replace(/\.\w+$/, '') + '.jpg', video: false };
 }
 
@@ -342,11 +354,11 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
     const pag = pags.find((x) => x.id === lj.fbPage) || pags.find((x) => lj.igId && x.ig === lj.igId) || pags.find((x) => x.igUser && lj.instagram && x.igUser.toLowerCase() === String(lj.instagram).replace(/^@/, '').toLowerCase());
     const feito = Object.assign({}, p.pubFeito || {});
     const erros = []; let aviso = '';
-    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); return; }
+    if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); return; }
     try {
       if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
       const arqs = [];
-      for (const a of p.arquivos || []) { const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x); arqs.push(x); }
+      for (const a of p.arquivos || []) { const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x, p.tipo, a.corte); arqs.push(x); }
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
       const legenda = String(p.legenda || '').slice(0, 2200);
       const orig = arqs.slice(); let infoOrig = '';
@@ -360,6 +372,10 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
           try { const r = await fbPublicar(pag, p.tipo, arqs, legenda); feito.fb = r.link; }
           catch (e) { erros.push('Facebook: ' + e.message); }
         }
+        if (p.pubTT && !feito.tt) {
+          try { const r = await ttEnviar({ db, lj, tipo: p.tipo, arqs: orig, legenda }); feito.tt = ttMarca(r); if (r.aviso) aviso = (aviso ? aviso + ' ' : '') + r.aviso; }
+          catch (e) { erros.push('TikTok: ' + e.message.replace(/^TikTok:? ?/, '')); }
+        }
         // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
         if (!erros.length || tent === 2 || !erros.some((m) => FORMATO_RECUSADO.test(m)) || !orig.some((a) => a.video)) break;
         console.log(`Postagens: ${lj.nome} · ${p.titulo}: formato recusado, convertendo o vídeo (${tent === 0 ? 'receita mínima' : 'receita segura'}) e tentando de novo`);
@@ -370,7 +386,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       if (erros.some((m) => FORMATO_RECUSADO.test(m)) && infoOrig) erros.push(`[vídeo original: ${infoOrig}; já tentei converter 2 vezes]`);
     } catch (e) { erros.push(e.message); }
 
-    const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook'].filter(Boolean).join(' e ');
+    const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook', feito.tt && feito.tt !== '-' && 'TikTok'].filter(Boolean).join(' e ');
     const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
     if (!erros.length) {
       await ref.doc(p.id).update({ pubStatus: 'publicado', pubFeito: feito, pubErro: '', pubAviso: aviso, status: 'publicado', publicadoEm: agoraIso, link: feito.ig || feito.fb || p.link || '', verificado: true });
@@ -392,19 +408,29 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   await Promise.all(trabalhadores);
 }
 
+// TikTok: só vídeo (usa o arquivo original, sem a conversão feita para o Instagram)
+async function ttEnviar({ db, lj, tipo, arqs, legenda }) {
+  if (tipo === 'stories') return { modo: 'pulou', link: '-', aviso: 'TikTok não tem stories; este conteúdo não foi para o TikTok.' };
+  const v = (arqs || []).find((a) => a && a.video);
+  if (!v) return { modo: 'pulou', link: '-', aviso: 'TikTok só recebe vídeo; as fotos não foram para o TikTok.' };
+  return require('./tiktok').publicarVideo({ db, lojaId: lj.id, loja: lj, video: v, legenda });
+}
+const ttMarca = (r) => r.link || (r.modo === 'rascunho' ? 'rascunho' : 'ok');
 const nomeItem = (t) => (t === 'reels' ? 'Reels' : t === 'feed' ? 'Post' : 'Story');
 // Série (stories, reels ou fotos): solta só os que já chegaram na hora, um de cada vez
-async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
+async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
   const fila = p.fila.map((x) => Object.assign({}, x));
-  const falta = (x) => (p.pubIG && !x.ig) || (p.pubFB && !x.fb);
+  const falta = (x) => (p.pubIG && !x.ig) || (p.pubFB && !x.fb) || (p.pubTT && !x.tt);
+  const avisos = [];
   const erros = [];
   let soltos = 0;
   try {
     if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
     for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando)).slice(0, 5)) {
       const a = (p.arquivos || [])[it.i];
-      if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; continue; }
-      let x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x);
+      if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; it.tt = it.tt || '-'; continue; }
+      let x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x, p.tipo === 'reels' || p.tipo === 'feed' ? p.tipo : 'stories', a.corte);
+      const xOrig = x;
       const n = it.i + 1;
       const tipo = p.tipo === 'reels' || p.tipo === 'feed' ? p.tipo : 'stories';
       const leg = tipo === 'stories' ? '' : String(it.legenda || p.legenda || '').slice(0, 2200);
@@ -427,6 +453,10 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
         try { const r = await comConversao((v) => fbPublicar(pag, tipo, [v], leg)); it.fb = r.link || '-'; feito.fb = r.link || feito.fb || ''; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Facebook: ${e.message}`); }
       }
+      if (p.pubTT && !it.tt) {
+        try { const r = await ttEnviar({ db, lj, tipo, arqs: [xOrig], legenda: leg }); it.tt = ttMarca(r); feito.tt = feito.tt && feito.tt !== '-' ? feito.tt : it.tt; if (r.aviso && !avisos.includes(r.aviso)) avisos.push(r.aviso); }
+        catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no TikTok: ${e.message.replace(/^TikTok:? ?/, '')}`); }
+      }
       if (erros.length) break;
       soltos++;
     }
@@ -441,7 +471,7 @@ async function publicarSerie({ ref, p, lj, pag, feito, usuarios, enviar, ehAdm, 
     await ref.doc(p.id).update({ pubStatus: 'aguardando', fila, pubFeito: feito, pubErro: '', quando: pend.map((x) => x.quando).sort()[0] });
     console.log(`Postagens: série ${lj.nome} · ${p.titulo}: +${soltos}, faltam ${pend.length}`);
   } else {
-    await ref.doc(p.id).update({ pubStatus: 'publicado', fila, pubFeito: feito, pubErro: '', status: 'publicado', publicadoEm: agoraIso, quando: fila[fila.length - 1].quando, link: feito.ig || feito.fb || '', verificado: true });
+    await ref.doc(p.id).update({ pubStatus: 'publicado', fila, pubFeito: feito, pubErro: '', pubAviso: avisos.join(' '), status: 'publicado', publicadoEm: agoraIso, quando: fila[fila.length - 1].quando, link: feito.ig || feito.fb || '', verificado: true });
     console.log(`Postagens: série completa ${lj.nome} · ${p.titulo}`);
     for (const u of para) await enviar(u, `Publicado: ${lj.nome || 'cliente'}`, `Os ${fila.length} ${p.tipo === 'reels' ? 'reels' : p.tipo === 'feed' ? 'posts' : 'stories'} de ${p.titulo} saíram.`);
   }

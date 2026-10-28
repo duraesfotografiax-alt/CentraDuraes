@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0C10">
+<meta name="robots" content="noindex">
+<title>Ligar o TikTok · Central Elite &amp; Durães</title>
+<style>
+/* Página que o dono da conta do TikTok abre uma vez para autorizar a Central a enviar os vídeos dele. */
+:root{color-scheme:dark;--bg:#0B0C10;--panel:#15171D;--panel2:#1C1F27;--line:#2A2E39;--ink:#F3F4F8;--muted:#A2A7B6;--ac:#D9A93C;--ac-ink:#111;--ok:#34D399;--neg:#F87171;
+  --body:"Segoe UI",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:520px;margin:0 auto;padding:36px 16px 48px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+header img{width:64px;height:64px;border-radius:16px}
+h1{font-size:24px;line-height:1.25;margin:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}
+.card h2{font-size:17px;margin:0 0 8px}
+ul{margin:8px 0;padding-left:20px;color:var(--muted)}
+.btn{display:flex;width:100%;align-items:center;justify-content:center;border:0;background:var(--ac);color:var(--ac-ink);border-radius:999px;padding:14px 18px;font:inherit;font-weight:800;cursor:pointer}
+.btn:disabled{opacity:.6}
+.muted{color:var(--muted);font-size:14px}
+.ok{color:var(--ok);font-weight:700}.neg{color:var(--neg);font-weight:700}
+a{color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="icons/icon-192.png" alt=""><h1 id="tit">Ligar o seu TikTok</h1></header>
+
+  <div class="card" id="intro" hidden>
+    <h2>A Elite Marketing Digital vai enviar seus vídeos</h2>
+    <p class="muted" style="margin:0">Ao tocar em <b>Autorizar</b>, você entra no TikTok e permite que a Central da Elite &amp; Durães:</p>
+    <ul>
+      <li>veja o nome e a foto do seu perfil;</li>
+      <li>envie os vídeos que combinamos com você para o seu TikTok.</li>
+    </ul>
+    <p class="muted">Nós não vemos sua senha, e você pode remover essa permissão quando quiser em TikTok → Configurações → Segurança e permissões → Apps e serviços. <a href="privacidade.html">Privacidade</a> · <a href="privacidade.html#termos">Termos</a></p>
+    <button class="btn" id="go">Autorizar no TikTok</button>
+  </div>
+
+  <div class="card" id="msg" hidden><h2 id="mt"></h2><p id="mp" class="muted" style="margin:0"></p></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=20261014"></script>
+<script src="tiktok-config.js?v=1"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)},P=new URLSearchParams(location.search);
+  var REDIRECT=location.origin+location.pathname;
+  function aviso(t,p,cls){$('intro').hidden=true;$('msg').hidden=false;$('mt').textContent=t;$('mt').className=cls||'';$('mp').textContent=p||''}
+  firebase.initializeApp(self.FIREBASE_CONFIG);var col=firebase.firestore().collection('tiktokAuth');
+  function rand(){var a=new Uint8Array(18);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(b){return('0'+b.toString(16)).slice(-2)}).join('')}
+
+  if(P.get('error')){
+    aviso('Não foi autorizado','Você cancelou ou o TikTok recusou ('+(P.get('error_description')||P.get('error'))+'). Se quiser tentar de novo, abra o link que a Elite mandou outra vez.','neg');
+  }else if(P.get('code')&&P.get('state')){
+    var st=P.get('state');
+    aviso('Conectando…','Recebemos a sua autorização. Aguarde um instante.');
+    col.doc(st).update({code:P.get('code'),status:'recebido'}).then(function(){
+      var tentativas=0;
+      (function olhar(){col.doc(st).get().then(function(d){var x=d.data()||{};
+        if(x.status==='ligado'){aviso('Tudo certo!','A conta '+(x.nome?x.nome+' ':'')+'foi ligada. Pode fechar esta página.','ok');return}
+        if(x.status==='erro'){aviso('Não consegui ligar','Avise a Elite e peça para gerar um novo link. Detalhe: '+(x.erro||''),'neg');return}
+        if(++tentativas>20){aviso('Autorização enviada','A ligação termina sozinha em alguns minutos. A Elite avisa quando estiver pronta. Pode fechar esta página.','ok');return}
+        setTimeout(olhar,5000)}).catch(function(){setTimeout(olhar,5000)})})();
+    }).catch(function(){aviso('Link vencido','Peça à Elite um novo link para autorizar.','neg')});
+  }else if(P.get('ligar')){
+    $('intro').hidden=false;
+    $('go').onclick=function(){
+      var chave=self.TIKTOK_CLIENT_KEY;if(!chave){aviso('Ainda não está pronto','A Central ainda não recebeu a chave do app do TikTok. Avise a Elite.','neg');return}
+      $('go').disabled=true;$('go').textContent='Abrindo o TikTok…';
+      var st=rand();
+      col.doc(st).set({loja:P.get('ligar'),status:'iniciado',criado:new Date().toISOString()}).then(function(){
+        location.href='https://www.tiktok.com/v2/auth/authorize/?client_key='+encodeURIComponent(chave)+'&scope='+encodeURIComponent(self.TIKTOK_SCOPES||'user.info.basic,video.upload')+'&response_type=code&redirect_uri='+encodeURIComponent(REDIRECT)+'&state='+st;
+      }).catch(function(){$('go').disabled=false;$('go').textContent='Autorizar no TikTok';aviso('Não deu certo','Verifique a internet e tente de novo.','neg')});
+    };
+  }else{
+    aviso('Link incompleto','Peça à Elite o link para ligar o seu TikTok.','neg');
+  }
+})();
+</script>
+</body>
+</html>

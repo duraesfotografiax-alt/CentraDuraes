@@ -77,6 +77,7 @@ async function rodada() {
   try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
   // Posts que o cliente aprovou entram sozinhos na fila (lojas com "Agendar sozinho ao aprovar" ligado)
   try { await require('./legendas').processar({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Legendas:', e.message); }
+  try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
   // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
   const horaChave = agoraIso0.slice(0, 13);
@@ -335,6 +336,10 @@ async function plantao() {
   const unsubLeg = db.collection('legendas').where('status', '==', 'pedido').onSnapshot(
     (sn) => { pedLeg = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (legendas):', e.message));
+  let pedTT = 0;
+  const unsubTT = db.collection('tiktokAuth').where('status', '==', 'recebido').onSnapshot(
+    (sn) => { pedTT = sn.size; },
+    (e) => console.error('Plantão (tiktok):', e.message));
   const FIM = INICIO + (Number(process.env.PLANTAO_MIN) || 9) * 60e3;
   let ultTent = 0, ultBat = Date.now();
   console.log('Plantão ligado por ~9 min');
@@ -343,13 +348,14 @@ async function plantao() {
     if (Date.now() - ultBat > 120e3) { ultBat = Date.now(); await batimento(); }
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
+    if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
     const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
     if (!vencidos.length || Date.now() - ultTent < 45e3) continue;
     ultTent = Date.now();
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg();
+  unsub(); unsubLeg(); unsubTT();
 }
 
 (async () => {

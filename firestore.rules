@@ -74,6 +74,21 @@ service cloud.firestore {
     // Pedidos de legenda para a IA (o app pede, o robô responde)
     match /legendas/{id} { allow read, write: if ativo(); }
 
+    // TikTok: o dono da conta abre o link (id secreto), autoriza e a página grava o código; só o robô troca o código pelo acesso.
+    // Os acessos ficam em "tiktokContas", que ninguém lê pelo app (cai na regra de bloqueio no fim).
+    match /tiktokAuth/{id} {
+      allow get: if true;
+      allow list, delete: if ativo();
+      allow create: if request.resource.data.keys().hasOnly(['loja', 'status', 'criado'])
+        && request.resource.data.status == 'iniciado'
+        && request.resource.data.loja is string && request.resource.data.loja.size() < 40
+        && exists(/databases/$(database)/documents/lojas/$(request.resource.data.loja));
+      allow update: if resource.data.status == 'iniciado'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['code', 'status'])
+        && request.resource.data.status == 'recebido'
+        && request.resource.data.code is string && request.resource.data.code.size() < 600;
+    }
+
     // Aprovação do cliente: quem tem o link vê e responde (só status/obs dos itens); a equipe cria e apaga
     match /aprovacoes/{id} {
       allow get: if true;
