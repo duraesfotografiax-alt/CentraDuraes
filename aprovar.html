@@ -73,8 +73,12 @@ if(!id)vazio('Link incompleto','Confira se o link foi copiado inteiro.');
 else{firebase.initializeApp(self.FIREBASE_CONFIG);ref=firebase.firestore().collection('aprovacoes').doc(id);
   ref.get().then(d=>{if(!d.exists)return vazio('Link não encontrado','Ele pode ter sido apagado. Fale com a Elite.');A=d.data();pinta();
     ref.update({aberturas:firebase.firestore.FieldValue.increment(1)}).catch(()=>{})}).catch(()=>vazio('Não consegui abrir','Verifique a internet e tente de novo.'))}
+/* prévia no Bunny Stream (o robô sobe o vídeo, converte e avisa em A.previas quando está pronta); sem ela, cai no Drive como antes */
+const bunnyOk=fid=>{const pv=((A||{}).previas||{})[fid];return pv&&pv.ok&&pv.id&&pv.lib?pv:null};
+const bunnyUrl=pv=>'https://iframe.mediadelivery.net/embed/'+encodeURIComponent(pv.lib)+'/'+encodeURIComponent(pv.id)+'?autoplay=false&preload=true&responsive=true';
+const bunnyTag=(fid,pv)=>'<div class="vw" data-bn="'+esc(fid)+'"><iframe src="'+bunnyUrl(pv)+'" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;" allowfullscreen title="Vídeo"></iframe><a class="vlink" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener">Não abriu? Assistir pelo Google Drive</a></div>';
 function midia(it){const fs=it.arquivos||[];
-  return '<div class="slides" data-sl>'+fs.map(f=>/^video\//.test(f.mime)?'<div class="vw"><video controls playsinline preload="metadata" poster="'+thumb(f.id,900)+'" src="'+vid(f.id)+'" data-vid="'+esc(f.id)+'"></video><a class="vlink" href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener">Não abriu? Assistir pelo Google Drive</a></div>':'<img src="'+thumb(f.id,1400)+'" alt="" loading="lazy" referrerpolicy="no-referrer">').join('')+'</div>'+
+  return '<div class="slides" data-sl>'+fs.map(f=>/^video\//.test(f.mime)?(bunnyOk(f.id)?bunnyTag(f.id,bunnyOk(f.id)):'<div class="vw"><video controls playsinline preload="metadata" poster="'+thumb(f.id,900)+'" src="'+vid(f.id)+'" data-vid="'+esc(f.id)+'"></video><a class="vlink" href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener">Não abriu? Assistir pelo Google Drive</a></div>'):'<img src="'+thumb(f.id,1400)+'" alt="" loading="lazy" referrerpolicy="no-referrer">').join('')+'</div>'+
     (fs.length>1?'<div class="dots">'+fs.map((_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')}
 function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando').length;
   document.title='Aprovação · '+(A.lojaNome||'');
@@ -87,6 +91,10 @@ function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando
        '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')+
     '</div>').join('')+'</div><footer>Elite Marketing Digital</footer>';
   app.querySelectorAll('[data-sl]').forEach(sl=>sl.addEventListener('scroll',()=>{const n=Math.round(sl.scrollLeft/sl.clientWidth),d=sl.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,k)=>x.classList.toggle('on',k===n))},{passive:true}))}
+/* quando a prévia do Bunny fica pronta com a página aberta, troca o vídeo do Drive (se o cliente ainda não começou a assistir) */
+document.addEventListener('play',e=>{if(e.target&&e.target.tagName==='VIDEO')e.target._tocou=1},true);
+function trocaPrevia(){document.querySelectorAll('video[data-vid],[data-vc]').forEach(v=>{const fid=v.dataset.vid||v.dataset.vc,pv=bunnyOk(fid);if(!pv||v._tocou)return;const w=v.closest('.vw');if(w)w.outerHTML=bunnyTag(fid,pv)})}
+if(ref)ref.onSnapshot(d=>{if(!d.exists||!A)return;A.previas=(d.data()||{}).previas||{};trocaPrevia()},()=>{});
 /* se o navegador não conseguir tocar o vídeo direto (formato .MOV/HEVC, arquivo grande ou limite do Drive), tenta outro endereço e, por fim, mostra a capa com um botão grande que abre o Drive */
 function registraFalha(fid){try{for(const it of (A&&A.itens)||[])if((it.arquivos||[]).some(f=>f.id===fid)){it.falha={em:new Date().toISOString(),ua:(navigator.userAgent||'').slice(0,120)};}
   ref.update({itens:A.itens}).catch(()=>{})}catch(_){}}
@@ -94,7 +102,7 @@ function proximaFonte(v){if(!(v&&v.tagName==='VIDEO'&&v.dataset.vid))return;cons
   const lista=FONTES.map(fn=>fn(fid)).filter(Boolean);let n=lista.indexOf(v.getAttribute('src'))+1;
   if(n>0&&n<lista.length){v.src=lista[n];v.load();vigia(v);return}
   registraFalha(fid);
-  v.outerHTML='<a class="vcapa" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener"><img src="'+thumb(fid,900)+'" alt="" referrerpolicy="no-referrer"><span>▶</span></a>'}
+  v.outerHTML='<a class="vcapa" data-vc="'+esc(fid)+'" href="https://drive.google.com/file/d/'+encodeURIComponent(fid)+'/view" target="_blank" rel="noopener"><img src="'+thumb(fid,900)+'" alt="" referrerpolicy="no-referrer"><span>▶</span></a>'}
 /* se o vídeo nem começa a carregar em 12 s (sem dar erro), passa para o próximo endereço */
 function vigia(v){clearTimeout(v._t);v._t=setTimeout(()=>{if(v.isConnected&&v.readyState<1&&!v.error)proximaFonte(v)},12000)}
 document.addEventListener('error',e=>proximaFonte(e.target),true);

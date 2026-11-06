@@ -477,4 +477,4 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
   }
 }
 
-module.exports = { sincronizarPaginas, publicarAgendados, transcodificar };
+module.exports = { sincronizarPaginas, publicarAgendados, transcodificar, baixar };

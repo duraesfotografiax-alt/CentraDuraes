@@ -77,6 +77,7 @@ async function rodada() {
   try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
   // Posts que o cliente aprovou entram sozinhos na fila (lojas com "Agendar sozinho ao aprovar" ligado)
   try { await require('./legendas').processar({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Legendas:', e.message); }
+  try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); }
   try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
   // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
@@ -336,6 +337,10 @@ async function plantao() {
   const unsubLeg = db.collection('legendas').where('status', '==', 'pedido').onSnapshot(
     (sn) => { pedLeg = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (legendas):', e.message));
+  let apDocs = [], ultPrev = 0;
+  const unsubAp = db.collection('aprovacoes').orderBy('criadoEm', 'desc').limit(20).onSnapshot(
+    (sn) => { apDocs = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
+    (e) => console.error('Plantão (aprovações):', e.message));
   let pedTT = 0;
   const unsubTT = db.collection('tiktokAuth').where('status', '==', 'recebido').onSnapshot(
     (sn) => { pedTT = sn.size; },
@@ -349,13 +354,14 @@ async function plantao() {
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
+    if (Date.now() - ultPrev > 45e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
     const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
     if (!vencidos.length || Date.now() - ultTent < 45e3) continue;
     ultTent = Date.now();
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg(); unsubTT();
+  unsub(); unsubLeg(); unsubTT(); unsubAp();
 }
 
 (async () => {
