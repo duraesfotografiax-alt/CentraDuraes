@@ -239,14 +239,16 @@ async function diagnosticoIG(pag) {
   return txt;
 }
 async function igVideo(pag, tipoMidia, a, extra) {
-  let erroDireto = '';
+  let erroDireto = '', criou = false;
   try {
     const c = await gpost(`${pag.ig}/media`, Object.assign({ media_type: tipoMidia, upload_type: 'resumable' }, extra), pag.token);
+    criou = true;
     const up = await fetch(c.uri || `https://rupload.facebook.com/ig-api-upload/${VERSAO}/${c.id}`, { method: 'POST', headers: { Authorization: `OAuth ${pag.token}`, offset: '0', file_size: String(a.buf.length) }, body: a.buf });
     if (!up.ok) { const t = await up.text().catch(() => ''); throw new Error(`Instagram recusou o envio do vídeo (HTTP ${up.status}, ${Math.round(a.buf.length / 1e6)} MB). ` + t.slice(0, 150)); }
     await esperarPronto(c.id, pag.token);
     return c.id;
   } catch (e) {
+    if (!criou) throw e; // recusou já ao criar o item (colaborador, música...): não adianta tentar pelo Facebook
     erroDireto = e.message;
     console.log('Postagens: envio direto ao Instagram falhou (' + erroDireto.slice(0, 160) + '), tentando pelo Facebook (plano B)');
   }
@@ -255,14 +257,27 @@ async function igVideo(pag, tipoMidia, a, extra) {
 }
 const lista = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,\s]+/)).map((u) => String(u).trim().replace(/^@/, '')).filter(Boolean).slice(0, 3);
 // Convite de colaborador e marcação de pessoas. Se o Instagram recusar (conta não aceita convite, usuário inexistente...), publica sem eles e avisa.
+// Música da biblioteca do Instagram (Instagram Audio API, só Reels). Se o Instagram recusar a música, publica sem ela e avisa.
 async function igPublicar(pag, tipo, arqs, legenda, ex) {
-  const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar);
-  if (tipo === 'stories' || (!colab.length && !marcar.length)) return igPublicarBase(pag, tipo, arqs, legenda, {});
-  try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar }); }
+  const audio = ex && ex.audio && ex.audio.id && tipo !== 'stories' && arqs.length === 1 && arqs[0].video ? ex.audio : null;
+  if (!audio) return igPublicarColab(pag, tipo, arqs, legenda, Object.assign({}, ex, { audio: null }));
+  try { return await igPublicarColab(pag, tipo, arqs, legenda, ex); }
+  catch (e) {
+    if (FORMATO_RECUSADO.test(e.message || '') && !/audio|music|m[uú]sica|2207\d*/i.test(e.message || '')) throw e;
+    console.log('Postagens: Instagram recusou a música (' + String(e.message).slice(0, 140) + '), publicando sem ela');
+    const r = await igPublicarColab(pag, tipo, arqs, legenda, Object.assign({}, ex, { audio: null }));
+    r.aviso = ((r.aviso ? r.aviso + ' ' : '') + 'Saiu sem a música "' + (audio.titulo || audio.id) + '": ' + String(e.message).slice(0, 100)).trim();
+    return r;
+  }
+}
+async function igPublicarColab(pag, tipo, arqs, legenda, ex) {
+  const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar), audio = ex && ex.audio;
+  if (tipo === 'stories' || (!colab.length && !marcar.length)) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
+  try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar, audio }); }
   catch (e) {
     if (FORMATO_RECUSADO.test(e.message || '') || !/colab|collaborat|user_tags?\b|\btags?\b|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
     console.log('Postagens: Instagram recusou colaborador/marcação (' + String(e.message).slice(0, 120) + '), publicando sem eles');
-    const r = await igPublicarBase(pag, tipo, arqs, legenda, {});
+    const r = await igPublicarBase(pag, tipo, arqs, legenda, { audio });
     r.aviso = 'Saiu sem colaborador/marcação: ' + String(e.message).slice(0, 120);
     return r;
   }
@@ -270,6 +285,7 @@ async function igPublicar(pag, tipo, arqs, legenda, ex) {
 async function igPublicarBase(pag, tipo, arqs, legenda, ex) {
   const colabP = ex.colab && ex.colab.length ? { collaborators: JSON.stringify(ex.colab) } : {};
   const tagsP = ex.marcar && ex.marcar.length ? { user_tags: JSON.stringify(ex.marcar.map((u) => ({ username: u, x: 0.5, y: 0.5 }))) } : {};
+  const audioP = ex.audio && ex.audio.id ? { audio_configuration: JSON.stringify({ audio_id: String(ex.audio.id), audio_volume: Math.min(100, Math.max(1, +ex.audio.audioVol || 100)), video_volume: Math.min(100, Math.max(1, +ex.audio.videoVol || 100)) }) } : {};
   let container;
   if (tipo === 'stories') {
     const a = arqs[0];
@@ -277,7 +293,7 @@ async function igPublicarBase(pag, tipo, arqs, legenda, ex) {
     else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, { media_type: 'STORIES', image_url: f.url }, pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else if (arqs.length === 1) {
     const a = arqs[0];
-    if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP));
+    if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP, audioP));
     else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, Object.assign({ image_url: f.url, caption: legenda }, colabP, tagsP), pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else {
     const filhos = [];
@@ -365,7 +381,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (let tent = 0; tent < 3; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
-          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
+          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar, audio: p.audio }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
           catch (e) { erros.push('Instagram: ' + e.message); }
         }
         if (p.pubFB && !feito.fb) {
@@ -446,7 +462,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
         }
       };
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar, audio: p.audio })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
@@ -477,4 +493,17 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
   }
 }
 
-module.exports = { sincronizarPaginas, publicarAgendados, transcodificar, baixar };
+// Busca músicas na biblioteca do Instagram (para o seletor de música da Central)
+async function buscarAudio(pag, q, tokenAlt) {
+  let ultimo = null;
+  for (const t of [pag.token, tokenAlt].filter(Boolean)) {
+    const r = await fetch(`${G}/ig_audio?audio_type=music&user_id=${encodeURIComponent(pag.ig)}${q ? '&search_query=' + encodeURIComponent(q) : ''}&access_token=${encodeURIComponent(t)}`);
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && !j.error) {
+      return (j.data || []).map((x) => ({ id: String(x.audio_id || x.id || ''), titulo: String(x.title || '').slice(0, 80), artista: String(x.display_artist || '').slice(0, 60), seg: Math.round((+x.duration_in_ms || 0) / 1000), previa: String(x.download_url || x.on_platform_audio_preview_link || ''), capa: String(x.cover_artwork_thumbnail_uri || x.cover_artwork_thumbnail_url || '') })).filter((x) => x.id).slice(0, 25);
+    }
+    ultimo = erroMeta(j, r.status);
+  }
+  throw ultimo || new Error('Não consegui buscar músicas no Instagram.');
+}
+module.exports = { sincronizarPaginas, publicarAgendados, transcodificar, baixar, paginas, buscarAudio };

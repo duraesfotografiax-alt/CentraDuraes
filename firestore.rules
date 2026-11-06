@@ -71,6 +71,8 @@ service cloud.firestore {
     // Materiais brutos (gravações para editar): só a equipe
     match /materiais/{id} { allow read, write: if ativo(); }
     match /tarefas/{id} { allow read, write: if ativo(); }
+    // Busca de músicas do Instagram (o app pede, o robô responde)
+    match /audioBusca/{id} { allow read, write: if ativo(); }
     // Pedidos de legenda para a IA (o app pede, o robô responde)
     match /legendas/{id} { allow read, write: if ativo(); }
 

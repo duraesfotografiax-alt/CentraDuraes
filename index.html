@@ -3338,7 +3338,7 @@ async function prontosAcao(b){const l=S.lojas.find(x=>x.id===b.dataset.id);if(!l
 function linkAprov(id){return location.origin+location.pathname.replace(/[^/]*$/,'')+'aprovar.html?a='+id}
 function aprovDe(pid){let ult=null;for(const a of (S.aprovacoes||[]))for(const it of (a.itens||[]))if(it.post===pid&&(!ult||(a.criadoEm||'')>(ult.criadoEm||'')))ult=Object.assign({aid:a.id,criadoEm:a.criadoEm},it);return ult}
 function chipAprov(p){const a=aprovDe(p.id);if(!a)return '';
-  const fal=a.falha?'<span class="chip late" style="white-space:normal" title="'+esc(a.falha.ua||'')+'">⚠ O cliente não conseguiu tocar o vídeo no celular</span>':'';
+  const fal=a.falha&&a.status!=='aprovado'&&a.status!=='ajuste'?'<span class="chip late" style="white-space:normal" title="'+esc(a.falha.ua||'')+'">⚠ O cliente não conseguiu tocar o vídeo no celular</span>':'';
   if(a.status==='aprovado')return fal+'<span class="chip rec">✓ Cliente aprovou'+(a.por?' ('+esc(a.por)+')':'')+'</span>';
   if(a.status==='ajuste')return fal+'<span class="chip late" style="white-space:normal">Pediram ajuste'+(a.obs?': '+esc(a.obs):'')+'</span>';
   return fal+'<span class="chip eq">Aguardando aprovação</span>'}
@@ -3633,6 +3633,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     '<div class="two" id="auTagW"><div class="fld"><label for="auColab">Convidar como colaborador</label><input id="auColab" value="'+esc(arr(pst.colab).length?arr(pst.colab).map(u=>'@'+u).join(' '):(l&&l.colab)||'')+'" placeholder="@conta (até 3)"><span class="hint">O post aparece nas duas contas quando aceitarem o convite.</span></div><div class="fld"><label for="auMarc">Marcar na foto</label><input id="auMarc" value="'+esc(arr(pst.marcar).length?arr(pst.marcar).map(u=>'@'+u).join(' '):(l&&l.marcar)||'')+'" placeholder="@pessoa"><span class="hint">Só em fotos, no centro da imagem; dá para ajustar no Instagram.</span></div></div>'+
     '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Arquivos do Drive<button type="button" class="btn sm ghost" id="auTodos" hidden>Marcar todos</button></span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
     '<div id="auCorte"></div>'+
+    '<div id="auMus"></div>'+
     '<div class="fld" id="auSerieW" hidden><label for="auFim" id="auFimL">Último sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span><div id="auLegs" class="auLegs"></div></div>'+
     '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#auErr').textContent=m};
@@ -3664,6 +3665,32 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
   q('#auQ').oninput=()=>{horasEd={};serie()};q('#auFim').oninput=()=>{horasEd={};serie()};
   q('#auTodos').onclick=()=>{const todos=lista.map(f=>f.id);const ok=f=>q('#auTipo').value==='reels'?/^video/.test(f.mimeType):q('#auTipo').value==='feed'?/^image/.test(f.mimeType):true;const alvo=lista.filter(ok).map(f=>f.id);escolhidos=alvo.every(id=>escolhidos.includes(id))?[]:escolhidos.concat(alvo.filter(id=>!escolhidos.includes(id)));pinta()};
   const cortes={};(pst.arquivos||[]).forEach(a=>{if(a&&a.corte!=null)cortes[a.id]=+a.corte});
+  /* Música da biblioteca do Instagram (só Reels): o robô busca as faixas com a chave da loja e o Instagram aplica ao publicar */
+  let audio=pst.audio&&pst.audio.id?Object.assign({},pst.audio):null,musRes=[];
+  const musOk=()=>{const t=q('#auTipo').value;if(!q('#auIG')||!q('#auIG').checked)return false;if(t==='reels')return true;return t==='feed'&&escolhidos.some(id=>{const f=lista.find(x=>x.id===id);return f&&/^video\//.test(f.mimeType||'')})};
+  const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  const musEsc=()=>{const c=q('#auMusC');if(!c)return;
+    c.innerHTML=audio?'<div class="panel" style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>🎵</span><b style="flex:1;min-width:120px">'+esc(audio.titulo||audio.id)+'</b><span class="muted">'+esc(audio.artista||'')+'</span><button type="button" class="btn sm ghost danger" data-mus-x>Tirar</button></div>'+
+      '<label style="font-size:13px">Volume da música: <b id="auAvT">'+(audio.audioVol||100)+'</b><input type="range" min="1" max="100" value="'+(audio.audioVol||100)+'" data-mus-av></label>'+
+      '<label style="font-size:13px">Volume do som original do vídeo: <b id="auVvT">'+(audio.videoVol||100)+'</b><input type="range" min="1" max="100" value="'+(audio.videoVol||100)+'" data-mus-vv></label></div>':'<p class="hint" style="margin:0 0 6px">Nenhuma música escolhida: o Reels sai só com o som do vídeo.</p>'};
+  const musUI=()=>{const box=q('#auMus');if(!box)return;
+    if(!musOk()){box.innerHTML='';delete box.dataset.on;return}
+    if(!box.dataset.on){box.dataset.on=1;
+      box.innerHTML='<div class="fld"><span class="l">Música do Instagram (só Reels)</span><div id="auMusC"></div><div style="display:flex;gap:8px"><input id="auMq" placeholder="Buscar música ou artista (vazio = as que estão em alta)" style="flex:1"><button type="button" class="btn sm" id="auMb">Buscar</button></div><div id="auMr" style="margin-top:8px"></div><span class="hint">Stories e posts de foto: o Instagram não deixa aplicativos colocarem música. Nesses, coloque pelo celular na hora de postar.</span></div>'}
+    musEsc()};
+  const musLista=()=>{const r=q('#auMr');if(!r)return;
+    r.innerHTML=musRes.length?'<div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto">'+musRes.map((m,i)=>'<div class="panel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px">'+(m.capa?'<img src="'+esc(m.capa)+'" alt="" referrerpolicy="no-referrer" style="width:44px;height:44px;border-radius:8px;object-fit:cover">':'<span>🎵</span>')+'<div style="flex:1;min-width:130px"><b>'+esc(m.titulo||'Sem título')+'</b><br><span class="muted" style="font-size:13px">'+esc(m.artista||'')+(m.seg?' · '+mmss(m.seg):'')+'</span></div>'+(m.previa?'<audio controls preload="none" src="'+esc(m.previa)+'" style="height:32px;max-width:200px"></audio>':'')+'<button type="button" class="btn sm primary" data-mus-use="'+i+'">Usar</button></div>').join('')+'</div>':'<p class="hint">Nenhuma música encontrada. Tente outro nome.</p>'};
+  const musBusca=()=>{const qv=q('#auMq').value.trim(),r=q('#auMr'),b=q('#auMb');b.disabled=true;r.innerHTML='<div class="spinner"></div>';
+    const id=idAleatorio();let un=null,t=null;const fim=()=>{if(un)un();clearTimeout(t);db.collection('audioBusca').doc(id).delete().catch(()=>{});b.disabled=false};
+    db.collection('audioBusca').doc(id).set({loja:pst.loja,q:qv,status:'pedido',em:new Date().toISOString()}).then(()=>{
+      un=db.collection('audioBusca').doc(id).onSnapshot(d=>{const x=d.data();if(!x)return;if(x.status==='pronto'){fim();musRes=x.resultados||[];musLista()}else if(x.status==='erro'){fim();r.innerHTML='<p class="hint" style="color:var(--neg)">'+esc(x.erro||'Não deu certo')+'</p>'}});
+      t=setTimeout(()=>{fim();r.innerHTML='<p class="hint">O robô ainda não respondeu. Tente de novo em alguns minutos.</p>'},90000)}).catch(e=>{b.disabled=false;r.innerHTML='<p class="hint" style="color:var(--neg)">'+esc(e.message||'Não deu certo')+'</p>'})};
+  q('#auMus').addEventListener('click',e=>{if(e.target.closest('#auMb')){musBusca();return}
+    const u=e.target.closest('[data-mus-use]');if(u){const m=musRes[+u.dataset.musUse];if(m){audio={id:m.id,titulo:m.titulo,artista:m.artista,audioVol:60,videoVol:100};musEsc()}return}
+    if(e.target.closest('[data-mus-x]')){audio=null;musEsc()}});
+  q('#auMus').addEventListener('input',e=>{if(!audio)return;if(e.target.matches('[data-mus-av]')){audio.audioVol=+e.target.value;const t=q('#auAvT');if(t)t.textContent=e.target.value}else if(e.target.matches('[data-mus-vv]')){audio.videoVol=+e.target.value;const t=q('#auVvT');if(t)t.textContent=e.target.value}});
+  q('#auMus').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='auMq'){e.preventDefault();musBusca()}});
+  q('#auIG').addEventListener('change',()=>musUI());
   /* Prévia do corte: foto vertical (9:16) no feed vira 4:5. O quadro mostra o que sai; o controle sobe/desce o enquadramento. */
   const corteUI=()=>{const box=q('#auCorte');if(!box)return;const t=q('#auTipo').value;
     const vs=(t==='feed'||t==='carrossel')?escolhidos.map(id=>lista.find(f=>f.id===id)).filter(f=>f&&/^image\//.test(f.mimeType||'')).map(f=>[f,dimsDe(f)]).filter(x=>x[1].w&&x[1].h&&x[1].w/x[1].h<0.78):[];
@@ -3676,7 +3703,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
   const pinta=()=>{const box=q('#auArqs');if(!lista.length)return;
     const grs=[...new Set(lista.map(f=>f.grupo||''))];
     const card=f=>{const n=escolhidos.indexOf(f.id);return '<button type="button" data-auf="'+f.id+'" aria-pressed="'+(n>=0)+'"><span class="im"'+(f.thumbnailLink?' style="background-image:url(\''+esc(f.thumbnailLink).replace(/'/g,'%27')+'\')"':'')+'>'+(f.thumbnailLink?'':ico(/^video/.test(f.mimeType)?'i-video':'i-file'))+'</span>'+(n>=0?'<span class="nb">'+(n+1)+'</span>':'')+(/^video/.test(f.mimeType)?'<span class="vd">'+ico('i-video')+'</span>':'')+'<small>'+esc(f.name)+'</small></button>'};
-    box.innerHTML=grs.length<2?'<div class="aupick">'+lista.map(card).join('')+'</div>':grs.map(g=>{const its=lista.filter(f=>(f.grupo||'')===g),on=its.length&&its.every(f=>escolhidos.includes(f.id));return '<div class="augr"><div class="augh">'+ico('i-folder')+'<b>'+esc(g?g.split('/').join(' › '):'Soltos na pasta')+'</b><span class="muted">'+its.length+'</span><button type="button" class="btn sm'+(on?' primary':'')+'" data-aug="'+esc(g)+'">'+(on?'✓ Esta pasta':'Usar esta pasta')+'</button></div><div class="aupick">'+its.map(card).join('')+'</div></div>'}).join('');serie();corteUI()};
+    box.innerHTML=grs.length<2?'<div class="aupick">'+lista.map(card).join('')+'</div>':grs.map(g=>{const its=lista.filter(f=>(f.grupo||'')===g),on=its.length&&its.every(f=>escolhidos.includes(f.id));return '<div class="augr"><div class="augh">'+ico('i-folder')+'<b>'+esc(g?g.split('/').join(' › '):'Soltos na pasta')+'</b><span class="muted">'+its.length+'</span><button type="button" class="btn sm'+(on?' primary':'')+'" data-aug="'+esc(g)+'">'+(on?'✓ Esta pasta':'Usar esta pasta')+'</button></div><div class="aupick">'+its.map(card).join('')+'</div></div>'}).join('');serie();corteUI();musUI()};
   q('#auArqs').addEventListener('click',e=>{const g=e.target.closest('[data-aug]');if(!g)return;const its=lista.filter(f=>(f.grupo||'')===g.dataset.aug);const t=q('#auTipo').value;
     const ok=its.filter(f=>t==='reels'?/^video/.test(f.mimeType):t==='carrossel'?true:true).map(f=>f.id);
     if(t!=='carrossel'&&t!=='stories'&&!['reels','feed'].includes(t))return;
@@ -3713,7 +3740,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     const colab=tipo==='stories'?[]:usersTx(q('#auColab').value),marcar=tipo==='stories'?[]:usersTx(q('#auMarc').value);
     const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
     try{for(const f of sel)await deixarPublico(f.id);
-      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar,avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar,avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,audio:(ig&&audio&&(tipo==='reels'||(tipo==='feed'&&vid>0)))?audio:null,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
         fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:'',tt:'',legenda:tipo==='stories'?'':String(legs[sel[i].id]||'').trim().slice(0,2200)})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
       await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' '+(({stories:'stories',reels:'reels',feed:'posts'})[tipo])+' agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook',tt&&'TikTok'].filter(Boolean).join(' + '))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};

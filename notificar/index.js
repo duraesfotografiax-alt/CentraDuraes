@@ -77,6 +77,7 @@ async function rodada() {
   try { await pub.publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso: agoraIso0 }); } catch (e) { console.error('Postagens:', e.message); }
   // Posts que o cliente aprovou entram sozinhos na fila (lojas com "Agendar sozinho ao aprovar" ligado)
   try { await require('./legendas').processar({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Legendas:', e.message); }
+  try { await require('./audios').processar({ db }); } catch (e) { console.error('Músicas:', e.message); }
   try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); }
   try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
@@ -341,6 +342,10 @@ async function plantao() {
   const unsubAp = db.collection('aprovacoes').orderBy('criadoEm', 'desc').limit(20).onSnapshot(
     (sn) => { apDocs = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (aprovações):', e.message));
+  let pedAud = [];
+  const unsubAud = db.collection('audioBusca').where('status', '==', 'pedido').onSnapshot(
+    (sn) => { pedAud = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
+    (e) => console.error('Plantão (músicas):', e.message));
   let pedTT = 0;
   const unsubTT = db.collection('tiktokAuth').where('status', '==', 'recebido').onSnapshot(
     (sn) => { pedTT = sn.size; },
@@ -353,6 +358,7 @@ async function plantao() {
     if (Date.now() - ultBat > 120e3) { ultBat = Date.now(); await batimento(); }
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
+    if (pedAud.length) { const l = pedAud; pedAud = []; try { await require('./audios').processar({ db, pedidos: l }); } catch (e) { console.error('Músicas:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
     if (Date.now() - ultPrev > 45e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
     const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
@@ -361,7 +367,7 @@ async function plantao() {
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg(); unsubTT(); unsubAp();
+  unsub(); unsubLeg(); unsubTT(); unsubAp(); unsubAud();
 }
 
 (async () => {
