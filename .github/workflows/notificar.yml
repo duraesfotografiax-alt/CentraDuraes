@@ -45,6 +45,10 @@ jobs:
           MODO: ${{ github.event.inputs.modo || 'auto' }}
           META_TOKEN: ${{ secrets.META_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+          BUNNY_LIBRARY_ID: ${{ secrets.BUNNY_LIBRARY_ID }}
       # Das 5h à meia-noite, cada rodada (~10 min, conferindo os posts a cada 20 s) chama a próxima assim que termina.
       # Se algo der errado, a corrente para e o agendador do GitHub (acima) religa depois.
       - name: Próxima rodada
