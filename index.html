@@ -3330,7 +3330,9 @@ async function prontosAcao(b){const l=S.lojas.find(x=>x.id===b.dataset.id);if(!l
   if(k==='subir'){const inp=document.getElementById('prFiles_'+l.id);if(inp)abrirPicker(inp);return}
   if(k==='pasta'){try{await token()}catch(er){toast(er.message);return}let ini=l.prontosId||null;if(!ini){try{ini=await pastaDestino({tipo:'elite',loja:l.id,titulo:''})}catch(_){}}
     abrirSeletor(ini,async f=>{if(f.mimeType!==FOLDER){toast('Escolha uma pasta.');return}
-      try{await write(()=>store.update('lojas',l.id,{prontosId:f.id,prontosNome:f.name,prontosDesde:new Date(Date.now()-2*864e5).toISOString()}));const n=await sincProntos(Object.assign({},l,{prontosId:f.id,prontosNome:f.name,prontosDesde:new Date(Date.now()-2*864e5).toISOString()}),true);
+      /* quem escolhe a pasta à mão quer o que já está nela: pega os últimos 45 dias (antes era só 2 dias e vídeo de uma semana atrás era ignorado) */
+      const desde45=new Date(Date.now()-45*864e5).toISOString();
+      try{await write(()=>store.update('lojas',l.id,{prontosId:f.id,prontosNome:f.name,prontosDesde:desde45}));const n=await sincProntos(Object.assign({},l,{prontosId:f.id,prontosNome:f.name,prontosDesde:desde45}),true);
         toast('Agora a Central acompanha "'+f.name+'"'+(n?' · '+n+' conteúdo'+(n>1?'s novos':' novo'):''))}catch(_){}});return}
   try{await token()}catch(er){toast(er.message);return}
   b.disabled=true;const t=b.textContent;
