@@ -1635,7 +1635,7 @@ document.addEventListener('click',async e=>{
   const crb=e.target.closest('[data-car]');if(crb){carroAcao(crb);return}
   const mtb=e.target.closest('[data-mat]');if(mtb){materialAcao(mtb);return}
   const prb=e.target.closest('[data-prontos]');if(prb){prontosAcao(prb);return}
-  const apt=e.target.closest('[data-aprovtodos]');if(apt){const l=S.lojas.find(x=>x.id===apt.dataset.aprovtodos);if(!l)return;try{await token()}catch(er){toast(er.message);return}enviarAprovacao(S.posts.filter(p=>p.loja===l.id&&p.status==='pronto'&&!aprovDe(p.id)),l);return}
+  const apt=e.target.closest('[data-aprovtodos]');if(apt){const l=S.lojas.find(x=>x.id===apt.dataset.aprovtodos);if(!l)return;try{await token()}catch(er){toast(er.message);return}escolherAprovacao(l);return}
   const rcb=e.target.closest('[data-rc]');if(rcb){recorrenteAcao(rcb);return}
   const ad=e.target.closest('[data-ads]');if(ad){S.fAds=ad.dataset.ads;renderTrafego();return}
   const ab=e.target.closest('[data-alb]');if(ab){albumAcao(ab);return}
@@ -3350,6 +3350,27 @@ function chipAprov(p){const a=aprovDe(p.id);if(!a)return '';
   return fal+'<span class="chip eq">Aguardando aprovação</span>'}
 /* confere, como o cliente (sem login), se o arquivo abre: se não abrir, o vídeo/foto não vai aparecer na aprovação */
 async function publicoOk(fid){try{const k=(self.FIREBASE_CONFIG||{}).apiKey||'';const r=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fid)+'?fields=id&supportsAllDrives=true&key='+encodeURIComponent(k),{credentials:'omit'});return r.ok}catch(_){return true}}
+/* escolher quais cards de "Para programar" vão juntos no mesmo link de aprovação */
+function escolherAprovacao(l){
+  const todos=S.posts.filter(p=>p.loja===l.id&&p.status==='pronto'&&p.drive).sort((a,b)=>(aprovDe(a.id)?1:0)-(aprovDe(b.id)?1:0)||String(a.titulo).localeCompare(String(b.titulo),'pt',{numeric:true}));
+  if(!todos.length){toast('Nenhum conteúdo com link do Drive em Para programar.');return}
+  const sel=new Set(todos.filter(p=>!aprovDe(p.id)).map(p=>p.id));
+  sheet.innerHTML='<form id="fEsA" novalidate style="max-width:560px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0;font-size:14px">Marque os conteúdos que vão juntos no mesmo link para <b style="color:var(--ink)">'+esc(l.nome||'')+'</b>.</p>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn sm ghost" id="esaTodos">Marcar todos</button><button type="button" class="btn sm ghost" id="esaNenhum">Desmarcar todos</button></div>'+
+    '<div id="esaL" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:55vh;overflow:auto"></div>'+
+    '<div class="err" id="esaErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit" id="esaOk"></button></div></form>';
+  sheet.hidden=false;const q=x=>sheet.querySelector(x);
+  const pinta=()=>{q('#esaL').innerHTML=todos.map(p=>{const ap=aprovDe(p.id),st=ap?(ap.status==='aprovado'?'já aprovado':ap.status==='ajuste'?'pediram ajuste':'já mandado, aguardando'):'';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line2);border-radius:10px;background:'+(sel.has(p.id)?'var(--panel2)':'transparent')+'">'+
+        '<label style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer"><input type="checkbox" data-esa="'+p.id+'" '+(sel.has(p.id)?'checked':'')+' style="width:18px;height:18px;flex:none">'+
+        '<span style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.titulo||'Sem título')+'</b><small class="muted">'+esc(TPOST[p.tipo]||p.tipo||'')+(st?' · <span style="color:var(--warn)">'+st+'</span>':'')+'</small></span></label>'+
+        '<button type="button" class="btn sm ghost" data-esv="'+p.id+'">'+(['reels','stories'].includes(p.tipo)?'▶ Ver':'🔍 Ver')+'</button></div>'}).join('');
+    q('#esaOk').textContent=sel.size?'Gerar link com '+sel.size+' conteúdo'+(sel.size>1?'s':''):'Marque pelo menos 1'};
+  q('#esaL').addEventListener('change',e=>{const c=e.target.closest('[data-esa]');if(!c)return;if(c.checked)sel.add(c.dataset.esa);else sel.delete(c.dataset.esa);pinta()});
+  q('#esaL').addEventListener('click',e=>{const v=e.target.closest('[data-esv]');if(!v)return;const p=todos.find(x=>x.id===v.dataset.esv);if(p)verMidia(()=>arquivosDoLink(p.drive))});
+  q('#esaTodos').onclick=()=>{todos.forEach(p=>sel.add(p.id));pinta()};q('#esaNenhum').onclick=()=>{sel.clear();pinta()};
+  q('#fEsA').onsubmit=e=>{e.preventDefault();const ps=todos.filter(p=>sel.has(p.id));if(!ps.length){q('#esaErr').textContent='Marque pelo menos 1 conteúdo.';return}enviarAprovacao(ps,l)};
+  pinta()}
 async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){toast('Os conteúdos precisam ter o link do Drive.');return}
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0" id="apTx">Preparando '+ps.length+' conteúdo'+(ps.length>1?'s':'')+'…</p><div class="upbar"><i id="apBar" style="width:5%"></i></div></form>';sheet.hidden=false;
   const itens=[],barrados=[];let k=0;
@@ -3426,7 +3447,7 @@ function renderClientes(){
   body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button><button class="btn sm ghost danger" data-loja-rem="'+l.id+'">Remover</button>':'')+'</div>'+prontosBox(l)+blocoIG(l)+
     '<div class="pipe">'+
     col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
-    col('Para programar','#E2B24C',pronto.length,((pronto.length&&S.canWrite?'<button class="btn sm primary" data-agmassa="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Agendar em massa'+(l.autoAprov?' · automático ligado':'')+'</button>':'')+(pronto.filter(p=>!aprovDe(p.id)).length>1?'<button class="btn sm" data-aprovtodos="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Mandar '+pronto.filter(p=>!aprovDe(p.id)).length+' para aprovação (1 link)</button>':''))+pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
+    col('Para programar','#E2B24C',pronto.length,((pronto.length&&S.canWrite?'<button class="btn sm primary" data-agmassa="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Agendar em massa'+(l.autoAprov?' · automático ligado':'')+'</button>':'')+(pronto.filter(p=>p.drive).length>1?'<button class="btn sm" data-aprovtodos="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Escolher e mandar para aprovação (1 link)</button>':''))+pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
     col('Programado','#4C8DFF',prog.length,prog.map(pc).join(''),'Nada programado.')+
     col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+'</div>';
 }
