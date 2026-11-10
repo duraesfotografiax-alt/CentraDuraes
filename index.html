@@ -1746,13 +1746,17 @@ async function gfetch(url,opt,tentou){opt=opt||{};const t=await token();
   if(r.status===401&&!tentou){gTok=null;gExp=0;return gfetch(url,opt,true)}
   if(!r.ok){let m='';try{m=(await r.json()).error.message}catch(_){}throw new Error(r.status===404?'Pasta não encontrada ou sem permissão para esta conta Google.':(m||'Erro do Google Drive ('+r.status+')'))}
   return r}
+/* O Drive às vezes marca vídeo/foto como "application/octet-stream" (arquivo vindo de câmera, WhatsApp, app de edição…): descobre pelo final do nome */
+const EXT_MIDIA={mp4:'video/mp4',mov:'video/quicktime',m4v:'video/x-m4v',webm:'video/webm',avi:'video/x-msvideo',mkv:'video/x-matroska','3gp':'video/3gpp',mts:'video/mp2t',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'};
+function acertaMime(f){if(!f||!f.mimeType||/^(video|image)\//.test(f.mimeType)||f.mimeType==='application/vnd.google-apps.folder'||/^application\/vnd\.google-apps\./.test(f.mimeType))return f;
+  const m=EXT_MIDIA[(String(f.name||'').split('.').pop()||'').toLowerCase()];return m?Object.assign({},f,{mimeType:m}):f}
 async function dListar(id,soPastas){
   let q=id==='shared'?'sharedWithMe=true and trashed=false':"'"+id+"' in parents and trashed=false";
   if(soPastas)q+=" and (mimeType='"+FOLDER+"' or mimeType='application/vnd.google-apps.shortcut')";
   let out=[],pt='';
   do{const u=DAPI+'/files?q='+encodeURIComponent(q)+'&fields='+encodeURIComponent(DF)+'&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true'+(id==='shared'?'':'&orderBy=folder,name_natural')+(pt?'&pageToken='+pt:'');
     const j=await(await gfetch(u)).json();out=out.concat(j.files||[]);pt=j.nextPageToken||''}while(pt&&out.length<2000);
-  return out.map(f=>f.mimeType==='application/vnd.google-apps.shortcut'&&f.shortcutDetails?Object.assign({},f,{id:f.shortcutDetails.targetId,mimeType:f.shortcutDetails.targetMimeType}):f)
+  return out.map(f=>f.mimeType==='application/vnd.google-apps.shortcut'&&f.shortcutDetails?Object.assign({},f,{id:f.shortcutDetails.targetId,mimeType:f.shortcutDetails.targetMimeType}):f).map(acertaMime)
     .filter(f=>!soPastas||f.mimeType===FOLDER).sort((a,b)=>(a.mimeType===FOLDER?0:1)-(b.mimeType===FOLDER?0:1)||String(a.name).localeCompare(String(b.name),'pt',{numeric:true}))}
 async function dCriarPasta(nome,pai){const j=await(await gfetch(DAPI+'/files?supportsAllDrives=true&fields=id,name,webViewLink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nome,mimeType:FOLDER,parents:[pai]})})).json();return j}
 async function dAcharPasta(nome,pai){const q="'"+pai+"' in parents and trashed=false and mimeType='"+FOLDER+"' and name='"+String(nome).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
@@ -3616,7 +3620,7 @@ function blocoIG(l){const pg=pagDaLoja(l),m=igDaLoja(l);
 document.addEventListener('click',e=>{if(e.target.closest('[data-verig]')){S.verIG=!S.verIG;renderClientes()}});
 
 async function arquivosDoLink(link){const id=driveId(link);if(!id)return [];
-  const i=await dInfo(id);if(i.mimeType!==FOLDER)return [i];
+  const i=await dInfo(id);if(i.mimeType!==FOLDER)return [acertaMime(i)];
   const c=await coletarMidia(id,true);return c.arqs}
 async function deixarPublico(id){try{await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}catch(e){throw new Error('Não consegui liberar o arquivo no Drive: '+e.message)}}
 
