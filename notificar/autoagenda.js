@@ -49,7 +49,7 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
   (await db.collection('lojas').get()).docs.forEach((d) => { const l = d.data(); if (l.autoAprov && l.ativo !== false) lojas[d.id] = { id: d.id, ...l }; });
   if (!Object.keys(lojas).length) return 0;
 
-  const aprs = (await db.collection('aprovacoes').orderBy('respEm', 'desc').limit(25).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.respEm && lojas[a.loja]);
+  const aprs = (await db.collection('aprovacoes').orderBy('respEm', 'desc').limit(25).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.respEm && lojas[a.loja] && !a.download); // link com download = o cliente posta, a Central não agenda
   if (!aprs.length) return 0;
   const prontos = {};
   (await db.collection('posts').where('status', '==', 'pronto').get()).docs.forEach((d) => { prontos[d.id] = { id: d.id, ...d.data() }; });

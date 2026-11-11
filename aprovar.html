@@ -40,6 +40,7 @@ h1{font-family:var(--display);font-size:clamp(22px,4.5vw,30px);line-height:1.2;m
 .acts{display:flex;gap:8px;flex-wrap:wrap;padding:4px 16px 16px}
 .acts .btn{flex:1;min-width:140px}
 .ajuste{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.dl{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}.dl .btn{width:100%;text-decoration:none}.dl small{color:var(--muted);font-size:12.5px;line-height:1.4}
 textarea,input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px}
 .st{margin:0 16px 16px;padding:10px 14px;border-radius:12px;font-weight:700}
 .st.ok{background:rgba(52,211,153,.14);color:var(--ok)}.st.aj{background:rgba(245,185,66,.14);color:var(--warn)}
@@ -65,6 +66,12 @@ const FONTES=[f=>KEY?'https://www.googleapis.com/drive/v3/files/'+encodeURICompo
   f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t',
   f=>'https://drive.google.com/uc?export=download&id='+encodeURIComponent(f)].map(fn=>f=>fn(f));
 const vid=f=>FONTES.map(fn=>fn(f)).find(Boolean);
+/* download em qualidade original (só quando a Elite liberou neste link e o post já foi aprovado) */
+const baixarUrl=f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t';
+const ehIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function blocoDl(it){const fs=it.arquivos||[];if(!A.download||it.status!=='aprovado'||!fs.length)return '';
+  return '<div class="dl">'+fs.map((f,k)=>'<a class="btn pri" href="'+baixarUrl(f.id)+'" target="_blank" rel="noopener" download="'+esc(f.nome||'')+'">⬇ Baixar '+(/^video\//.test(f.mime)?'vídeo':'foto')+(fs.length>1?' '+(k+1):'')+'</a>').join('')+
+    '<small>Qualidade original.'+(ehIOS?' No iPhone o arquivo vai para o app Arquivos: abra, toque em Compartilhar e depois em Salvar vídeo/imagem para mandar para a Galeria.':'')+'</small></div>'}
 const TP={reels:'Reels',feed:'Feed',carrossel:'Carrossel',stories:'Stories'};
 let A=null,ref=null,nome='';
 try{nome=localStorage.getItem('aprovNome')||''}catch(_){}
@@ -82,11 +89,11 @@ function midia(it){const fs=it.arquivos||[];
     (fs.length>1?'<div class="dots">'+fs.map((_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')}
 function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando').length;
   document.title='Aprovação · '+(A.lojaNome||'');
-  app.innerHTML='<div class="wrap"><header><div class="lg"></div><h1>Aprovação de conteúdo</h1><p class="sub">'+esc(A.lojaNome||'')+' · '+its.length+' post'+(its.length>1?'s':'')+'. Veja cada um e toque em <b>Aprovar</b> ou <b>Pedir ajuste</b>.</p></header>'+
+  app.innerHTML='<div class="wrap"><header><div class="lg"></div><h1>Aprovação de conteúdo</h1><p class="sub">'+esc(A.lojaNome||'')+' · '+its.length+' post'+(its.length>1?'s':'')+'. Veja cada um e toque em <b>Aprovar</b> ou <b>Pedir ajuste</b>.'+(A.download?' Depois de aprovar, aparece o botão para <b>baixar</b> em qualidade original.':'')+'</p></header>'+
     '<div class="topo"><input type="text" id="nm" placeholder="Seu nome (opcional)" value="'+esc(nome)+'">'+(pend>1?'<button class="btn ok" data-tudo>✓ Aprovar todos ('+pend+')</button>':'')+'</div>'+
     its.map((it,i)=>'<div class="item"><div class="ih"><b>'+esc(it.titulo)+'</b><span class="tp">'+(TP[it.tipo]||'Post')+'</span></div>'+midia(it)+
       (it.legenda?'<div class="leg"><small>Legenda</small>'+esc(it.legenda)+'</div>':'')+
-      (it.status==='aprovado'?'<div class="st ok">✓ Aprovado'+(it.por?' por '+esc(it.por):'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">desfazer</button></div>':
+      (it.status==='aprovado'?'<div class="st ok">✓ Aprovado'+(it.por?' por '+esc(it.por):'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">desfazer</button></div>'+blocoDl(it):
        it.status==='ajuste'?'<div class="st aj">Ajuste pedido: '+esc(it.obs||'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">mudar</button></div>':
        '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')+
     '</div>').join('')+'</div><footer>Elite Marketing Digital</footer>';

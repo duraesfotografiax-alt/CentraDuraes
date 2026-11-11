@@ -177,8 +177,20 @@ async function rodada() {
     for (const it of (ap.itens || []).filter((x) => x.status === 'aprovado' || x.status === 'ajuste')) {
       const chave = `aprov_${ap.id}_${it.post}_${it.status}_${String(it.em || '').replace(/[^0-9]/g, '')}`;
       if (await jaFoi(chave)) continue;
+      // cliente que posta sozinho (download liberado no link): aprovou = entregue, o card vai direto para "No ar"
+      let foiNoAr = false;
+      if (ap.download && it.status === 'aprovado' && it.post) {
+        try {
+          const pref = db.collection('posts').doc(it.post), pd = (await pref.get()).data();
+          if (pd && pd.status === 'pronto' && !pd.pubStatus) {
+            await pref.update({ status: 'publicado', publicadoEm: agoraIsoFn(), entregueCliente: true, obs: `Aprovado${it.por ? ' por ' + it.por : ''} pelo cliente · download liberado, ele mesmo posta` });
+            foiNoAr = true;
+            console.log(`Aprovação: ${ap.lojaNome || ''} · ${it.titulo} foi para No ar (cliente posta sozinho)`);
+          }
+        } catch (e) { console.error('Aprovação (No ar):', e.message); }
+      }
       const tit = it.status === 'aprovado' ? `Cliente aprovou: ${ap.lojaNome || ''}` : `Cliente pediu ajuste: ${ap.lojaNome || ''}`;
-      const corpo = it.status === 'aprovado' ? `${it.titulo} pode ir para a programação${it.por ? ' (' + it.por + ')' : ''}.` : `${it.titulo}: ${String(it.obs || '').slice(0, 120)}`;
+      const corpo = it.status === 'aprovado' ? (ap.download ? `${it.titulo}: o download foi liberado para o cliente postar${foiNoAr ? '; o card foi para No ar' : ''}${it.por ? ' (' + it.por + ')' : ''}.` : `${it.titulo} pode ir para a programação${it.por ? ' (' + it.por + ')' : ''}.`) : `${it.titulo}: ${String(it.obs || '').slice(0, 120)}`;
       for (const u of usuarios) await enviar(u, tit, corpo);
       await marcar(chave);
     }

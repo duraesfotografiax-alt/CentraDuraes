@@ -3358,6 +3358,7 @@ function escolherAprovacao(l){
   sheet.innerHTML='<form id="fEsA" novalidate style="max-width:560px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0;font-size:14px">Marque os conteúdos que vão juntos no mesmo link para <b style="color:var(--ink)">'+esc(l.nome||'')+'</b>.</p>'+
     '<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn sm ghost" id="esaTodos">Marcar todos</button><button type="button" class="btn sm ghost" id="esaNenhum">Desmarcar todos</button></div>'+
     '<div id="esaL" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:55vh;overflow:auto"></div>'+
+    '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;cursor:pointer"><input type="checkbox" id="esaDl" '+(l.baixarAprov?'checked':'')+' style="width:18px;height:18px;flex:none;margin-top:2px"><span><b>O cliente posta sozinho</b><br><small class="muted">Depois que ele aprovar, aparece no link o botão para baixar as fotos e vídeos em qualidade original.</small></span></label>'+
     '<div class="err" id="esaErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit" id="esaOk"></button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x);
   const pinta=()=>{q('#esaL').innerHTML=todos.map(p=>{const ap=aprovDe(p.id),st=ap?(ap.status==='aprovado'?'já aprovado':ap.status==='ajuste'?'pediram ajuste':'já mandado, aguardando'):'';
@@ -3369,7 +3370,9 @@ function escolherAprovacao(l){
   q('#esaL').addEventListener('change',e=>{const c=e.target.closest('[data-esa]');if(!c)return;if(c.checked)sel.add(c.dataset.esa);else sel.delete(c.dataset.esa);pinta()});
   q('#esaL').addEventListener('click',e=>{const v=e.target.closest('[data-esv]');if(!v)return;const p=todos.find(x=>x.id===v.dataset.esv);if(p)verMidia(()=>arquivosDoLink(p.drive))});
   q('#esaTodos').onclick=()=>{todos.forEach(p=>sel.add(p.id));pinta()};q('#esaNenhum').onclick=()=>{sel.clear();pinta()};
-  q('#fEsA').onsubmit=e=>{e.preventDefault();const ps=todos.filter(p=>sel.has(p.id));if(!ps.length){q('#esaErr').textContent='Marque pelo menos 1 conteúdo.';return}enviarAprovacao(ps,l)};
+  q('#fEsA').onsubmit=e=>{e.preventDefault();const ps=todos.filter(p=>sel.has(p.id));if(!ps.length){q('#esaErr').textContent='Marque pelo menos 1 conteúdo.';return}
+    const dl=q('#esaDl').checked;if(S.adm&&dl!==!!l.baixarAprov){try{store.update('lojas',l.id,{baixarAprov:dl}).catch(()=>{})}catch(_){}}
+    enviarAprovacao(ps,Object.assign({},l,{baixarAprov:dl}))};
   pinta()}
 async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){toast('Os conteúdos precisam ter o link do Drive.');return}
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0" id="apTx">Preparando '+ps.length+' conteúdo'+(ps.length>1?'s':'')+'…</p><div class="upbar"><i id="apBar" style="width:5%"></i></div></form>';sheet.hidden=false;
@@ -3380,9 +3383,9 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
       for(const f of fs){if(!(await publicoOk(f.id)))barrados.push(f.name||f.id)}
       itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType||''},dimsDe(f))),status:'aguardando',obs:''});
       const bar=document.getElementById('apBar');if(bar)bar.style.width=Math.round(k/ps.length*100)+'%'}
-    const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0};
+    const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0,download:!!loja.baixarAprov};
     const id=idAleatorio();await write(()=>db.collection('aprovacoes').doc(id).set(doc));
-    const msg='Olá, pessoal da '+loja.nome+'! 👋 Seguem '+(ps.length>1?ps.length+' conteúdos':'o conteúdo')+' para aprovação antes de postar. É só abrir, ver e tocar em Aprovar (ou pedir ajuste):\n'+linkAprov(id);
+    const msg='Olá, pessoal da '+loja.nome+'! 👋 Seguem '+(ps.length>1?ps.length+' conteúdos':'o conteúdo')+' para aprovação antes de postar. É só abrir, ver e tocar em Aprovar (ou pedir ajuste)'+(loja.baixarAprov?'. Depois de aprovar, aparece o botão para baixar em qualidade original':'')+':\n'+linkAprov(id);
     const avisoPub=barrados.length?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+barrados.length+' arquivo'+(barrados.length>1?'s não estão':' não está')+' aberto'+(barrados.length>1?'s':'')+' para o cliente ('+esc(barrados.slice(0,3).join(', '))+(barrados.length>3?'…':'')+'). No Drive, abra o arquivo/pasta → Compartilhar → Acesso geral → "Qualquer pessoa com o link" (Leitor). Se a opção não aparecer, a conta do Drive bloqueia compartilhamento externo.</div>':'';
     sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+avisoPub+
       '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
