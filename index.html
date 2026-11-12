@@ -3360,9 +3360,28 @@ function chipAprov(p){const a=aprovDe(p.id);if(!a)return '';
   const fal=a.falha&&a.status!=='aprovado'&&a.status!=='ajuste'?'<span class="chip late" style="white-space:normal" title="'+esc(a.falha.ua||'')+'">⚠ O cliente não conseguiu tocar o vídeo no celular</span>':'';
   if(a.status==='aprovado')return fal+'<span class="chip rec">✓ Cliente aprovou'+(a.por?' ('+esc(a.por)+')':'')+'</span>';
   if(a.status==='ajuste')return fal+'<span class="chip late" style="white-space:normal">Pediram ajuste'+(a.obs?': '+esc(a.obs):'')+'</span>';
-  return fal+'<span class="chip eq">Aguardando aprovação</span>'}
+  const A=(S.aprovacoes||[]).find(x=>x.id===a.aid);const pp=A?prepAprov(A):{pronto:true};
+  if(!pp.pronto)return fal+'<span class="chip eq" style="white-space:normal">⏳ Preparando o player ('+pp.ok+' de '+pp.total+') · o link libera quando terminar</span>';
+  return fal+'<span class="chip eq">Aguardando aprovação</span>'+(A&&!A.respEm?'<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn sm primary" data-aplink="'+esc(A.id)+'">📋 Copiar link</button><button type="button" class="btn sm" data-aplink="'+esc(A.id)+'" data-modo="wa">WhatsApp</button></span>':'')}
 /* confere, como o cliente (sem login), se o arquivo abre: se não abrir, o vídeo/foto não vai aparecer na aprovação */
 async function publicoOk(fid){try{const k=(self.FIREBASE_CONFIG||{}).apiKey||'';const r=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fid)+'?fields=id&supportsAllDrives=true&key='+encodeURIComponent(k),{credentials:'omit'});return r.ok}catch(_){return true}}
+/* vídeos de um link de aprovação: quantos já estão prontos no player (Bunny) */
+function prepAprov(a){const vs=[];for(const it of (a.itens||[]))for(const f of (it.arquivos||[]))if(/^video\//.test(f.mime||''))vs.push(f.id);
+  const pv=a.previas||{};let ok=0,falhou=0;for(const fid of vs){const x=pv[fid];if(x&&x.ok)ok++;else if(x&&x.erro&&(x.n||0)>=3)falhou++}
+  const velho=!!a.criadoEm&&Date.now()-Date.parse(a.criadoEm)>60*60e3;
+  return {total:vs.length,ok,falhou,velho,liberado:!!a.liberado,pronto:!vs.length||ok+falhou>=vs.length||velho||!!a.liberado}}
+function msgAprov(A){const n=(A.itens||[]).length;return 'Olá, pessoal da '+(A.lojaNome||'')+'! 👋 Seguem '+(n>1?n+' conteúdos':'o conteúdo')+' para aprovação antes de postar. É só abrir, ver e tocar em Aprovar (ou pedir ajuste)'+(A.download?'. Depois de aprovar, aparece o botão para baixar em qualidade original':'')+':\n'+linkAprov(A.id)}
+function esperaAprov(id,montar){const ref=db.collection('aprovacoes').doc(id);let un=null,primeiro=true,feito=false;
+  const desenha=a=>{const p=prepAprov(a);if(p.pronto){feito=true;if(un)un();montar(p);return}
+    const pc=p.total?Math.max(8,Math.round(p.ok/p.total*100)):8;
+    sheet.innerHTML='<form id="apEsp" novalidate onsubmit="return false" style="max-width:480px"><h2>Preparando o player do vídeo</h2><p class="muted" style="margin:0">O link libera assim que o vídeo estiver convertido, para o cliente já abrir assistindo (costuma levar de 3 a 6 minutos).</p><div class="upbar"><i style="width:'+pc+'%"></i></div>'+
+      '<p class="hint" style="margin:0"><b>'+p.ok+' de '+p.total+'</b> vídeo'+(p.total>1?'s':'')+' pronto'+(p.total>1?'s':'')+(p.falhou?' · '+p.falhou+' com erro':'')+'</p>'+
+      '<p class="hint" style="margin:0">Pode fechar esta janela: quando ficar pronto, o card mostra o botão amarelo <b>Copiar link</b>.</p>'+
+      '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn ghost" id="apLib" title="O cliente vai ver o vídeo pelo Google Drive até o player ficar pronto">Liberar mesmo assim</button></div></form>';
+    sheet.hidden=false;const lb=sheet.querySelector('#apLib');if(lb)lb.onclick=async()=>{lb.disabled=true;try{await db.collection('aprovacoes').doc(id).update({liberado:true})}catch(_){lb.disabled=false;toast('Não consegui liberar. Tente de novo.')}}};
+  un=ref.onSnapshot(d=>{if(feito||!d.exists)return;if(!primeiro&&(sheet.hidden||!document.getElementById('apEsp'))){if(un)un();return}primeiro=false;desenha(Object.assign({id},d.data()))},()=>{})}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-aplink]');if(!b)return;e.preventDefault();const A=(S.aprovacoes||[]).find(x=>x.id===b.dataset.aplink);if(!A)return;
+  if(b.dataset.modo==='wa')abrirWhats(msgAprov(A));else dCopiar(msgAprov(A))});
 /* escolher quais cards de "Para programar" vão juntos no mesmo link de aprovação */
 function escolherAprovacao(l){
   const todos=S.posts.filter(p=>p.loja===l.id&&p.status==='pronto'&&p.drive).sort((a,b)=>(aprovDe(a.id)?1:0)-(aprovDe(b.id)?1:0)||String(a.titulo).localeCompare(String(b.titulo),'pt',{numeric:true}));
@@ -3398,11 +3417,15 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
       const bar=document.getElementById('apBar');if(bar)bar.style.width=Math.round(k/ps.length*100)+'%'}
     const doc={loja:loja.id,lojaNome:loja.nome,itens,criadoEm:new Date().toISOString(),criadoPor:meuMembro()||'',respEm:'',aberturas:0,download:!!loja.baixarAprov};
     const id=idAleatorio();await write(()=>db.collection('aprovacoes').doc(id).set(doc));
-    const msg='Olá, pessoal da '+loja.nome+'! 👋 Seguem '+(ps.length>1?ps.length+' conteúdos':'o conteúdo')+' para aprovação antes de postar. É só abrir, ver e tocar em Aprovar (ou pedir ajuste)'+(loja.baixarAprov?'. Depois de aprovar, aparece o botão para baixar em qualidade original':'')+':\n'+linkAprov(id);
+    const msg=msgAprov(Object.assign({id},doc));
     const avisoPub=barrados.length?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+barrados.length+' arquivo'+(barrados.length>1?'s não estão':' não está')+' aberto'+(barrados.length>1?'s':'')+' para o cliente ('+esc(barrados.slice(0,3).join(', '))+(barrados.length>3?'…':'')+'). No Drive, abra o arquivo/pasta → Compartilhar → Acesso geral → "Qualquer pessoa com o link" (Leitor). Se a opção não aparecer, a conta do Drive bloqueia compartilhamento externo.</div>':'';
-    sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+avisoPub+
+    /* o link só é liberado quando o player (Bunny) dos vídeos estiver pronto: assim o cliente já abre assistindo */
+    const montar=pp=>{const avisoPlayer=pp&&pp.falhou?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+pp.falhou+' vídeo'+(pp.falhou>1?'s não ficaram':' não ficou')+' pronto'+(pp.falhou>1?'s':'')+' no player; '+(pp.falhou>1?'eles abrem':'ele abre')+' pelo Google Drive.</div>':pp&&!pp.liberado&&pp.velho&&pp.ok<pp.total?'<div class="pushbox" style="color:var(--warn);font-size:14px">O player não ficou pronto em 1 hora; os vídeos que faltam abrem pelo Google Drive.</div>':'';
+    sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+avisoPub+avisoPlayer+
       '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
-    sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)}
+    sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)};
+    if(!prepAprov(doc).total){montar(null);return}
+    esperaAprov(id,montar)}
   catch(er){sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Não deu certo</h2><p class="err">'+esc(er.message||'Erro')+'</p><div class="formacts"><button type="button" class="btn" data-close>Fechar</button></div></form>'}}
 /* aviso do robô de postagem: post que passou do horário e o último sinal de vida do robô */
 function renderRobo(){const el=document.getElementById('roboSt');if(!el)return;
