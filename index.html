@@ -3279,18 +3279,31 @@ async function sincProntos_(l,manual){
   /* guarda tudo que está dentro de uma pasta ignorada, inclusive subpastas (Já postados › Semana 1 › vídeo) */
   const marca=async(id,nv)=>{ignorados.add(id);if(nv>3)return;try{for(const x of await dListar(id)){ignorados.add(x.id);if(x.mimeType===FOLDER)await marca(x.id,nv+1)}}catch(_){}};
   const vistos=new Set();
-  const trata=async(lista,dentroTipo,soVideo)=>{for(const f of lista){
+  /* formato pelo nome da pasta/arquivo ("04 - Stories", "Carrossel Pre-Wedding", "Promo - feed.png") e pela proporção (arte em pé 9:16 = Stories) */
+  const tipoNome=s=>{const t=nrmC(s);return /stor(y|ies|ys)\b|\bstorie\b/.test(t)?'stories':/carross/.test(t)?'carrossel':/\breels?\b/.test(t)?'reels':/\bfeed\b/.test(t)?'feed':''};
+  const emPe=f=>{const d=dimsDe(f);return !!(d.w&&d.h&&d.h/d.w>=1.6)};
+  const midia=x=>/^(image|video)\//.test(x.mimeType||'');
+  const nomeC=(pre,n)=>(pre?pre+' · ':'')+n;
+  /* ctx: dentroTipo (já está numa pasta "Fotos"/"Vídeos"/"Stories"), soVideo, forca (formato que a pasta-mãe manda), pre (nome do projeto), nv (profundidade) */
+  const trata=async(lista,ctx)=>{ctx=ctx||{};const nv0=ctx.nv||0;for(const f of lista){
     if(f.mimeType===FOLDER){
       if(ignora(f.name)){await marca(f.id,0);continue}
-      if(!dentroTipo&&ehTipoP(f.name)){await trata(await dListar(f.id),true,ehVidP(f.name));continue}
-      if(soVideo)continue;
-      vistos.add(f.id);const den=(await dListar(f.id)).filter(x=>/^(image|video)\//.test(x.mimeType||''));if(!den.length||!den.some(novoArq))continue;
-      const nv=den.filter(x=>/^video/.test(x.mimeType)).length;await novo(f.id,f.name,den.length===1&&nv?'reels':den.length>1?'carrossel':nv?'reels':'feed','https://drive.google.com/drive/folders/'+f.id);continue}
+      if(!ctx.dentroTipo&&ehTipoP(f.name)){const fz=tipoNome(f.name);await trata(await dListar(f.id),{dentroTipo:true,soVideo:ehVidP(f.name)&&fz!=='stories',forca:fz,pre:ctx.pre,nv:nv0+1});continue}
+      if(ctx.soVideo)continue;
+      vistos.add(f.id);const tudo=await dListar(f.id),den=tudo.filter(midia),subs=tudo.filter(x=>x.mimeType===FOLDER&&!ignora(x.name));
+      /* pasta de projeto (ex.: "Monica e max") só com subpastas dentro: entra nelas e cada uma vira um card */
+      if(!den.length){if(subs.length&&nv0<3)await trata(tudo,{pre:nomeC(ctx.pre,f.name),nv:nv0+1,forca:tipoNome(f.name)||ctx.forca});continue}
+      if(!den.some(novoArq))continue;
+      const nvid=den.filter(x=>/^video/.test(x.mimeType)).length,fz=tipoNome(f.name)||ctx.forca;
+      let tipo=fz||(den.length===1&&nvid?'reels':den.length>1?'carrossel':nvid?'reels':'feed');
+      if(!fz&&!nvid&&den.every(emPe))tipo='stories';
+      await novo(f.id,nomeC(ctx.pre,f.name),tipo,'https://drive.google.com/drive/folders/'+f.id);continue}
     vistos.add(f.id);if(!novoArq(f))continue;
-    if(/^video\//.test(f.mimeType||''))await novo(f.id,f.name,'reels','https://drive.google.com/file/d/'+f.id+'/view');
-    else if(/^image\//.test(f.mimeType||''))await novo(f.id,f.name,'feed','https://drive.google.com/file/d/'+f.id+'/view')}};
+    const fz=tipoNome(f.name)||ctx.forca;
+    if(/^video\//.test(f.mimeType||''))await novo(f.id,nomeC(ctx.pre,f.name),fz==='stories'?'stories':'reels','https://drive.google.com/file/d/'+f.id+'/view');
+    else if(/^image\//.test(f.mimeType||''))await novo(f.id,nomeC(ctx.pre,f.name),fz==='stories'||(!fz&&emPe(f))?'stories':'feed','https://drive.google.com/file/d/'+f.id+'/view')}};
   const ignorados=new Set();
-  await trata(fs,false,false);
+  await trata(fs,{});
   /* o que foi movido para "Já postados" (ou parecido) sai de Para programar sozinho */
   /* card que não está mais nas pastas válidas: confere no Drive onde o arquivo foi parar. Se foi para a lixeira
      ou para qualquer pasta tipo "Já postados" (em qualquer lugar do Drive), sai de Para programar */
