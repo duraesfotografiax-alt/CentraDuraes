@@ -79,6 +79,7 @@ async function rodada() {
   try { await require('./legendas').processar({ db, agoraIso: agoraIso0 }); } catch (e) { console.error('Legendas:', e.message); }
   try { await require('./audios').processar({ db }); } catch (e) { console.error('Músicas:', e.message); }
   try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); }
+  try { await require('./previas').preConverter({ db }); } catch (e) { console.error('Prévias antecipadas:', e.message); }
   try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
   // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
@@ -183,7 +184,7 @@ async function rodada() {
         try {
           const pref = db.collection('posts').doc(it.post), pd = (await pref.get()).data();
           if (pd && pd.status === 'pronto' && !pd.pubStatus) {
-            await pref.update({ status: 'publicado', publicadoEm: agoraIsoFn(), entregueCliente: true, obs: `Aprovado${it.por ? ' por ' + it.por : ''} pelo cliente · download liberado, ele mesmo posta` });
+            await pref.update({ status: 'publicado', publicadoEm: agoraIsoFn(), entregueCliente: true, obs: `Aprovado pelo cliente${it.por ? ' (' + it.por + ')' : ''} · download liberado, ele mesmo posta` });
             foiNoAr = true;
             console.log(`Aprovação: ${ap.lojaNome || ''} · ${it.titulo} foi para No ar (cliente posta sozinho)`);
           }
@@ -350,7 +351,7 @@ async function plantao() {
   const unsubLeg = db.collection('legendas').where('status', '==', 'pedido').onSnapshot(
     (sn) => { pedLeg = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (legendas):', e.message));
-  let apDocs = [], ultPrev = 0;
+  let apDocs = [], ultPrev = 0, ultPre = 0;
   const unsubAp = db.collection('aprovacoes').orderBy('criadoEm', 'desc').limit(20).onSnapshot(
     (sn) => { apDocs = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (aprovações):', e.message));
@@ -366,13 +367,15 @@ async function plantao() {
   let ultTent = 0, ultBat = Date.now();
   console.log('Plantão ligado por ~9 min');
   while (Date.now() < FIM) {
-    await espera((Number(process.env.PLANTAO_SEG) || 20) * 1e3);
+    const prevPend = require('./previas').pendentes(apDocs);
+    await espera((prevPend ? 8 : (Number(process.env.PLANTAO_SEG) || 20)) * 1e3); // com vídeo convertendo, confere mais vezes
     if (Date.now() - ultBat > 120e3) { ultBat = Date.now(); await batimento(); }
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
     if (pedAud.length) { const l = pedAud; pedAud = []; try { await require('./audios').processar({ db, pedidos: l }); } catch (e) { console.error('Músicas:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
-    if (Date.now() - ultPrev > 45e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
+    if (Date.now() - ultPre > 60e3) { ultPre = Date.now(); try { await require('./previas').preConverter({ db }); } catch (e) { console.error('Prévias antecipadas:', e.message); } }
+    if (Date.now() - ultPrev > 12e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
     const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
     if (!vencidos.length || Date.now() - ultTent < 45e3) continue;
     ultTent = Date.now();

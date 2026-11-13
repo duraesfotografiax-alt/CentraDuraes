@@ -41,7 +41,7 @@ module.exports = async function prontos({ db, agoraIso, hoje }) {
     let out = [], pt = '';
     do {
       const q = encodeURIComponent(`'${id}' in parents and trashed=false`);
-      const j = await g(`${DAPI}/files?q=${q}&fields=nextPageToken,files(id,name,mimeType,modifiedTime,createdTime)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true${pt ? '&pageToken=' + pt : ''}`);
+      const j = await g(`${DAPI}/files?q=${q}&fields=nextPageToken,files(id,name,mimeType,modifiedTime,createdTime,size,imageMediaMetadata(width,height,rotation))&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true${pt ? '&pageToken=' + pt : ''}`);
       out = out.concat(j.files || []); pt = j.nextPageToken || '';
     } while (pt);
     return out.sort((a, b) => a.name.localeCompare(b.name, 'pt', { numeric: true }));
@@ -67,26 +67,36 @@ module.exports = async function prontos({ db, agoraIso, hoje }) {
       if (meses.length) fs = await listar(meses[0].f.id);
       const ignorados = new Set(), vistos = new Set();
       const marca = async (id, nv) => { ignorados.add(id); if (nv > 3) return; try { for (const x of await listar(id)) { ignorados.add(x.id); if (x.mimeType === FOLDER) await marca(x.id, nv + 1); } } catch (_) {} };
-      const trata = async (lista, dentroTipo, soVideo) => {
+      // mesma regra do app: entra nas pastas de projeto (só com subpastas), formato pelo nome ("Stories", "Carrossel"…) e pela proporção (9:16 = Stories)
+      const tipoNome = (x) => { const t = nrm(x); return /stor(y|ies|ys)\b|\bstorie\b/.test(t) ? 'stories' : /carross/.test(t) ? 'carrossel' : /\breels?\b/.test(t) ? 'reels' : /\bfeed\b/.test(t) ? 'feed' : ''; };
+      const emPe = (f) => { const m = f.imageMediaMetadata; if (!m || !m.width || !m.height) return false; const g = (m.rotation || 0) % 2 === 1; const w = g ? m.height : m.width, h = g ? m.width : m.height; return h / w >= 1.6; };
+      const midia = (x) => /^(image|video)\//.test(x.mimeType || '');
+      const nomeC = (pre, nm) => (pre ? pre + ' · ' : '') + nm;
+      const trata = async (lista, ctx) => {
+        ctx = ctx || {}; const nv0 = ctx.nv || 0;
         for (const f of lista) {
           if (f.mimeType === FOLDER) {
             if (ignora(f.name)) { await marca(f.id, 0); continue; }
-            if (!dentroTipo && ehTipo(f.name)) { await trata(await listar(f.id), true, ehVid(f.name)); continue; }
-            if (soVideo) continue;
+            if (!ctx.dentroTipo && ehTipo(f.name)) { const fz = tipoNome(f.name); await trata(await listar(f.id), { dentroTipo: true, soVideo: ehVid(f.name) && fz !== 'stories', forca: fz, pre: ctx.pre, nv: nv0 + 1 }); continue; }
+            if (ctx.soVideo) continue;
             vistos.add(f.id);
-            const den = (await listar(f.id)).filter((x) => /^(image|video)\//.test(x.mimeType || ''));
-            if (!den.length || !den.some(novoArq)) continue;
-            const nv = den.filter((x) => /^video/.test(x.mimeType)).length;
-            await novo(f.id, f.name, den.length === 1 && nv ? 'reels' : den.length > 1 ? 'carrossel' : nv ? 'reels' : 'feed', 'https://drive.google.com/drive/folders/' + f.id);
+            const tudo = await listar(f.id), den = tudo.filter(midia), subs = tudo.filter((x) => x.mimeType === FOLDER && !ignora(x.name));
+            if (!den.length) { if (subs.length && nv0 < 3) await trata(tudo, { pre: nomeC(ctx.pre, f.name), nv: nv0 + 1, forca: tipoNome(f.name) || ctx.forca }); continue; }
+            if (!den.some(novoArq)) continue;
+            const nvid = den.filter((x) => /^video/.test(x.mimeType)).length, fz = tipoNome(f.name) || ctx.forca;
+            let tipo = fz || (den.length === 1 && nvid ? 'reels' : den.length > 1 ? 'carrossel' : nvid ? 'reels' : 'feed');
+            if (!fz && !nvid && den.every(emPe)) tipo = 'stories';
+            await novo(f.id, nomeC(ctx.pre, f.name), tipo, 'https://drive.google.com/drive/folders/' + f.id);
             continue;
           }
           vistos.add(f.id);
           if (!novoArq(f)) continue;
-          if (/^video\//.test(f.mimeType || '')) await novo(f.id, f.name, 'reels', 'https://drive.google.com/file/d/' + f.id + '/view');
-          else if (/^image\//.test(f.mimeType || '')) await novo(f.id, f.name, 'feed', 'https://drive.google.com/file/d/' + f.id + '/view');
+          const fz = tipoNome(f.name) || ctx.forca;
+          if (/^video\//.test(f.mimeType || '')) await novo(f.id, nomeC(ctx.pre, f.name), fz === 'stories' ? 'stories' : 'reels', 'https://drive.google.com/file/d/' + f.id + '/view');
+          else if (/^image\//.test(f.mimeType || '')) await novo(f.id, nomeC(ctx.pre, f.name), fz === 'stories' || (!fz && emPe(f)) ? 'stories' : 'feed', 'https://drive.google.com/file/d/' + f.id + '/view');
         }
       };
-      await trata(fs, false, false);
+      await trata(fs, {});
       // Liga os cards novos ao serviço da Produção: o arquivo chegou no Drive, então o serviço mais antigo da loja que está em edição passa para "Entregue"
       try {
         const sem = posts.filter((p) => p.origem && !p.tar && !p.tarTentado && p.status === 'pronto' && String(p.editadoEm || '') >= trasDe(hoje, 2));

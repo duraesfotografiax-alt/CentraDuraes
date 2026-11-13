@@ -69,9 +69,30 @@ const vid=f=>FONTES.map(fn=>fn(f)).find(Boolean);
 /* download em qualidade original (só quando a Elite liberou neste link e o post já foi aprovado) */
 const baixarUrl=f=>'https://drive.usercontent.google.com/download?id='+encodeURIComponent(f)+'&export=download&confirm=t';
 const ehIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-function blocoDl(it){const fs=it.arquivos||[];if(!A.download||it.status!=='aprovado'||!fs.length)return '';
-  return '<div class="dl">'+fs.map((f,k)=>'<a class="btn pri" href="'+baixarUrl(f.id)+'" target="_blank" rel="noopener" download="'+esc(f.nome||'')+'">⬇ Baixar '+(/^video\//.test(f.mime)?'vídeo':'foto')+(fs.length>1?' '+(k+1):'')+'</a>').join('')+
-    '<small>Qualidade original.'+(ehIOS?' No iPhone o arquivo vai para o app Arquivos: abra, toque em Compartilhar e depois em Salvar vídeo/imagem para mandar para a Galeria.':'')+'</small></div>'}
+const ehCel=ehIOS||/Android|Mobi/i.test(navigator.userAgent);
+const apiUrl=f=>'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(f)+'?alt=media&supportsAllDrives=true&key='+encodeURIComponent(KEY);
+function blocoDl(it,i){const fs=it.arquivos||[];if(!A.download||it.status!=='aprovado'||!fs.length)return '';
+  const um=(f,k)=>'<a class="btn'+(fs.length>1?'':' pri')+'" href="'+baixarUrl(f.id)+'" target="_blank" rel="noopener" download="'+esc(f.nome||'')+'">⬇ Baixar '+(/^video\//.test(f.mime)?'vídeo':'foto')+(fs.length>1?' '+(k+1):'')+'</a>';
+  const nv=fs.filter(f=>/^video\//.test(f.mime)).length,nome=nv===fs.length?'os vídeos':nv?'tudo':'as fotos';
+  return '<div class="dl">'+(fs.length>1?'<button type="button" class="btn pri" data-dlall="'+i+'">⬇ Baixar '+nome+' ('+fs.length+')</button><details><summary style="cursor:pointer;color:var(--muted);font-size:13.5px;padding:4px 2px">Baixar uma por uma</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">'+fs.map(um).join('')+'</div></details>':um(fs[0],0))+
+    '<small>Qualidade original.'+(ehIOS?(fs.length>1?' No iPhone, depois de preparar, toque em <b>Salvar na Galeria</b> e escolha "Salvar '+fs.length+' itens".':' No iPhone o arquivo vai para o app Arquivos: abra, toque em Compartilhar e depois em Salvar vídeo/imagem para mandar para a Galeria.'):'')+'</small></div>'}
+/* baixar todas de uma vez: no celular junta os arquivos e abre "Salvar na Galeria"; no computador baixa um atrás do outro */
+const lotes={};
+async function prepararLote(i,btn){const fs=(A.itens[i]||{}).arquivos||[],out=[];
+  for(let k=0;k<fs.length;k++){const f=fs[k];btn.textContent='Preparando '+(k+1)+' de '+fs.length+'…';
+    let r=null;try{if(KEY)r=await fetch(apiUrl(f.id))}catch(_){r=null}
+    if(!r||!r.ok)r=await fetch(baixarUrl(f.id));if(!r.ok)throw new Error('HTTP '+r.status);
+    const b=await r.blob(),ext=/^video\//.test(f.mime)?'.mp4':'.jpg',nm=f.nome||('arquivo-'+(k+1)+ext);out.push(new File([b],nm,{type:f.mime||b.type}))}
+  return out}
+async function salvarArquivos(files){for(const f of files){const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60e3);await new Promise(r=>setTimeout(r,500))}}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-dlall]');if(!b)return;const i=+b.dataset.dlall,n=((A.itens[i]||{}).arquivos||[]).length;
+  if(lotes[i]){const files=lotes[i];
+    if(ehCel&&navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files})}catch(er){if(er&&er.name!=='AbortError')await salvarArquivos(files)}}else await salvarArquivos(files);return}
+  b.disabled=true;
+  try{lotes[i]=await prepararLote(i,b);b.disabled=false;
+    if(ehCel&&navigator.canShare&&navigator.canShare({files:lotes[i]}))b.textContent='📲 Salvar as '+n+' na Galeria';
+    else{await salvarArquivos(lotes[i]);b.textContent='✓ Baixadas ('+n+') · baixar de novo'}}
+  catch(_){delete lotes[i];b.disabled=false;b.textContent='⬇ Baixar todas ('+n+')';alert('Não consegui juntar todas agora. Use "Baixar uma por uma", logo abaixo.')}});
 const TP={reels:'Reels',feed:'Feed',carrossel:'Carrossel',stories:'Stories'};
 let A=null,ref=null,nome='';
 try{nome=localStorage.getItem('aprovNome')||''}catch(_){}
@@ -87,21 +108,25 @@ const bunnyTag=(fid,pv)=>'<div class="vw" data-bn="'+esc(fid)+'"><iframe src="'+
 function midia(it){const fs=it.arquivos||[];
   return '<div class="slides" data-sl>'+fs.map(f=>/^video\//.test(f.mime)?(bunnyOk(f.id)?bunnyTag(f.id,bunnyOk(f.id)):'<div class="vw"><video controls playsinline preload="metadata" poster="'+thumb(f.id,900)+'" src="'+vid(f.id)+'" data-vid="'+esc(f.id)+'"></video><a class="vlink" href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener">Não abriu? Assistir pelo Google Drive</a></div>'):'<img src="'+thumb(f.id,1400)+'" alt="" loading="lazy" referrerpolicy="no-referrer">').join('')+'</div>'+
     (fs.length>1?'<div class="dots">'+fs.map((_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')}
+function blocoStatus(it,i){return (it.status==='aprovado'?'<div class="st ok">✓ Aprovado'+(it.por?' por '+esc(it.por):'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">desfazer</button></div>'+blocoDl(it,i):
+       it.status==='ajuste'?'<div class="st aj">Ajuste pedido: '+esc(it.obs||'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">mudar</button></div>':
+       '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')}
 function pinta(){const its=A.itens||[],pend=its.filter(x=>x.status==='aguardando').length;
   document.title='Aprovação · '+(A.lojaNome||'');
   app.innerHTML='<div class="wrap"><header><div class="lg"></div><h1>Aprovação de conteúdo</h1><p class="sub">'+esc(A.lojaNome||'')+' · '+its.length+' post'+(its.length>1?'s':'')+'. Veja cada um e toque em <b>Aprovar</b> ou <b>Pedir ajuste</b>.'+(A.download?' Depois de aprovar, aparece o botão para <b>baixar</b> em qualidade original.':'')+'</p></header>'+
     '<div class="topo"><input type="text" id="nm" placeholder="Seu nome (opcional)" value="'+esc(nome)+'">'+(pend>1?'<button class="btn ok" data-tudo>✓ Aprovar todos ('+pend+')</button>':'')+'</div>'+
     its.map((it,i)=>'<div class="item"><div class="ih"><b>'+esc(it.titulo)+'</b><span class="tp">'+(TP[it.tipo]||'Post')+'</span></div>'+midia(it)+
       (it.legenda?'<div class="leg"><small>Legenda</small>'+esc(it.legenda)+'</div>':'')+
-      (it.status==='aprovado'?'<div class="st ok">✓ Aprovado'+(it.por?' por '+esc(it.por):'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">desfazer</button></div>'+blocoDl(it):
-       it.status==='ajuste'?'<div class="st aj">Ajuste pedido: '+esc(it.obs||'')+' · <button class="btn" style="padding:4px 10px;font-size:12px" data-i="'+i+'" data-v="desfazer">mudar</button></div>':
-       '<div class="acts"><button class="btn ok" data-i="'+i+'" data-v="aprovado">✓ Aprovar</button><button class="btn" data-i="'+i+'" data-v="abrirAjuste">Pedir ajuste</button></div><div class="ajuste" id="aj'+i+'" hidden><textarea rows="3" placeholder="O que precisa mudar?"></textarea><button class="btn pri" data-i="'+i+'" data-v="ajuste">Enviar pedido de ajuste</button></div>')+
+      '<div data-stat="'+i+'">'+blocoStatus(it,i)+'</div>'+
     '</div>').join('')+'</div><footer>Elite Marketing Digital</footer>';
   app.querySelectorAll('[data-sl]').forEach(sl=>sl.addEventListener('scroll',()=>{const n=Math.round(sl.scrollLeft/sl.clientWidth),d=sl.nextElementSibling;if(d&&d.classList.contains('dots'))[...d.children].forEach((x,k)=>x.classList.toggle('on',k===n))},{passive:true}))}
 /* quando a prévia do Bunny fica pronta com a página aberta, troca o vídeo do Drive (se o cliente ainda não começou a assistir) */
 document.addEventListener('play',e=>{if(e.target&&e.target.tagName==='VIDEO')e.target._tocou=1},true);
 function trocaPrevia(){document.querySelectorAll('video[data-vid],[data-vc]').forEach(v=>{const fid=v.dataset.vid||v.dataset.vc,pv=bunnyOk(fid);if(!pv||v._tocou)return;const w=v.closest('.vw');if(w)w.outerHTML=bunnyTag(fid,pv)})}
-if(ref)ref.onSnapshot(d=>{if(!d.exists||!A)return;A.previas=(d.data()||{}).previas||{};trocaPrevia()},()=>{});
+if(ref)ref.onSnapshot(d=>{if(!d.exists||!A)return;const x=d.data()||{};A.previas=x.previas||{};trocaPrevia();
+  (x.itens||[]).forEach((nv,i)=>{const it=A.itens[i];if(!it||!nv||(nv.status===it.status&&nv.por===it.por&&nv.obs===it.obs))return;
+    const aj=document.getElementById('aj'+i);if(aj&&!aj.hidden&&aj.querySelector('textarea').value.trim())return;
+    A.itens[i]=nv;const box=document.querySelector('[data-stat="'+i+'"]');if(box)box.innerHTML=blocoStatus(nv,i)})},()=>{});
 /* se o navegador não conseguir tocar o vídeo direto (formato .MOV/HEVC, arquivo grande ou limite do Drive), tenta outro endereço e, por fim, mostra a capa com um botão grande que abre o Drive */
 function registraFalha(fid){try{for(const it of (A&&A.itens)||[])if((it.arquivos||[]).some(f=>f.id===fid)){it.falha={em:new Date().toISOString(),ua:(navigator.userAgent||'').slice(0,120)};}
   ref.update({itens:A.itens}).catch(()=>{})}catch(_){}}
