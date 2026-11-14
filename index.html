@@ -3686,29 +3686,45 @@ async function arquivosDoLink(link){const id=driveId(link);if(!id)return [];
   const i=await dInfo(id);if(i.mimeType!==FOLDER)return [acertaMime(i)];
   const c=await coletarMidia(id,true);return c.arqs}
 /* Ver vídeo/foto aqui dentro da Central, antes de postar (baixa do Drive com a sua conta e toca na própria tela; nada vai para o cliente) */
-let vvUrl='';
-function vvLimpa(){if(vvUrl){URL.revokeObjectURL(vvUrl);vvUrl=''}}
+let vvUrls=[];
+function vvLimpa(){vvUrls.forEach(u=>URL.revokeObjectURL(u));vvUrls=[]}
+/* galeria para deslizar (dedo no celular, setas ou teclado no computador); cada foto/vídeo carrega quando chega na vez */
 async function verMidia(getLista,startId){vvLimpa();
-  sheet2.innerHTML='<form novalidate onsubmit="return false" style="max-width:560px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Ver antes de postar</h2><button type="button" class="btn sm ghost" data-close2>Fechar</button></div><div id="vvBox"><div class="spinner"></div></div></form>';
+  sheet2.innerHTML='<form novalidate onsubmit="return false" style="max-width:600px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Ver antes de postar</h2><button type="button" class="btn sm ghost" data-close2>Fechar</button></div><div id="vvBox"><div class="spinner"></div></div></form>';
   sheet2.hidden=false;
-  const box=sheet2.querySelector('#vvBox'),fech=sheet2.querySelector('[data-close2]');if(fech)fech.onclick=()=>{vvLimpa();fecharSheet2()};
+  const box=sheet2.querySelector('#vvBox'),fech=sheet2.querySelector('[data-close2]');
+  const sair=()=>{vvLimpa();document.removeEventListener('keydown',tecla);fecharSheet2()};if(fech)fech.onclick=sair;
   let lista;try{await token();lista=(await getLista()).filter(f=>/^(video|image)\//.test(f.mimeType||''))}catch(er){box.innerHTML='<p class="err">'+esc(er.message||'Não consegui abrir.')+'</p>';return}
   if(!lista.length){box.innerHTML='<p class="hint" style="margin:0">Não achei vídeo nem foto nesse link do Drive.</p>';return}
-  const mostra=async i=>{vvLimpa();box.dataset.i=String(i);const f=lista[i],mb=f.size?Math.round(f.size/1e6):0,video=/^video/.test(f.mimeType);
-    box.innerHTML=(lista.length>1?'<div class="checks" style="margin-bottom:10px">'+lista.map((x,k)=>'<button type="button" class="btn sm'+(k===i?' primary':'')+'" data-vi="'+k+'" style="max-width:100%;overflow:hidden;text-overflow:ellipsis">'+(k+1)+'. '+esc(x.name||'')+'</button>').join('')+'</div>':'')+
-      '<div id="vvTela" style="display:flex;flex-direction:column;align-items:center;gap:8px;min-height:120px;justify-content:center"></div>'+
-      '<p class="hint" style="margin:10px 0 0;word-break:break-all">'+esc(f.name||'')+(mb?' · '+mb+' MB':'')+' · <a href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener">Abrir no Drive</a></p>';
-    const tela=box.querySelector('#vvTela');
-    if(mb>400){tela.innerHTML='<p class="hint" style="margin:0">Arquivo muito grande ('+mb+' MB) para tocar aqui. Use "Abrir no Drive".</p>';return}
-    tela.innerHTML='<div class="spinner"></div><span class="hint" id="vvPc">Carregando…</span>';
-    try{const blob=await baixarArquivoDrive(f,pc=>{const t=box.querySelector('#vvPc');if(t)t.textContent='Carregando… '+pc+'%'+(mb?' de '+mb+' MB':'')});
-      if(sheet2.hidden||!box.isConnected||box.dataset.i!==String(i))return;
-      vvUrl=URL.createObjectURL(blob);
-      tela.innerHTML=video?'<video src="'+vvUrl+'" controls playsinline autoplay style="width:100%;max-height:68vh;border-radius:12px;background:#000"></video>':'<img src="'+vvUrl+'" alt="" style="width:100%;max-height:68vh;object-fit:contain;border-radius:12px">';
-      const v=tela.querySelector('video');if(v)v.onerror=()=>{tela.insertAdjacentHTML('beforeend','<p class="hint" style="margin:0">Este navegador não conseguiu tocar esse formato (comum em vídeo gravado em iPhone). Use "Abrir no Drive".</p>')}}
-    catch(er){if(box.isConnected&&box.dataset.i===String(i))tela.innerHTML='<p class="err" style="margin:0">'+esc(er.message||'Não consegui carregar.')+'</p>'}};
-  box.onclick=e=>{const b=e.target.closest('[data-vi]');if(b)mostra(+b.dataset.vi)};
-  mostra(Math.max(0,lista.findIndex(f=>f.id===startId)))}
+  const n=lista.length,seta=(d,t)=>'<button type="button" class="btn sm" data-vvs="'+d+'" aria-label="'+t+'" style="min-width:44px">'+(d<0?'‹':'›')+'</button>';
+  box.innerHTML='<div id="vvTrack" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:12px;background:#000;overscroll-behavior-x:contain">'+
+    lista.map((f,k)=>'<div data-sl="'+k+'" style="flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;display:flex;flex-direction:column;align-items:center;justify-content:center;height:min(68vh,640px);position:relative;color:#bbb;gap:8px"><div class="spinner"></div><span class="hint" data-pc></span></div>').join('')+'</div>'+
+    (n>1?'<div style="display:flex;align-items:center;gap:10px;margin-top:10px">'+seta(-1,'Anterior')+'<span id="vvCont" style="flex:1;text-align:center;font-weight:800"></span>'+seta(1,'Próximo')+'</div>':'')+
+    '<p class="hint" id="vvInfo" style="margin:8px 0 0;word-break:break-all"></p>';
+  const tr=box.querySelector('#vvTrack'),feitos={};let atual=-1,alvo=0;
+  const carregar=async k=>{if(k<0||k>=n||feitos[k])return;feitos[k]=1;const f=lista[k],sl=tr.querySelector('[data-sl="'+k+'"]'),mb=f.size?Math.round(f.size/1e6):0,video=/^video/.test(f.mimeType);
+    const poe=h=>{if(sl&&sl.isConnected)sl.innerHTML=h};
+    if(mb>400){poe('<p class="hint" style="padding:16px;text-align:center">Arquivo muito grande ('+mb+' MB) para tocar aqui. Use "Abrir no Drive".</p>');return}
+    if(!video&&f.thumbnailLink){const u=String(f.thumbnailLink).replace(/=s\d+(-[a-z0-9-]+)?$/i,'=s1600');
+      poe('<img src="'+esc(u)+'" alt="" referrerpolicy="no-referrer" style="max-width:100%;max-height:100%;object-fit:contain">');
+      const im=sl&&sl.querySelector('img');if(im)im.onerror=()=>{feitos[k]=0;f.thumbnailLink='';carregar(k)};return}
+    try{const blob=await baixarArquivoDrive(f,pc=>{const t=sl&&sl.querySelector('[data-pc]');if(t)t.textContent='Carregando… '+pc+'%'+(mb?' de '+mb+' MB':'')});
+      if(!sl||!sl.isConnected)return;const u=URL.createObjectURL(blob);vvUrls.push(u);
+      poe(video?'<video src="'+u+'" controls playsinline style="max-width:100%;max-height:100%;background:#000"></video>':'<img src="'+u+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain">');
+      const v=sl.querySelector('video');if(v){v.onerror=()=>sl.insertAdjacentHTML('beforeend','<p class="hint" style="margin:0;padding:0 12px;text-align:center">Este navegador não conseguiu tocar esse formato (comum em vídeo de iPhone). Use "Abrir no Drive".</p>');if(k===atual)v.play().catch(()=>{})}}
+    catch(er){feitos[k]=0;poe('<p class="err" style="padding:16px">'+esc(er.message||'Não consegui carregar.')+'</p>')}};
+  const marca=k=>{if(k===atual)return;atual=k;alvo=k;const f=lista[k],mb=f.size?Math.round(f.size/1e6):0;
+    const c=box.querySelector('#vvCont');if(c)c.textContent=(k+1)+' de '+n;
+    box.querySelector('#vvInfo').innerHTML=esc(f.name||'')+(mb?' · '+mb+' MB':'')+' · <a href="https://drive.google.com/file/d/'+encodeURIComponent(f.id)+'/view" target="_blank" rel="noopener">Abrir no Drive</a>';
+    box.querySelectorAll('[data-vvs]').forEach(b=>{b.disabled=(+b.dataset.vvs<0&&k===0)||(+b.dataset.vvs>0&&k===n-1)});
+    tr.querySelectorAll('video').forEach(v=>{if(!v.closest('[data-sl="'+k+'"]'))v.pause()});
+    carregar(k);carregar(k+1);carregar(k-1)};
+  const ir=k=>{k=Math.max(0,Math.min(n-1,k));alvo=k;tr.scrollTo({left:k*tr.clientWidth,behavior:'smooth'})};
+  let tmr=0;tr.addEventListener('scroll',()=>{clearTimeout(tmr);tmr=setTimeout(()=>marca(Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth))),80)},{passive:true});
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-vvs]');if(b)ir(alvo+ +b.dataset.vvs)});
+  function tecla(e){if(sheet2.hidden||!box.isConnected){document.removeEventListener('keydown',tecla);return}if(e.key==='ArrowRight'){e.preventDefault();ir(alvo+1)}else if(e.key==='ArrowLeft'){e.preventDefault();ir(alvo-1)}}
+  document.addEventListener('keydown',tecla);
+  const i0=Math.max(0,lista.findIndex(f=>f.id===startId));tr.scrollLeft=i0*tr.clientWidth;marca(i0)}
 async function deixarPublico(id){try{await gfetch(DAPI+'/files/'+id+'/permissions?supportsAllDrives=true',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'reader',type:'anyone'})})}catch(e){throw new Error('Não consegui liberar o arquivo no Drive: '+e.message)}}
 
 function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
