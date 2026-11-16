@@ -106,7 +106,7 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
       await db.collection('posts').doc(p.id).update(doc);
       feitos++;
       console.log(`Aprovados: ${lj.nome} · ${p.titulo} agendado para ${hs[0]}${serie ? ' até ' + hs[hs.length - 1] : ''}`);
-      const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
+      const para = [...new Set([...usuarios.filter((u) => [lj.postagem || 'Vanessa', lj.postagem2].includes(membroDe(u))), ...usuarios.filter(ehAdm)])];
       const quando = hs[0].slice(8, 10) + '/' + hs[0].slice(5, 7) + ' às ' + hs[0].slice(11, 16);
       for (const u of para) await enviar(u, `Aprovado e agendado: ${lj.nome || 'cliente'}`, `${p.titulo} sai ${quando}${serie ? ' (e mais ' + (hs.length - 1) + ')' : ''}.`);
     } catch (e) { console.error('Aprovados:', e.message); }

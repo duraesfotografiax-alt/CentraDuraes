@@ -17,7 +17,7 @@ self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const link = (e.notification.data && (e.notification.data.link || (e.notification.data.FCM_MSG && e.notification.data.FCM_MSG.fcmOptions && e.notification.data.FCM_MSG.fcmOptions.link))) || self.registration.scope;
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-    for (const c of list) { if (c.url.startsWith(self.registration.scope) && 'focus' in c) return c.focus(); }
+    for (const c of list) { if (c.url.startsWith(self.registration.scope) && 'focus' in c) { if (link !== self.registration.scope && /[?&]story=/.test(link) && 'navigate' in c) return c.navigate(link).then((w) => (w || c).focus()).catch(() => c.focus()); return c.focus(); } }
     return clients.openWindow(link);
   }));
 });

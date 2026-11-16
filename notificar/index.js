@@ -30,13 +30,13 @@ const ehAdm = (u) => u.papel === 'adm' || String(u.email || '').toLowerCase() ==
 async function jaFoi(id) { return (await db.collection('avisos').doc(id).get()).exists; }
 async function marcar(id) { await db.collection('avisos').doc(id).set({ em: new Date().toISOString() }); }
 
-async function enviar(u, title, body) {
+async function enviar(u, title, body, storyId) {
   const tokens = arr(u.tokens);
-  if (!tokens.length) return 0;
+  if (!tokens.length) { console.log(`⚠ ${u.nome || u.email}: "${title}" NÃO enviado — sem aparelho com aviso ligado (abrir o app > sino > Ativar avisos neste aparelho)`); return 0; }
   const res = await admin.messaging().sendEachForMulticast({
     tokens,
     notification: { title, body },
-    webpush: { notification: { icon: APP_URL + 'icons/icon-192.png', badge: APP_URL + 'icons/icon-192.png' }, fcmOptions: { link: APP_URL } },
+    webpush: { notification: { icon: APP_URL + 'icons/icon-192.png', badge: APP_URL + 'icons/icon-192.png' }, fcmOptions: { link: storyId ? `${APP_URL}?story=${encodeURIComponent(storyId)}` : APP_URL } },
   });
   const ruins = [];
   res.responses.forEach((r, i) => {
@@ -45,6 +45,7 @@ async function enviar(u, title, body) {
   });
   if (ruins.length) await db.collection('usuarios').doc(u.id).update({ tokens: admin.firestore.FieldValue.arrayRemove(...ruins) });
   console.log(`→ ${u.nome || u.email}: "${title}" (${res.successCount}/${tokens.length})`);
+  res.responses.forEach((r) => { if (r.error) console.log(`   ✗ ${r.error.code}`); });
   return res.successCount;
 }
 
@@ -109,7 +110,7 @@ async function rodada() {
   const lojas = Object.fromEntries((await db.collection('lojas').get()).docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
   const posts = (await db.collection('posts').where('status', 'in', ['pronto', 'programado']).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
   const TPOST = { reels: 'Reels', feed: 'Feed', carrossel: 'Carrossel', stories: 'Stories' };
-  const respDe = (lj) => { const r = (lj && lj.postagem) || 'Vanessa'; const a = usuarios.filter((u) => membroDe(u) === r); return a.length ? a : usuarios.filter(ehAdm); };
+  const respDe = (lj) => { const r = [(lj && lj.postagem) || 'Vanessa', lj && lj.postagem2]; const a = usuarios.filter((u) => r.includes(membroDe(u))); return a.length ? a : usuarios.filter(ehAdm); };
   const agoraIso = `${hoje}T${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
   const minutosEntre = (a, b) => Math.round((new Date(a + ':00Z') - new Date(b + ':00Z')) / 6e4);
 
@@ -287,7 +288,7 @@ async function rodada() {
       if (atr.length) lin.push('Atrasadas: ' + atr.map((t) => t.titulo).join(', '));
       const mm = membroDe(u), tfs = tarefasAg.filter((t) => ocorre(t, hoje) && !(t.feito || {})[hoje] && (!arr(t.para).length || arr(t.para).includes(mm) || (!mm && ehAdm(u))));
       if (tfs.length) lin.unshift('Tarefas de hoje: ' + tfs.map((t) => t.titulo + (t.hora ? ' ' + t.hora : '')).join(', '));
-      const progr = posts.filter((p) => p.status === 'pronto' && lojas[p.loja] && (ehAdm(u) || membroDe(u) === (lojas[p.loja].postagem || 'Vanessa')));
+      const progr = posts.filter((p) => p.status === 'pronto' && lojas[p.loja] && (ehAdm(u) || [lojas[p.loja].postagem || 'Vanessa', lojas[p.loja].postagem2].includes(membroDe(u))));
       if (progr.length) lin.push('Para programar: ' + progr.length + ' post(s) (' + [...new Set(progr.map((p) => lojas[p.loja].nome))].join(', ') + ')');
       if (ehAdm(u) || u.financeiro === true) { const env = prontosDrive.map((t) => t.titulo); if (env.length) lin.push('Enviar ao cliente: ' + env.join(', ')); }
       if (lin.length) await enviar(u, atr.length ? `Seu dia · ${atr.length} edição(ões) atrasada(s)` : 'Seu dia na Central', lin.join('\n'));

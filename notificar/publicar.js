@@ -272,7 +272,19 @@ async function igPublicar(pag, tipo, arqs, legenda, ex) {
 }
 async function igPublicarColab(pag, tipo, arqs, legenda, ex) {
   const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar), audio = ex && ex.audio;
-  if (tipo === 'stories' || (!colab.length && !marcar.length)) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
+  if (tipo === 'stories') {
+    const mp = (ex && Array.isArray(ex.marcarPos) ? ex.marcarPos : []).filter((m) => m && m.u).slice(0, 10);
+    if (!mp.length) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
+    try { return await igPublicarBase(pag, tipo, arqs, legenda, { marcarPos: mp }); }
+    catch (e) {
+      if (FORMATO_RECUSADO.test(e.message || '') || !/user_tags?\b|\btags?\b|username|usu[aá]rio/i.test(e.message || '')) throw e;
+      console.log('Postagens: Instagram recusou a marcação no story (' + String(e.message).slice(0, 120) + '), publicando sem ela');
+      const r = await igPublicarBase(pag, tipo, arqs, legenda, {});
+      r.aviso = 'Story saiu sem marcar as pessoas: ' + String(e.message).slice(0, 120);
+      return r;
+    }
+  }
+  if (!colab.length && !marcar.length) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
   try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar, audio }); }
   catch (e) {
     if (FORMATO_RECUSADO.test(e.message || '') || !/colab|collaborat|user_tags?\b|\btags?\b|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
@@ -289,8 +301,9 @@ async function igPublicarBase(pag, tipo, arqs, legenda, ex) {
   let container;
   if (tipo === 'stories') {
     const a = arqs[0];
-    if (a.video) container = await igVideo(pag, 'STORIES', a, {});
-    else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, { media_type: 'STORIES', image_url: f.url }, pag.token)).id; await esperarPronto(container, pag.token, 3); }
+    const tgS = ex.marcarPos && ex.marcarPos.length ? { user_tags: JSON.stringify(ex.marcarPos.map((m) => ({ username: String(m.u).replace(/^@/, ''), x: Math.min(1, Math.max(0, +m.x || 0.5)), y: Math.min(1, Math.max(0, +m.y || 0.5)) }))) } : {};
+    if (a.video) container = await igVideo(pag, 'STORIES', a, tgS);
+    else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, Object.assign({ media_type: 'STORIES', image_url: f.url }, tgS), pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else if (arqs.length === 1) {
     const a = arqs[0];
     if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP, audioP));
@@ -343,6 +356,35 @@ async function sincronizarPaginas({ db, agoraIso }) {
   }
 }
 
+// ---------- Stories com link de outro card: não postam sozinhos, avisam a equipe com a página pronta ----------
+async function storiesComLink({ db, ref, todos, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
+  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && p.storyLink && p.quando && p.quando <= agoraIso);
+  if (!vez.length) return;
+  const lojas = Object.fromEntries((await db.collection('lojas').get()).docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
+  for (const p of vez) {
+    const lj = lojas[p.loja] || {};
+    const para = [...new Set([...usuarios.filter((u) => [lj.postagem || 'Vanessa', lj.postagem2].includes(membroDe(u))), ...usuarios.filter(ehAdm)])];
+    const pai = p.storyDe ? await ref.doc(p.storyDe).get() : null;
+    if (!pai || !pai.exists) {
+      await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: 'Este story é com link, mas o card do post não foi escolhido (ou foi apagado). Não foi postado.' });
+      for (const u of para) await enviar(u, `Story com link parado: ${lj.nome || 'cliente'}`, `${p.titulo}: falta escolher o post que ele linka. Não foi postado.`, p.id);
+      continue;
+    }
+    const d = pai.data();
+    if (d.status !== 'publicado') {
+      if (!p.storyAvisoEspera) {
+        await ref.doc(p.id).update({ storyAvisoEspera: agoraIso });
+        for (const u of para) await enviar(u, `Story esperando o post: ${lj.nome || 'cliente'}`, `${p.titulo} só libera depois que "${d.titulo || 'o post'}" sair. Não vou postar sem o link.`, p.id);
+      }
+      continue;
+    }
+    const url = d.link || (d.pubFeito && (d.pubFeito.ig || d.pubFeito.fb)) || '';
+    await ref.doc(p.id).update({ pubStatus: 'manual', storyUrl: url, storyLiberadoEm: agoraIso });
+    console.log(`Stories com link: ${lj.nome} · ${p.titulo} liberado para postar à mão`);
+    for (const u of para) await enviar(u, `Postar story: ${lj.nome || 'cliente'}`, `${p.titulo}: o post já saiu. Toque para ver a arte, copiar o link e a posição do adesivo.`, p.id);
+  }
+}
+
 // ---------- Publicação dos posts agendados ----------
 async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
   const token = process.env.META_TOKEN;
@@ -353,7 +395,9 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   for (const p of todos.filter((x) => x.pubStatus === 'publicando' && x.pubInicio && (Date.now() - new Date(x.pubInicio).getTime()) > 40 * 60e3)) {
     await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: 'A publicação foi interrompida. Toque em "Tentar de novo".' });
   }
-  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando));
+  try { await storiesComLink({ db, ref, todos, usuarios, enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Stories com link:', e.message); }
+  // story com link NUNCA sai sozinho: a Central só avisa quem posta (a Meta não deixa pôr o adesivo de link pela API)
+  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && !p.storyLink && p.quando && p.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando));
   if (!vez.length) return;
   if (!token) { console.error('Postagens: falta META_TOKEN'); return; }
   const lojas = Object.fromEntries((await db.collection('lojas').get()).docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
@@ -381,7 +425,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (let tent = 0; tent < 3; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
-          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar, audio: p.audio }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
+          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
           catch (e) { erros.push('Instagram: ' + e.message); }
         }
         if (p.pubFB && !feito.fb) {
@@ -403,7 +447,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
     } catch (e) { erros.push(e.message); }
 
     const onde = [feito.ig && 'Instagram', feito.fb && 'Facebook', feito.tt && feito.tt !== '-' && 'TikTok'].filter(Boolean).join(' e ');
-    const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
+    const para = [...new Set([...usuarios.filter((u) => [lj.postagem || 'Vanessa', lj.postagem2].includes(membroDe(u))), ...usuarios.filter(ehAdm)])];
     if (!erros.length) {
       await ref.doc(p.id).update({ pubStatus: 'publicado', pubFeito: feito, pubErro: '', pubAviso: aviso, status: 'publicado', publicadoEm: agoraIso, link: feito.ig || feito.fb || p.link || '', verificado: true });
       console.log(`Postagens: publicado ${lj.nome} · ${p.titulo} (${onde})`);
@@ -462,7 +506,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
         }
       };
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar, audio: p.audio })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
@@ -478,7 +522,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
     }
   } catch (e) { erros.push(e.message); }
   const pend = fila.filter(falta);
-  const para = [...new Set([...usuarios.filter((u) => membroDe(u) === (lj.postagem || 'Vanessa')), ...usuarios.filter(ehAdm)])];
+  const para = [...new Set([...usuarios.filter((u) => [lj.postagem || 'Vanessa', lj.postagem2].includes(membroDe(u))), ...usuarios.filter(ehAdm)])];
   if (erros.length) {
     await ref.doc(p.id).update({ pubStatus: 'erro', fila, pubFeito: feito, pubErro: erros.join(' · ').slice(0, 500) });
     console.error(`Postagens: erro série ${lj.nome} · ${p.titulo}: ${erros.join(' · ')}`);
