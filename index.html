@@ -3413,7 +3413,7 @@ function esperaAprov(id,montar){const ref=db.collection('aprovacoes').doc(id);le
     sheet.hidden=false;const t0=Date.parse(a.criadoEm||'')||Date.now();
     const diag=()=>{const d=document.getElementById('apDiag');if(!d){clearInterval(tm);return}const m=Math.floor((Date.now()-t0)/6e4),v=(S.roboCfg&&S.roboCfg.vivoEm)?Math.round((Date.now()-Date.parse(S.roboCfg.vivoEm))/6e4):null;
       d.innerHTML='Esperando há '+(m<1?'menos de 1 min':m+' min')+(v!=null&&v>5?' · <b style="color:var(--warn)">o robô deu o último sinal há '+v+' min; pode demorar mais. Se passar de 10 min, toque em "Liberar mesmo assim".</b>':'')};
-    const tm=setInterval(diag,5000);diag();
+    clearInterval(self._apTm);const tm=self._apTm=setInterval(diag,5000);diag();
     const lb=sheet.querySelector('#apLib');if(lb)lb.onclick=async()=>{lb.disabled=true;try{await db.collection('aprovacoes').doc(id).update({liberado:true})}catch(_){lb.disabled=false;toast('Não consegui liberar. Tente de novo.')}}};
   un=ref.onSnapshot(d=>{if(feito||!d.exists)return;if(!primeiro&&(sheet.hidden||!document.getElementById('apEsp'))){if(un)un();return}primeiro=false;desenha(Object.assign({id},d.data()))},()=>{})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-aplink]');if(!b)return;e.preventDefault();const A=(S.aprovacoes||[]).find(x=>x.id===b.dataset.aplink);if(!A)return;
@@ -3806,10 +3806,11 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Arquivos do Drive<button type="button" class="btn sm ghost" id="auTodos" hidden>Marcar todos</button></span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
     '<div id="auCorte"></div>'+
     '<div id="auMus"></div>'+
+    '<div id="auCapa"></div>'+
     '<div class="fld" id="auSerieW" hidden><label for="auFim" id="auFimL">Último sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span><div id="auLegs" class="auLegs"></div></div>'+
     '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
   sheet.hidden=false;const q=x=>sheet.querySelector(x),err=m=>{q('#auErr').textContent=m};
-  const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';const st=q('#auTipo').value==='stories';q('#auLegW').hidden=st;q('#auLegAj').hidden=st;q('#auTagW').hidden=st;q('#auStW').hidden=!st;if(st)stDesenha()};
+  const cont=()=>{const t=q('#auLeg').value,h=(t.match(/#[\wÀ-ÿ]+/g)||[]).length;q('#auCont').textContent=t.length+'/2200 caracteres · '+h+'/30 hashtags';const st=q('#auTipo').value==='stories';q('#auLegW').hidden=st;q('#auLegAj').hidden=st;q('#auTagW').hidden=st;q('#auStW').hidden=!st;if(st)stDesenha();capaUI()};
   const dica=()=>{const t=q('#auTipo').value;q('#auDica').textContent=t==='carrossel'?'Escolha de 2 a 10 arquivos, na ordem em que vão aparecer.':t==='reels'?'Escolha 1 ou vários vídeos (vertical 9:16). Com vários, cada vídeo vira um Reels separado, um de cada vez, até a data do último.':t==='stories'?'Escolha 1 ou vários (fotos ou vídeos verticais), na ordem em que vão sair. Com vários, a Central solta um de cada vez, espalhados até a data do último.':'Escolha 1 ou várias fotos. Com várias, cada uma vira um post separado, espalhados até a data do último.'};
   const stPos={link:pst.storyPos||{x:0.5,y:0.8},m:{}};arr(pst.marcarPos).forEach(m=>{stPos.m[m.u]={x:+m.x,y:+m.y}});
   const stUsers=()=>usersTx(q('#auSMarc').value).slice(0,10);
@@ -3823,7 +3824,24 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     let arr_=null;st.addEventListener('pointerdown',e=>{const t=e.target.closest('.stk');if(!t)return;arr_=t;t.setPointerCapture&&t.setPointerCapture(e.pointerId);e.preventDefault()});
     st.addEventListener('pointermove',e=>{if(!arr_)return;const r=st.getBoundingClientRect(),x=Math.min(0.95,Math.max(0.05,(e.clientX-r.left)/r.width)),y=Math.min(0.95,Math.max(0.05,(e.clientY-r.top)/r.height));arr_.style.left=x*100+'%';arr_.style.top=y*100+'%';const k=arr_.dataset.k;if(k==='link')stPos.link={x,y};else stPos.m[k.slice(2)]={x,y}});
     const solta=()=>{arr_=null};st.addEventListener('pointerup',solta);st.addEventListener('pointercancel',solta);
-    q('#auSMarc').oninput=stDesenha;q('#auSL').onchange=stDesenha;q('#auArqs').addEventListener('click',()=>setTimeout(stDesenha,80));})();
+    q('#auSMarc').oninput=stDesenha;q('#auSL').onchange=stDesenha;q('#auArqs').addEventListener('click',()=>setTimeout(()=>{stDesenha();capaUI()},80));})();
+  let capaMs=+pst.capaMs||0,capaImg='',capaUrl='';
+  function capaUI(){const box=q('#auCapa');if(!box)return;const vid=escolhidos.length===1&&/^video/.test(((lista||[]).find(x=>x.id===escolhidos[0])||{}).mimeType||'');
+    if(q('#auTipo').value!=='reels'||!vid){box.innerHTML='';return}
+    const tx=ms=>{const s=ms/1000;return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+','+Math.floor((s%1)*10)};
+    box.innerHTML='<div class="fld"><span class="l">Capa do Reels</span>'+(capaMs?'<div style="display:flex;gap:10px;align-items:center">'+(capaImg?'<img src="'+capaImg+'" alt="" style="height:96px;border-radius:10px">':'')+'<span>Quadro em <b>'+tx(capaMs)+'</b></span><button type="button" class="btn sm" id="auCapaB">Trocar</button><button type="button" class="btn sm ghost" id="auCapaX">Tirar</button></div>':'<button type="button" class="btn sm" id="auCapaB">Escolher a capa do vídeo</button><span class="hint">Sem escolher, o Instagram usa o primeiro quadro.</span>')+'<div id="auCapaP"></div></div>';
+    const b=q('#auCapaB');if(b)b.onclick=capaAbre;const x=q('#auCapaX');if(x)x.onclick=()=>{capaMs=0;capaImg='';capaUI()}}
+  async function capaAbre(){const f=lista.find(x=>x.id===escolhidos[0]),p=q('#auCapaP');if(!f||!p)return;
+    p.innerHTML='<div class="spinner"></div><span class="hint" id="auCapaT">Carregando o vídeo…</span>';
+    let blob;try{await token();blob=await baixarArquivoDrive(f,pc=>{const t=q('#auCapaT');if(t)t.textContent='Carregando o vídeo… '+pc+'%'})}catch(er){p.innerHTML='<p class="err">'+esc(er.message||'Não consegui abrir o vídeo.')+'</p>';return}
+    if(!p.isConnected)return;if(capaUrl)URL.revokeObjectURL(capaUrl);capaUrl=URL.createObjectURL(blob);
+    p.innerHTML='<video id="auCapaV" src="'+capaUrl+'" muted playsinline preload="auto" style="max-width:100%;max-height:360px;background:#000;border-radius:10px;display:block"></video><input type="range" id="auCapaR" min="0" max="1000" value="0" style="width:100%;margin-top:8px"><div style="display:flex;gap:8px;align-items:center"><span class="hint" id="auCapaTm" style="margin:0;flex:1">Arraste para escolher o quadro</span><button type="button" class="btn sm primary" id="auCapaOk">Usar este quadro</button></div>';
+    const v=q('#auCapaV'),r=q('#auCapaR'),tm=q('#auCapaTm');
+    v.onerror=()=>{p.innerHTML='<p class="hint">Este navegador não conseguiu mostrar esse vídeo (comum em vídeo de iPhone). O Instagram vai usar o primeiro quadro.</p>'};
+    v.onloadedmetadata=()=>{if(capaMs)r.value=Math.round(capaMs/1000/v.duration*1000);v.currentTime=capaMs?capaMs/1000:0};
+    r.oninput=()=>{if(v.duration){v.currentTime=r.value/1000*v.duration;tm.textContent='Quadro em '+tx(v.currentTime*1000)}};
+    q('#auCapaOk').onclick=()=>{try{const c=document.createElement('canvas'),w=v.videoWidth||360,h=v.videoHeight||640,k=Math.min(1,240/h);c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(v,0,0,c.width,c.height);capaImg=c.toDataURL('image/jpeg',.7)}catch(_){capaImg=''}
+      capaMs=Math.round(v.currentTime*1000);URL.revokeObjectURL(capaUrl);capaUrl='';capaUI()}}
   let modI=+(l&&l.legIdx)||0,avisouLeg=false;
   q('#auMod').onclick=()=>{const ms=modelosLoja(l);if(!ms.length){toast('Esta loja ainda não tem modelos de legenda. Cadastre em Editar cliente.');return}q('#auLeg').value=ms[modI%ms.length];modI++;cont()};
   q('#auIA').onclick=()=>{const b=q('#auIA');b.disabled=true;b.textContent='Gerando… (até 1 min)';
@@ -3930,7 +3948,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     const marcarPos=tipo==='stories'?stUsers().map(u=>({u,x:+(stPos.m[u]||{x:0.5}).x.toFixed(3),y:+(stPos.m[u]||{y:0.5}).y.toFixed(3)})):[];
     const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
     try{for(const f of sel)await deixarPublico(f.id);
-      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar:tipo==='stories'?marcarPos.map(m=>m.u):marcar,marcarPos,storyLink:stL,storyDe:stDe,storyPos:stL?{x:+stPos.link.x.toFixed(3),y:+stPos.link.y.toFixed(3)}:null,storyUrl:'',storyAvisoEspera:'',avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,audio:(ig&&audio&&(tipo==='reels'||(tipo==='feed'&&vid>0)))?audio:null,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar:tipo==='stories'?marcarPos.map(m=>m.u):marcar,marcarPos,storyLink:stL,storyDe:stDe,storyPos:stL?{x:+stPos.link.x.toFixed(3),y:+stPos.link.y.toFixed(3)}:null,storyUrl:'',storyAvisoEspera:'',avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,audio:(ig&&audio&&(tipo==='reels'||(tipo==='feed'&&vid>0)))?audio:null,capaMs:(tipo==='reels'&&!serieOn&&sel.length===1)?capaMs:0,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
         fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:'',tt:'',legenda:tipo==='stories'?'':String(legs[sel[i].id]||'').trim().slice(0,2200)})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
       await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' '+(({stories:'stories',reels:'reels',feed:'posts'})[tipo])+' agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook',tt&&'TikTok'].filter(Boolean).join(' + '))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};

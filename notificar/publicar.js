@@ -271,7 +271,7 @@ async function igPublicar(pag, tipo, arqs, legenda, ex) {
   }
 }
 async function igPublicarColab(pag, tipo, arqs, legenda, ex) {
-  const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar), audio = ex && ex.audio;
+  const colab = lista(ex && ex.colab), marcar = lista(ex && ex.marcar), audio = ex && ex.audio, capaMs = ex && ex.capaMs;
   if (tipo === 'stories') {
     const mp = (ex && Array.isArray(ex.marcarPos) ? ex.marcarPos : []).filter((m) => m && m.u).slice(0, 10);
     if (!mp.length) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
@@ -284,12 +284,12 @@ async function igPublicarColab(pag, tipo, arqs, legenda, ex) {
       return r;
     }
   }
-  if (!colab.length && !marcar.length) return igPublicarBase(pag, tipo, arqs, legenda, { audio });
-  try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar, audio }); }
+  if (!colab.length && !marcar.length) return igPublicarBase(pag, tipo, arqs, legenda, { audio, capaMs });
+  try { return await igPublicarBase(pag, tipo, arqs, legenda, { colab, marcar, audio, capaMs }); }
   catch (e) {
     if (FORMATO_RECUSADO.test(e.message || '') || !/colab|collaborat|user_tags?\b|\btags?\b|username|usu[aá]rio|invit|convit/i.test(e.message || '')) throw e;
     console.log('Postagens: Instagram recusou colaborador/marcação (' + String(e.message).slice(0, 120) + '), publicando sem eles');
-    const r = await igPublicarBase(pag, tipo, arqs, legenda, { audio });
+    const r = await igPublicarBase(pag, tipo, arqs, legenda, { audio, capaMs });
     r.aviso = 'Saiu sem colaborador/marcação: ' + String(e.message).slice(0, 120);
     return r;
   }
@@ -306,7 +306,7 @@ async function igPublicarBase(pag, tipo, arqs, legenda, ex) {
     else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, Object.assign({ media_type: 'STORIES', image_url: f.url }, tgS), pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else if (arqs.length === 1) {
     const a = arqs[0];
-    if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP, audioP));
+    if (a.video) container = await igVideo(pag, 'REELS', a, Object.assign({ caption: legenda, share_to_feed: 'true' }, colabP, audioP, ex.capaMs > 0 ? { thumb_offset: String(Math.round(ex.capaMs)) } : {}));
     else { const f = await fotoOculta(pag, a.jpg); container = (await gpost(`${pag.ig}/media`, Object.assign({ image_url: f.url, caption: legenda }, colabP, tagsP), pag.token)).id; await esperarPronto(container, pag.token, 3); }
   } else {
     const filhos = [];
@@ -425,7 +425,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
       for (let tent = 0; tent < 3; tent++) {
         erros.length = 0;
         if (p.pubIG && !feito.ig) {
-          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
+          try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await igPublicar(pag, p.tipo, arqs, legenda, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio, capaMs: p.capaMs }); if (r.aviso) aviso = r.aviso; feito.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; }
           catch (e) { erros.push('Instagram: ' + e.message); }
         }
         if (p.pubFB && !feito.fb) {
@@ -506,7 +506,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
         }
       };
       if (p.pubIG && !it.ig) {
-        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
+        try { if (!pag.ig) throw new Error('essa Página não tem Instagram comercial ligado'); const r = await comConversao((v) => igPublicar(pag, tipo, [v], leg, { colab: p.colab, marcar: p.marcar, marcarPos: p.marcarPos, audio: p.audio, capaMs: p.capaMs })); it.ig = r.link || `https://www.instagram.com/${pag.igUser}/`; feito.ig = it.ig; }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no Instagram: ${e.message}`); }
       }
       if (p.pubFB && !it.fb) {
