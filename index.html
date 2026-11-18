@@ -303,6 +303,7 @@ details.panel[open] summary{margin-bottom:12px}
 .lojahead b{font-family:var(--display);font-size:20px;display:block}
 .lojahead a{color:var(--elite);font-weight:700;font-size:13px;text-decoration:none}
 .pipe{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+@media (min-width:1101px){.pipe.p5{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media (max-width:1100px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.pipe{grid-template-columns:1fr}}
 .post{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -3202,7 +3203,8 @@ async function albumAcao(b){const k=b.dataset.alb,id=b.dataset.id,a=S.albuns.fin
 function renderDuraes(){
   const ts=S.tar.filter(t=>t.empresa==='duraes'),h=hoje(),lim=addDias(h,-60);
   const prox=ts.filter(t=>t.etapa==='agendar'||t.etapa==='agendado'||!t.etapa).sort((a,b)=>(a.data||'z').localeCompare(b.data||'z'));
-  const edi=ts.filter(t=>t.etapa==='captado'||t.etapa==='edicao').sort((a,b)=>(a.prazo||'z').localeCompare(b.prazo||'z'));
+  const cpt=ts.filter(t=>t.etapa==='captado').sort((a,b)=>(a.prazo||'z').localeCompare(b.prazo||'z'));
+  const edi=ts.filter(t=>t.etapa==='edicao').sort((a,b)=>(a.prazo||'z').localeCompare(b.prazo||'z'));
   const drv=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus!=='enviado').sort((a,b)=>(a.prontoEm||a.entregueEm||'').localeCompare(b.prontoEm||b.entregueEm||''));
   const env=ts.filter(t=>t.etapa==='entregue'&&t.entregaStatus==='enviado'&&(t.enviadoEm||'')>=lim).sort((a,b)=>(b.enviadoEm||'').localeCompare(a.enviadoEm||''));
   const tp=t=>(TIPOS[t.tipo]||TIPOS.outro).nome;
@@ -3210,9 +3212,10 @@ function renderDuraes(){
   const c=(t,extra,acts)=>'<div class="post"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" data-open="'+t.id+'" style="cursor:pointer">'+esc(t.titulo)+'</div><span class="ptype">'+tp(t)+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+midChip(t)+albChip(t)+'</div><div class="meta"><span>Evento '+dCurta(t.data)+'</span>'+extra+ct(t)+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
   const col=(tit,cor,arr_,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+arr_.length+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
   const w=S.canWrite;
-  document.getElementById('lojaBody').innerHTML='<div class="pipe">'+
-    col('Próximos eventos','#4C8DFF',prox,prox.map(t=>c(t,'<span>Capta: '+esc(nomes(t.captacao))+'</span>','')).join(''),'Nenhum evento marcado.')+
-    col('Em edição','#FF6A1F',edi,edi.map(t=>c(t,'<span>Edição: '+esc(nomes(t.edicao))+'</span>'+(prazoChip(t)?'<span>'+prazoChip(t)+'</span>':''),w?'<button class="btn sm primary" data-dact="drive" data-id="'+t.id+'">Pronto no Drive</button>':'')).join(''),'Nada em edição.')+
+  document.getElementById('lojaBody').innerHTML='<div class="pipe p5">'+
+    col('Próximos eventos','#4C8DFF',prox,prox.map(t=>c(t,'<span>Capta: '+esc(nomes(t.captacao))+'</span>',w?'<button class="btn sm primary" data-dact="etapa" data-v="captado" data-id="'+t.id+'">Captado ✓</button>':'')).join(''),'Nenhum evento marcado.')+
+    col('Captado','#E2B24C',cpt,cpt.map(t=>c(t,'<span>Edição: '+esc(nomes(t.edicao))+'</span>'+(prazoChip(t)?'<span>'+prazoChip(t)+'</span>':''),w?'<button class="btn sm primary" data-dact="etapa" data-v="edicao" data-id="'+t.id+'">Passar para edição →</button><button class="btn sm ghost" data-dact="etapa" data-v="agendado" data-id="'+t.id+'" aria-label="Voltar para próximos eventos">←</button>':'')).join(''),'Nada captado aguardando edição.')+
+    col('Em edição','#FF6A1F',edi,edi.map(t=>c(t,'<span>Edição: '+esc(nomes(t.edicao))+'</span>'+(prazoChip(t)?'<span>'+prazoChip(t)+'</span>':''),w?'<button class="btn sm primary" data-dact="drive" data-id="'+t.id+'">Pronto no Drive</button><button class="btn sm ghost" data-dact="etapa" data-v="captado" data-id="'+t.id+'" aria-label="Voltar para captado">←</button>':'')).join(''),'Nada em edição.')+
     col('No Drive · enviar ao cliente','#E2B24C',drv,drv.map(t=>{const d=t.prontoEm?diff(h,t.prontoEm.slice(0,10)):0;return c(t,'<span>Pronto '+(t.prontoEm?dCurta(t.prontoEm.slice(0,10)):'')+(d>=3?' · <b style="color:var(--warn)">esperando há '+d+' dias</b>':'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(t.drive&&driveId(t.drive)?'<button class="btn sm" data-dact="linkcli" data-id="'+t.id+'">Copiar link p/ cliente</button>':'')+(w?'<button class="btn sm primary" data-dact="enviado" data-id="'+t.id+'">Enviei ao cliente</button>':''))}).join(''),'Nada esperando envio.')+
     col('Entregue ao cliente (60 dias)','#34D399',env,env.map(t=>c(t,'<span>Enviado '+(t.enviadoEm?dCurta(t.enviadoEm.slice(0,10)):'')+'</span>',(t.drive?'<a class="btn sm" href="'+esc(t.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+(w?'<button class="btn sm ghost" data-dact="desfazer" data-id="'+t.id+'">Desfazer</button>':''))).join(''),'Nenhuma entrega nos últimos 60 dias.')+'</div>';
 }
@@ -3229,6 +3232,7 @@ function formEntregaD(T){
   q('#edDrive').focus()}
 async function duraesAcao(b){const id=b.dataset.id,k=b.dataset.dact,T=S.tar.find(x=>x.id===id);if(!T)return;
   if(k==='drive')formEntregaD(T);
+  else if(k==='etapa'){moveTo(id,b.dataset.v);toast(({captado:'Captado ✓',edicao:'Passou para edição',agendado:'Voltou para próximos eventos'})[b.dataset.v]||'Atualizado')}
   else if(k==='linkcli')linkCliente(T);
   else if(k==='enviado'){try{await write(()=>store.update('tar',id,{entregaStatus:'enviado',enviadoEm:agoraLocal()}));toast('Marcado como entregue ao cliente')}catch(_){}}
   else if(k==='desfazer'){meus.add(id);try{await write(()=>store.update('tar',id,{entregaStatus:'drive',enviadoEm:''}));toast('Voltou para "enviar ao cliente"')}catch(_){}}
@@ -3403,9 +3407,14 @@ function esperaAprov(id,montar){const ref=db.collection('aprovacoes').doc(id);le
     const pc=p.total?Math.max(8,Math.round(p.ok/p.total*100)):8;
     sheet.innerHTML='<form id="apEsp" novalidate onsubmit="return false" style="max-width:480px"><h2>Preparando o player do vídeo</h2><p class="muted" style="margin:0">O link libera assim que o vídeo estiver convertido, para o cliente já abrir assistindo (costuma levar de 3 a 6 minutos).</p><div class="upbar"><i style="width:'+pc+'%"></i></div>'+
       '<p class="hint" style="margin:0"><b>'+p.ok+' de '+p.total+'</b> vídeo'+(p.total>1?'s':'')+' pronto'+(p.total>1?'s':'')+(p.falhou?' · '+p.falhou+' com erro':'')+'</p>'+
+      '<p class="hint" id="apDiag" style="margin:0"></p>'+
       '<p class="hint" style="margin:0">Pode fechar esta janela: quando ficar pronto, o card mostra o botão amarelo <b>Copiar link</b>.</p>'+
       '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn ghost" id="apLib" title="O cliente vai ver o vídeo pelo Google Drive até o player ficar pronto">Liberar mesmo assim</button></div></form>';
-    sheet.hidden=false;const lb=sheet.querySelector('#apLib');if(lb)lb.onclick=async()=>{lb.disabled=true;try{await db.collection('aprovacoes').doc(id).update({liberado:true})}catch(_){lb.disabled=false;toast('Não consegui liberar. Tente de novo.')}}};
+    sheet.hidden=false;const t0=Date.parse(a.criadoEm||'')||Date.now();
+    const diag=()=>{const d=document.getElementById('apDiag');if(!d){clearInterval(tm);return}const m=Math.floor((Date.now()-t0)/6e4),v=(S.roboCfg&&S.roboCfg.vivoEm)?Math.round((Date.now()-Date.parse(S.roboCfg.vivoEm))/6e4):null;
+      d.innerHTML='Esperando há '+(m<1?'menos de 1 min':m+' min')+(v!=null&&v>5?' · <b style="color:var(--warn)">o robô deu o último sinal há '+v+' min; pode demorar mais. Se passar de 10 min, toque em "Liberar mesmo assim".</b>':'')};
+    const tm=setInterval(diag,5000);diag();
+    const lb=sheet.querySelector('#apLib');if(lb)lb.onclick=async()=>{lb.disabled=true;try{await db.collection('aprovacoes').doc(id).update({liberado:true})}catch(_){lb.disabled=false;toast('Não consegui liberar. Tente de novo.')}}};
   un=ref.onSnapshot(d=>{if(feito||!d.exists)return;if(!primeiro&&(sheet.hidden||!document.getElementById('apEsp'))){if(un)un();return}primeiro=false;desenha(Object.assign({id},d.data()))},()=>{})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-aplink]');if(!b)return;e.preventDefault();const A=(S.aprovacoes||[]).find(x=>x.id===b.dataset.aplink);if(!A)return;
   if(b.dataset.modo==='wa')abrirWhats(msgAprov(A));else dCopiar(msgAprov(A))});
@@ -3435,9 +3444,13 @@ function escolherAprovacao(l){
   pinta()}
 async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){toast('Os conteúdos precisam ter o link do Drive.');return}
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Mandar para aprovação</h2><p class="muted" style="margin:0" id="apTx">Preparando '+ps.length+' conteúdo'+(ps.length>1?'s':'')+'…</p><div class="upbar"><i id="apBar" style="width:5%"></i></div></form>';sheet.hidden=false;
-  const itens=[],barrados=[];let k=0;
-  try{for(const p of ps){k++;const tx=document.getElementById('apTx');if(tx)tx.textContent='Lendo '+k+' de '+ps.length+': '+p.titulo;
-      const fs=(await arquivosDoLink(p.drive)).slice(0,30);const id=driveId(p.drive);
+  const itens=[],barrados=[],lst={};let k=0;
+  try{for(const p of ps)lst[p.id]=(await arquivosDoLink(p.drive)).slice(0,30);
+    /* já existe um link aberto (sem resposta) com exatamente estes conteúdos e arquivos: reaproveita, sem preparar de novo */
+    const ids=ps.map(p=>p.id).sort().join(','),ex=(S.aprovacoes||[]).filter(A=>!A.respEm&&(A.itens||[]).length===ps.length&&(A.itens||[]).map(it=>it.post).sort().join(',')===ids&&(A.itens||[]).every(it=>it.status==='aguardando'&&(it.arquivos||[]).map(x=>x.id).sort().join(',')===(lst[it.post]||[]).map(x=>x.id).sort().join(','))&&Date.now()-Date.parse(A.criadoEm||0)<7*864e5).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''))[0];
+    if(ex){esperaAprov(ex.id,pp=>sheetLinkAprov(ex.id,ex,pp,'<div class="pushbox"><b>Este link já estava pronto</b><span class="muted">Usei o mesmo de antes (o cliente ainda não respondeu). Não precisou preparar de novo.</span></div>'));return}
+    for(const p of ps){k++;const tx=document.getElementById('apTx');if(tx)tx.textContent='Lendo '+k+' de '+ps.length+': '+p.titulo;
+      const fs=lst[p.id]||(await arquivosDoLink(p.drive)).slice(0,30);const id=driveId(p.drive);
       try{await dLinkPublico(id)}catch(_){}for(const f of fs){try{await deixarPublico(f.id)}catch(__){}}
       for(const f of fs){if(!(await publicoOk(f.id)))barrados.push(f.name||f.id)}
       itens.push({post:p.id,titulo:p.titulo,tipo:p.tipo,legenda:p.legenda||(S.lojas.find(x=>x.id===p.loja)||{}).legPadrao||'',arquivos:fs.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType||''},dimsDe(f))),status:'aguardando',obs:''});
@@ -3447,13 +3460,14 @@ async function enviarAprovacao(ps,loja){ps=ps.filter(p=>p.drive);if(!ps.length){
     const msg=msgAprov(Object.assign({id},doc));
     const avisoPub=barrados.length?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+barrados.length+' arquivo'+(barrados.length>1?'s não estão':' não está')+' aberto'+(barrados.length>1?'s':'')+' para o cliente ('+esc(barrados.slice(0,3).join(', '))+(barrados.length>3?'…':'')+'). No Drive, abra o arquivo/pasta → Compartilhar → Acesso geral → "Qualquer pessoa com o link" (Leitor). Se a opção não aparecer, a conta do Drive bloqueia compartilhamento externo.</div>':'';
     /* o link só é liberado quando o player (Bunny) dos vídeos estiver pronto: assim o cliente já abre assistindo */
-    const montar=pp=>{const avisoPlayer=pp&&pp.falhou?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+pp.falhou+' vídeo'+(pp.falhou>1?'s não ficaram':' não ficou')+' pronto'+(pp.falhou>1?'s':'')+' no player; '+(pp.falhou>1?'eles abrem':'ele abre')+' pelo Google Drive.</div>':pp&&!pp.liberado&&pp.velho&&pp.ok<pp.total?'<div class="pushbox" style="color:var(--warn);font-size:14px">O player não ficou pronto em 1 hora; os vídeos que faltam abrem pelo Google Drive.</div>':'';
-    sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+avisoPub+avisoPlayer+
-      '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
-    sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)};
+    const montar=pp=>sheetLinkAprov(id,doc,pp,avisoPub);
     if(!prepAprov(doc).total){montar(null);return}
     esperaAprov(id,montar)}
   catch(er){sheet.innerHTML='<form novalidate onsubmit="return false"><h2>Não deu certo</h2><p class="err">'+esc(er.message||'Erro')+'</p><div class="formacts"><button type="button" class="btn" data-close>Fechar</button></div></form>'}}
+function sheetLinkAprov(id,doc,pp,avisoPub){const msg=msgAprov(Object.assign({id},doc));const avisoPlayer=pp&&pp.falhou?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>Atenção:</b> '+pp.falhou+' vídeo'+(pp.falhou>1?'s não ficaram':' não ficou')+' pronto'+(pp.falhou>1?'s':'')+' no player; '+(pp.falhou>1?'eles abrem':'ele abre')+' pelo Google Drive.</div>':pp&&!pp.liberado&&pp.velho&&pp.ok<pp.total?'<div class="pushbox" style="color:var(--warn);font-size:14px">O player não ficou pronto em 1 hora; os vídeos que faltam abrem pelo Google Drive.</div>':'';
+    sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:480px"><h2>Link de aprovação pronto</h2><p class="muted" style="margin:0">Mande no grupo do cliente. Quando eles aprovarem, o card mostra <b style="color:var(--pos)">✓ Cliente aprovou</b> e vocês recebem aviso.</p><div class="pushbox"><code style="overflow-wrap:anywhere;font-size:13px">'+esc(linkAprov(id))+'</code></div>'+avisoPub+avisoPlayer+
+      '<div class="formacts"><button type="button" class="btn ghost" data-close>Fechar</button><button type="button" class="btn" id="apCop">Copiar</button><button type="button" class="btn primary" id="apWa">Mandar no WhatsApp</button></div></form>';
+    sheet.querySelector('#apCop').onclick=()=>dCopiar(msg);sheet.querySelector('#apWa').onclick=()=>abrirWhats(msg)}
 /* aviso do robô de postagem: post que passou do horário e o último sinal de vida do robô */
 function renderRobo(){const el=document.getElementById('roboSt');if(!el)return;
   const ag=agoraLocal(),esp=(S.posts||[]).filter(p=>p.pubStatus==='aguardando'&&p.quando),atras=esp.filter(p=>p.quando<=ag);
