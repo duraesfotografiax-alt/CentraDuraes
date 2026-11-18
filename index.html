@@ -776,6 +776,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <button class="btn" data-env="vitrine"><svg class="i"><use href="#i-store"/></svg>Vitrine de carros</button>
           <button class="btn primary" data-env="novo"><svg class="i"><use href="#i-plus"/></svg>Novo envio</button>
         </div>
+        <div id="entPainel"></div>
         <div id="envBody"></div>
       </section>
 
@@ -1647,6 +1648,7 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-edit-loja]')){formLoja(S.lojas.find(x=>x.id===S.loja));return}
   if(e.target.closest('[data-sugestoes]')){addSugestoes();return}
   if(e.target.closest('[data-new-post]')){formPost(null,S.loja!=='todas'?S.loja:'');return}
+  const en_=e.target.closest('[data-ent]');if(en_){entAcao(en_);return}
   const pa=e.target.closest('[data-pact]');if(pa){postAcao(pa);return}
   const da=e.target.closest('[data-dact]');if(da){duraesAcao(da);return}
   if(e.target.closest('[data-push-on]')){ativarPush();return}
@@ -2576,7 +2578,7 @@ document.addEventListener('click',e=>{const w=e.target.closest('[data-wa]');if(!
 /* ---------- Envios (link para o cliente ver e baixar vídeos/fotos em qualidade original) ---------- */
 /* percorre a pasta e as subpastas; cada arquivo guarda o caminho da subpasta (grupo), ex.: "Fotos", "Vídeos/Making of" */
 /* pastas de coisa já usada (Já postados, Postados, Publicados, Antigos…): ficam de fora na hora de programar */
-const pastaUsada=s=>/(postad|publicad|usad|antig|arquivad|bruto|backup|lixo|n[aã]o\s*usar|\bold\b)/i.test(nrmC(s));
+const pastaUsada=s=>/(postad|publicad|usad|antig|arquivad|bruto|backup|lixo|nao\s*usar|\bold\b|(^|[^a-z])raw([^a-z]|$)|selecao|originais?)/i.test(nrmC(s));
 async function coletarMidia(raizId,semUsadas){const arqs=[],grupos=[];
   const anda=async(id,cam)=>{for(const f of await dListar(id)){
     if(f.mimeType===FOLDER){if(semUsadas&&pastaUsada(f.name))continue;const c=cam?cam+'/'+f.name:f.name;grupos.push({id:f.id,nome:c});await anda(f.id,c)}
@@ -2588,7 +2590,31 @@ async function protegerArquivos(arqs,so,onp){let n=0;const fila=arqs.slice();
 function linkEnvio(e){return location.origin+location.pathname.replace(/[^/]*$/,'')+'envio.html?e='+e.id}
 function tamTxt(b){b=Number(b)||0;return b>=1e9?(b/1e9).toFixed(1).replace('.',',')+' GB':b>=1e6?Math.max(1,Math.round(b/1e6))+' MB':b?Math.max(1,Math.round(b/1e3))+' KB':''}
 function quandoIso(s){if(!s)return '';const d=new Date(s);if(isNaN(d))return '';return dCurta(iso(d))+' às '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function renderEntregas(){const el=document.getElementById('entPainel');if(!el)return;
+  const E=(S.entregas||[]).filter(x=>x.status==='pronta'||x.status==='atualizada').sort((a,b)=>String(b.prontoEm||'').localeCompare(String(a.prontoEm||'')));
+  const rz=((S.roboCfg||{}).entregasRaizes||[]).filter(r=>!r.ok),em=(S.roboCfg||{}).email;
+  const aviso=rz.length?'<div class="pushbox" style="color:var(--warn);font-size:14px"><b>O robô ainda não enxerga: '+rz.map(r=>esc(r.nome)).join(', ')+'</b><span>No Drive, compartilhe '+(rz.length>1?'essas pastas':'essa pasta')+' como <b>Leitor</b> com <code style="overflow-wrap:anywhere">'+esc(em||'(e-mail do robô aparece depois da próxima rodada)')+'</code>. Sem isso, não chega aviso de entrega.</span></div>':'';
+  if(!E.length){el.innerHTML=aviso;return}
+  el.innerHTML=aviso+'<div class="panel" style="margin-bottom:14px"><h3 style="margin:0 0 8px;font-size:15px">Entregas prontas ('+E.length+')</h3>'+E.map(x=>{const nv=x.nVid||0,nf=x.nFoto||0,partes=[nv?nv+(nv===1?' vídeo':' vídeos'):'',nf?nf+(nf===1?' foto':' fotos'):''].filter(Boolean).join(' e '),caps=arr(x.capitulos).map(c=>c.nome).filter(n=>n!=='(raiz)').slice(0,6).join(' · ');
+    const env=x.envioId&&(S.envios||[]).find(v=>v.id===x.envioId);
+    return '<div class="al" style="align-items:flex-start;gap:10px"><span class="k" style="background:var(--duraes)"></span><div style="flex:1;min-width:0"><b>'+esc(x.nome)+'</b> <span class="chip eq">'+esc(x.tipo||'')+'</span>'+(x.status==='atualizada'?' <span class="chip soon">Arquivos novos</span>':'')+'<small>'+esc(partes)+(caps?' · '+esc(caps):'')+(x.prontoEm?' · '+quandoIso(x.prontoEm):'')+'</small>'+
+      '<div class="acts" style="margin-top:6px">'+(env?'<button class="btn sm primary" data-ent="whats" data-id="'+x.id+'">WhatsApp</button><button class="btn sm" data-ent="copiar" data-id="'+x.id+'">Copiar link</button>':'<button class="btn sm primary" data-ent="gerar" data-id="'+x.id+'">Gerar link da galeria</button>')+'<a class="btn sm ghost" href="https://drive.google.com/drive/folders/'+encodeURIComponent(x.id)+'" target="_blank" rel="noopener">Ver pasta</a><button class="btn sm ghost" data-ent="ok" data-id="'+x.id+'">'+(env?'Ok, visto':'Dispensar')+'</button></div></div></div>'}).join('')+'</div>'}
+async function entAcao(b){const id=b.dataset.id,k=b.dataset.ent,E=(S.entregas||[]).find(x=>x.id===id);if(!E)return;
+  if(k==='ok'){try{await write(()=>store.update('entregas',id,{status:E.envioId?'enviada':'dispensada'}))}catch(_){}return}
+  const env=E.envioId&&(S.envios||[]).find(v=>v.id===E.envioId);
+  if(k==='whats'&&env){envioAcao({dataset:{env:'whats',id:env.id}});return}
+  if(k==='copiar'&&env){envioAcao({dataset:{env:'copiar',id:env.id}});return}
+  if(k==='gerar'){const t=b.textContent;
+    try{await token()}catch(er){toast(er.message);return}
+    b.disabled=true;b.textContent='Lendo a pasta…';
+    try{const doc={titulo:String(E.nome).slice(0,120),empresa:'duraes',loja:'',tar:'',msg:'',pasta:null,soVer:false,grupos:[],arquivos:[],criadoEm:new Date().toISOString(),criadoPor:meuMembro()||(S.me&&S.me.nome)||'',ativo:true,aberturas:0,baixados:0,vivo:true,raiz:{id:E.id,nome:E.nome},modo:'tudo',entrega:E.id};
+      const eid=idAleatorio();await write(()=>db.collection('envios').doc(eid).set(doc));
+      const full=Object.assign({id:eid},doc);await atualizarVivo(full,true);
+      await write(()=>store.update('entregas',E.id,{status:'enviada',envioId:eid}));
+      mostrarEnvio(full)}
+    catch(er){toast(er.message||'Não deu certo');b.disabled=false;b.textContent=t}}}
 function renderEnvios(){
+  renderEntregas();
   const body=document.getElementById('envBody');if(!body)return;
   segs('fEnv','fEnv',[['ativos','Ativos'],['todos','Todos']]);if(!S.fEnv)S.fEnv='ativos';
   const q=(document.getElementById('envBusca').value||'').toLowerCase();
@@ -2621,7 +2647,7 @@ function mesDaPasta(nome){const n=nrmC(nome);let mi=-1;for(let i=0;i<12;i++){con
 async function atualizarVivo(e,manual){if(!e||!e.vivo||!e.raiz||!e.raiz.id)return {n:0,mes:''};
   const fs=await dListar(e.raiz.id),meses=fs.filter(f=>f.mimeType===FOLDER).map(f=>({f,k:mesDaPasta(f.name)})).filter(x=>x.k).sort((a,b)=>b.k-a.k);
   const alvo=e.modo==='tudo'||!meses.length?{id:e.raiz.id,name:e.raiz.nome}:meses[0].f;
-  const c=await coletarMidia(alvo.id);
+  const c=await coletarMidia(alvo.id,!!e.entrega);
   const arqs=c.arqs.map(a=>({id:a.id,nome:a.name,mime:a.mimeType||'',size:Number(a.size)||0,g:a.grupo||'',t:/^video\//.test(a.mimeType||'')?'v':'f'}))
     .sort((x,y)=>(x.t===y.t?0:x.t==='v'?-1:1)||x.g.localeCompare(y.g,'pt',{numeric:true})||x.nome.localeCompare(y.nome,'pt',{numeric:true})).slice(0,1500);
   const up={arquivos:arqs,grupos:c.grupos.slice(0,300),pasta:{id:alvo.id,nome:alvo.name||''},mesNome:alvo.id===e.raiz.id?'':alvo.name,sincEm:new Date().toISOString()};
@@ -4046,6 +4072,7 @@ function alertas(){
     if(pst.status==='pronto')out.push({post:pst,n:1.5,cor:'var(--gold)',tit:'Programar: '+l.nome+' — '+pst.titulo,sub:(TPOST[pst.tipo]||'Post')+' · editado '+(pst.editadoEm?dCurta(pst.editadoEm.slice(0,10)):'')+(pst.editadoPor?' por '+pst.editadoPor:'')});
     else if(pst.status==='programado'&&pst.quando&&minDiff(agoraL,pst.quando)>=120)out.push({post:pst,n:0.5,cor:'var(--warn)',tit:'Conferir se saiu: '+l.nome+' — '+pst.titulo,sub:'Estava programado para '+fmtQuando(pst.quando)});
   }
+  for(const x of S.entregas||[])if(x.status==='pronta'||x.status==='atualizada')out.push({tabm:'envios',n:1.45,cor:'var(--duraes)',tit:(x.status==='atualizada'?'Arquivos novos: ':'Entrega pronta: ')+x.nome,sub:[x.nVid?x.nVid+' vídeo(s)':'',x.nFoto?x.nFoto+' foto(s)':''].filter(Boolean).join(' e ')+' · '+(x.envioId?'o link do cliente já mostra':'gerar o link da galeria')});
   return out.sort((a,b)=>a.n-b.n);
 }
 function ocultos(){try{return JSON.parse(localStorage.getItem('avOcultos')||'{}')}catch(_){return {}}}
@@ -4069,7 +4096,7 @@ function abrirAvisos(){
     '<div class="pushbox"><b>Notificações no celular e no PC</b><span class="muted">'+esc(msg)+'</span><div class="row2">'+
     (st==='off'?'<button type="button" class="btn primary sm" data-push-on>Ativar notificações</button>':'')+(st==='ok'?'<button type="button" class="btn sm" data-push-test>Testar neste aparelho</button>':'')+'</div>'+
     '<div class="fld"><label for="euSou">Eu sou</label><select id="euSou">'+opts([['','Escolha…']].concat(TEAM),eu)+'</select><span class="hint">Você recebe avisos dos trabalhos em que está marcado'+(S.adm?'; como Adm, também recebe os atrasos de todos':'')+'.</span></div></div>'+
-    (a.length?'<div class="row2" style="margin:8px 0"><button type="button" class="btn sm" data-av-limpar>✓ Marcar todos como vistos</button></div>':'')+'<div class="list">'+(a.length?a.map(x=>'<div class="al" '+(x.tf?'data-tabm="agenda"':x.ads?'data-tabm="trafego"':x.alb?'data-ala="'+x.alb.id+'"':x.post?'data-alp="'+x.post.id+'"':x.n===1.6?'data-ald="'+x.t.id+'"':'data-al="'+x.t.id+'"')+'><span class="k" style="background:'+x.cor+'"></span><div><b>'+esc(x.tit)+'</b><small>'+esc(x.sub)+'</small></div><button type="button" class="btn sm ghost" data-av-x="'+esc(x.tit)+'" aria-label="Marcar como visto" style="margin-left:auto">✕</button></div>').join(''):emptyMsg('Tudo em dia','Nada atrasado e nenhuma captação hoje ou amanhã'+(S.adm?'':' para você')+'.'))+'</div>'+(nOc?'<div class="row2" style="margin-top:8px"><button type="button" class="btn sm ghost" data-av-mostrar>Mostrar '+nOc+' já vist'+(nOc>1?'os':'o')+'</button></div>':'')+'</form>';
+    (a.length?'<div class="row2" style="margin:8px 0"><button type="button" class="btn sm" data-av-limpar>✓ Marcar todos como vistos</button></div>':'')+'<div class="list">'+(a.length?a.map(x=>'<div class="al" '+(x.tabm?'data-tabm="'+x.tabm+'"':x.tf?'data-tabm="agenda"':x.ads?'data-tabm="trafego"':x.alb?'data-ala="'+x.alb.id+'"':x.post?'data-alp="'+x.post.id+'"':x.n===1.6?'data-ald="'+x.t.id+'"':'data-al="'+x.t.id+'"')+'><span class="k" style="background:'+x.cor+'"></span><div><b>'+esc(x.tit)+'</b><small>'+esc(x.sub)+'</small></div><button type="button" class="btn sm ghost" data-av-x="'+esc(x.tit)+'" aria-label="Marcar como visto" style="margin-left:auto">✕</button></div>').join(''):emptyMsg('Tudo em dia','Nada atrasado e nenhuma captação hoje ou amanhã'+(S.adm?'':' para você')+'.'))+'</div>'+(nOc?'<div class="row2" style="margin-top:8px"><button type="button" class="btn sm ghost" data-av-mostrar>Mostrar '+nOc+' já vist'+(nOc>1?'os':'o')+'</button></div>':'')+'</form>';
   sheet.hidden=false;
   const lm=sheet.querySelector('[data-av-limpar]');if(lm)lm.onclick=e=>{e.stopPropagation();ocultar(a.map(x=>x.tit));renderBell();abrirAvisos()};
   const mo=sheet.querySelector('[data-av-mostrar]');if(mo)mo.onclick=e=>{e.stopPropagation();mostrarTodos();renderBell();abrirAvisos()};
@@ -4148,7 +4175,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){S.ads=[];S.anuncios=[];S.recibos=[];S.contratos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];S.envios=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){S.ads=[];S.anuncios=[];S.recibos=[];S.contratos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];S.envios=[];S.entregas=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}
@@ -4175,7 +4202,7 @@ function iniciarApp(adm,finOk,dono){
   S.adm=adm;S.fin=finOk;S.owner=dono;S.preview=false;S.canWrite=true;
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;document.getElementById('navBottom').hidden=false;
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
-  store.sub('albuns');store.sub('envios');store.sub('materiais');store.sub('aprovacoes');store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
+  store.sub('albuns');store.sub('envios');store.sub('entregas');store.sub('materiais');store.sub('aprovacoes');store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
   subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{};if(S.tab==='clientes')renderRobo()},()=>{}));
   setInterval(()=>{if(S.tab==='clientes'&&document.visibilityState==='visible')renderRobo()},60e3);

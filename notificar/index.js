@@ -99,6 +99,8 @@ async function rodada() {
 
   // Pasta Prontos: vídeo/foto exportado no Drive vira card em "Para programar" sozinho
   try { await require('./prontos')({ db, agoraIso: agoraIso0, hoje }); } catch (e) { console.error('Prontos:', e.message); }
+  // Entregas da Durães: material exportado na pasta de um cliente vira "Entrega pronta" (galeria para o cliente)
+  try { await require('./entregas')({ db, usuarios, enviar, ehAdm, membroDe }); } catch (e) { console.error('Entregas:', e.message); }
 
   const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
   const emEdicao = (t) => t.etapa === 'captado' || t.etapa === 'edicao';

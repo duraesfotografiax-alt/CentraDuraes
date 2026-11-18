@@ -133,6 +133,9 @@ service cloud.firestore {
     match /anunciosMeta/{id} { allow read: if financeiro(); }
     match /recibosCfg/{id} { allow read: if financeiro(); allow write: if adm(); }
 
+    // Entregas da Durães (o robô avisa que o material de um cliente está pronto; a equipe gera o link e dispensa)
+    match /entregas/{id} { allow read, write: if ativo(); }
+
     // Qualquer outra coisa: bloqueado
     // Controle do robô de notificações: o app só pode marcar "já avisei esta pessoa" (a própria),
     // para o robô não repetir um aviso que já apareceu na tela. Ninguém lê.

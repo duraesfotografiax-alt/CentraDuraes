@@ -43,4 +43,4 @@ async function baixar(id) {
   if (!r.ok) throw new Error('Drive ' + r.status + ' ao baixar');
   return Buffer.from(await r.arrayBuffer());
 }
-module.exports = { midiaDoLink, baixar, idDoLink };
+module.exports = { midiaDoLink, baixar, idDoLink, g, listar, FOLDER, DAPI };
