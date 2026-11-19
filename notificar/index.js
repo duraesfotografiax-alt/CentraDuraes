@@ -154,7 +154,7 @@ async function rodada() {
   }
 
   // 0d) Álbum: cliente enviou a seleção de fotos
-  const albunsEnv = (await db.collection('albuns').where('status', '==', 'enviado').get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  const albunsEnv = (await db.collection('albuns').where('enviadoEm', '>=', new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 16)).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.status === 'enviado');
   for (const a of albunsEnv) {
     for (const u of socios) {
       const chave = `album_${a.id}_${String(a.enviadoEm || '').replace(/[^0-9]/g, '')}_${u.id}`;
@@ -165,7 +165,7 @@ async function rodada() {
   }
 
   // 0e) Envios: o cliente abriu o link pela primeira vez
-  const envAbertos = (await db.collection('envios').where('aberturas', '>', 0).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+  const envAbertos = (await db.collection('envios').where('abertoEm', '>=', new Date(Date.now() - 3 * 864e5).toISOString()).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
   for (const e of envAbertos) {
     const chave = `envio_${e.id}`;
     if (await jaFoi(chave)) continue;
@@ -354,7 +354,11 @@ async function plantao() {
   const unsubLeg = db.collection('legendas').where('status', '==', 'pedido').onSnapshot(
     (sn) => { pedLeg = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (legendas):', e.message));
-  let apDocs = [], ultPrev = 0, ultPre = 0;
+  let apDocs = [], ultPrev = 0, ultPre = Date.now();
+  let prontosDocs = null; // cards "pronto": uma escuta (lê só o que muda) em vez de reler todos a cada minuto
+  const unsubPr = db.collection('posts').where('status', '==', 'pronto').onSnapshot(
+    (sn) => { prontosDocs = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
+    (e) => console.error('Plantão (prontos):', e.message));
   const unsubAp = db.collection('aprovacoes').orderBy('criadoEm', 'desc').limit(20).onSnapshot(
     (sn) => { apDocs = sn.docs.map((d) => ({ id: d.id, ...d.data() })); },
     (e) => console.error('Plantão (aprovações):', e.message));
@@ -377,7 +381,7 @@ async function plantao() {
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
     if (pedAud.length) { const l = pedAud; pedAud = []; try { await require('./audios').processar({ db, pedidos: l }); } catch (e) { console.error('Músicas:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
-    if (Date.now() - ultPre > 60e3) { ultPre = Date.now(); try { await require('./previas').preConverter({ db }); } catch (e) { console.error('Prévias antecipadas:', e.message); } }
+    if (Date.now() - ultPre > 4 * 60e3 && prontosDocs) { ultPre = Date.now(); try { await require('./previas').preConverter({ db, posts: prontosDocs }); } catch (e) { console.error('Prévias antecipadas:', e.message); } }
     if (Date.now() - ultPrev > 12e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
     const vencidos = pend.filter((p) => p.pubStatus === 'aguardando' && p.quando && p.quando <= agoraIso);
     if (!vencidos.length || Date.now() - ultTent < 45e3) continue;
@@ -385,7 +389,7 @@ async function plantao() {
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg(); unsubTT(); unsubAp(); unsubAud();
+  unsub(); unsubLeg(); unsubTT(); unsubAp(); unsubAud(); unsubPr();
 }
 
 (async () => {

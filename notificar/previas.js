@@ -99,7 +99,7 @@ async function processar({ db, baixar }) {
 const DIAS_PRE = 15;      // só cards mexidos nos últimos 15 dias
 const PRE_POR_VEZ = 1;    // 1 vídeo por chamada, para não segurar as postagens
 const semVideo = new Set(); // cards já olhados nesta rodada que não têm vídeo (ou o robô não acessa)
-async function preConverter({ db }) {
+async function preConverter({ db, posts: prontos }) {
   if (!LIB() || !KEY()) return 0;
   const c = cache(db);
   // 1) confere os que já subiram
@@ -114,7 +114,7 @@ async function preConverter({ db }) {
   // 2) sobe os vídeos dos cards novos
   const drive = require('./drive');
   const corte = new Date(Date.now() - DIAS_PRE * 864e5).toISOString().slice(0, 16);
-  const posts = (await db.collection('posts').where('status', '==', 'pronto').get()).docs.map((d) => ({ id: d.id, ...d.data() }))
+  const posts = (prontos || (await db.collection('posts').where('status', '==', 'pronto').get()).docs.map((d) => ({ id: d.id, ...d.data() })))
     .filter((p) => p.drive && !p.pubStatus && String(p.editadoEm || '') >= corte && !semVideo.has(p.id + '|' + p.drive))
     .sort((a, b) => String(b.editadoEm || '').localeCompare(String(a.editadoEm || '')));
   let enviados = 0;
