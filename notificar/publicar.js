@@ -358,12 +358,17 @@ async function sincronizarPaginas({ db, agoraIso }) {
 
 // ---------- Stories com link de outro card: não postam sozinhos, avisam a equipe com a página pronta ----------
 async function storiesComLink({ db, ref, todos, usuarios, enviar, ehAdm, membroDe, agoraIso }) {
-  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && p.storyLink && p.quando && p.quando <= agoraIso);
+  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && (p.storyLink || p.storyMusica) && p.quando && p.quando <= agoraIso);
   if (!vez.length) return;
   const lojas = Object.fromEntries((await db.collection('lojas').get()).docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
   for (const p of vez) {
     const lj = lojas[p.loja] || {};
     const para = [...new Set([...usuarios.filter((u) => [lj.postagem || 'Vanessa', lj.postagem2].includes(membroDe(u))), ...usuarios.filter(ehAdm)])];
+    if (!p.storyLink) { // story só com música: o Instagram não deixa pôr música pela API, então avisa quem posta
+      await ref.doc(p.id).update({ pubStatus: 'manual', storyUrl: '', storyLiberadoEm: agoraIso });
+      for (const u of para) await enviar(u, `Postar story: ${lj.nome || 'cliente'}`, `${p.titulo}: tem música (${String(p.storyMusica).slice(0, 60)}). Toque para ver o passo a passo.`, p.id);
+      continue;
+    }
     const pai = p.storyDe ? await ref.doc(p.storyDe).get() : null;
     if (!pai || !pai.exists) {
       await ref.doc(p.id).update({ pubStatus: 'erro', pubErro: 'Este story é com link, mas o card do post não foi escolhido (ou foi apagado). Não foi postado.' });
@@ -397,7 +402,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
   }
   try { await storiesComLink({ db, ref, todos, usuarios, enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Stories com link:', e.message); }
   // story com link NUNCA sai sozinho: a Central só avisa quem posta (a Meta não deixa pôr o adesivo de link pela API)
-  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && !p.storyLink && p.quando && p.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando));
+  const vez = todos.filter((p) => p.pubStatus === 'aguardando' && !p.storyLink && !p.storyMusica && p.quando && p.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando));
   if (!vez.length) return;
   if (!token) { console.error('Postagens: falta META_TOKEN'); return; }
   const lojas = Object.fromEntries((await db.collection('lojas').get()).docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
@@ -538,11 +543,12 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
 }
 
 // Busca músicas na biblioteca do Instagram (para o seletor de música da Central)
-async function buscarAudio(pag, q, tokenAlt) {
+async function buscarAudio(pag, q, tokenAlt, dbg) {
   let ultimo = null;
   for (const t of [pag.token, tokenAlt].filter(Boolean)) {
     const r = await fetch(`${G}/ig_audio?audio_type=music&user_id=${encodeURIComponent(pag.ig)}${q ? '&search_query=' + encodeURIComponent(q) : ''}&access_token=${encodeURIComponent(t)}`);
     const j = await r.json().catch(() => ({}));
+    if (dbg) dbg.raw = `HTTP ${r.status} ` + JSON.stringify(j).replace(/access_token=[^&"]+/g, '').slice(0, 260);
     if (r.ok && !j.error) {
       return (j.data || []).map((x) => ({ id: String(x.audio_id || x.id || ''), titulo: String(x.title || '').slice(0, 80), artista: String(x.display_artist || '').slice(0, 60), seg: Math.round((+x.duration_in_ms || 0) / 1000), previa: String(x.download_url || x.on_platform_audio_preview_link || ''), capa: String(x.cover_artwork_thumbnail_uri || x.cover_artwork_thumbnail_url || '') })).filter((x) => x.id).slice(0, 25);
     }

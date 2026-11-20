@@ -22,8 +22,10 @@ async function processar({ db, pedidos }) {
       const pags = await paginasCache(pub, token);
       const pag = pags.find((x) => x.id === lj.fbPage) || pags.find((x) => lj.igId && x.ig === lj.igId) || pags.find((x) => x.igUser && lj.instagram && x.igUser.toLowerCase() === String(lj.instagram).replace(/^@/, '').toLowerCase());
       if (!pag || !pag.ig) throw new Error('Essa loja ainda não está ligada a um Instagram na Central.');
-      const resultados = await pub.buscarAudio(pag, String(p.q || '').trim().slice(0, 80), token);
-      await ref.update({ status: 'pronto', resultados, prontoEm: new Date().toISOString() });
+      const dbg = {};
+      const resultados = await pub.buscarAudio(pag, String(p.q || '').trim().slice(0, 80), token, dbg);
+      if (!resultados.length) console.log(`Músicas: busca "${p.q || ''}" sem resultado · ${dbg.raw || ''}`);
+      await ref.update({ status: 'pronto', resultados, prontoEm: new Date().toISOString(), diag: resultados.length ? '' : String(dbg.raw || '').slice(0, 260) });
       n++;
     } catch (e) { try { await ref.update({ status: 'erro', erro: String(e.message || e).slice(0, 220) }); } catch (_) {} }
   }
