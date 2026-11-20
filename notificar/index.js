@@ -100,6 +100,7 @@ async function rodada() {
   // Pasta Prontos: vídeo/foto exportado no Drive vira card em "Para programar" sozinho
   try { await require('./prontos')({ db, agoraIso: agoraIso0, hoje }); } catch (e) { console.error('Prontos:', e.message); }
   // Entregas da Durães: material exportado na pasta de um cliente vira "Entrega pronta" (galeria para o cliente)
+  try { await require('./previas').revalidar({ db }); } catch (e) { console.error('Prévias (revalidar):', e.message); }
   try { await require('./entregas')({ db, usuarios, enviar, ehAdm, membroDe }); } catch (e) { console.error('Entregas:', e.message); }
 
   const tarefas = (await db.collection('tar').where('etapa', 'in', ['agendar', 'agendado', 'captado', 'edicao']).get()).docs.map((d) => ({ id: d.id, ...d.data() })).filter((t) => t.etapa !== 'entregue');
@@ -398,4 +399,14 @@ async function plantao() {
   await plantao();
   // avisa o workflow para chamar a próxima rodada (só se ainda estiver no horário de plantão)
   if (noHorario() && process.env.GITHUB_OUTPUT) require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'proxima=sim\n');
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch(async (e) => {
+  console.error(e);
+  // cota diária do Firestore (plano gratuito) esgotada: não derruba a corrente; espera e tenta de novo (volta sozinho quando a cota renovar)
+  if (/RESOURCE_EXHAUSTED|quota/i.test(String((e && (e.code || '')) + ' ' + (e && e.message))) && process.env.GITHUB_OUTPUT) {
+    console.log('Cota diária do Firestore esgotada. Espero 5 min e tento de novo.');
+    await espera(5 * 60e3);
+    require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'proxima=sim\n');
+    process.exit(0);
+  }
+  process.exit(1);
+});

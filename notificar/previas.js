@@ -23,6 +23,8 @@ async function api(caminho, metodo, corpo, tipo) {
   return j;
 }
 
+// o vídeo ainda existe no Bunny? (só devolve false se o Bunny responder 404; outro erro = não sabe, assume que existe)
+async function existe(id) { try { await api(`/videos/${id}`); return true; } catch (e) { return !/Bunny 404/.test(e.message || ''); } }
 const cache = (db) => db.collection('bunnyCache'); // vídeos já convertidos, por id do arquivo no Drive
 const pronto = (v) => v.status === 4 || (arr([v.availableResolutions]).join('') !== '' && v.status !== 5 && v.status !== 6);
 
@@ -69,7 +71,8 @@ async function processar({ db, baixar }) {
         // já convertido antes (quando o card caiu em Para programar): só aproveita
         try {
           const c = (await cache(db).doc(f.id).get()).data();
-          if (c && c.id && !c.erro) {
+          if (c && c.id && !c.erro && !(await existe(c.id))) { await cache(db).doc(f.id).delete().catch(() => {}); console.log(`Prévias: o vídeo em cache sumiu do Bunny (${it.titulo || f.id}), vou subir de novo`); }
+          else if (c && c.id && !c.erro) {
             await d.ref.update({ ['previas.' + f.id]: { id: c.id, lib: c.lib || LIB(), ok: !!c.ok, em: c.em || new Date().toISOString(), n: c.n || 1 } });
             previas[f.id] = { id: c.id, ok: !!c.ok };
             console.log(`Prévias: aproveitou a conversão antecipada (${a.lojaNome || ''} · ${it.titulo || ''})${c.ok ? ', já pronta' : ''}`);
@@ -126,7 +129,7 @@ async function preConverter({ db, posts: prontos }) {
     for (const f of arqs.slice(0, 10)) {
       if (enviados >= PRE_POR_VEZ) break;
       const ref = c.doc(f.id), x = (await ref.get()).data();
-      if (x && (x.ok || (x.id && !x.erro))) continue;
+      if (x && (x.ok || (x.id && !x.erro))) { if (await existe(x.id)) continue; await ref.delete().catch(() => {}); console.log(`Prévias antecipadas: o vídeo ${f.name} sumiu do Bunny, subindo de novo`); }
       if (x && x.erro && ((x.n || 0) >= 3 || Date.now() - new Date(x.em || 0).getTime() < 10 * 60e3)) continue;
       if (Number(f.size) > 1.5e9) continue;
       const n = ((x && x.n) || 0) + 1;
@@ -146,4 +149,29 @@ async function preConverter({ db, posts: prontos }) {
   return enviados;
 }
 
-module.exports = { processar, pendentes, preConverter };
+// Confere se os vídeos "prontos" das aprovações em aberto ainda existem no Bunny. Se um sumiu (apagado, outra biblioteca...), o player do cliente
+// mostraria "404": tira a prévia (o link volta a usar o Drive) e manda converter de novo.
+async function revalidar({ db }) {
+  if (!LIB() || !KEY()) return 0;
+  const FV = require('firebase-admin').firestore.FieldValue;
+  const corte = new Date(Date.now() - DIAS * 864e5).toISOString();
+  const sn = await db.collection('aprovacoes').orderBy('criadoEm', 'desc').limit(20).get();
+  let n = 0;
+  for (const d of sn.docs) {
+    const a = d.data();
+    if (String(a.criadoEm || '') < corte || !arr(a.itens).some((it) => it.status === 'aguardando')) continue;
+    for (const [fid, pv] of Object.entries(a.previas || {})) {
+      if (!pv || !pv.ok || !pv.id) continue;
+      if (pv.lib && String(pv.lib) !== LIB()) { /* guardado com outra biblioteca: o player do cliente aponta para ela */ }
+      if (await existe(pv.id) && (!pv.lib || String(pv.lib) === LIB())) continue;
+      try {
+        await d.ref.update({ ['previas.' + fid]: FV.delete() });
+        await cache(db).doc(fid).delete().catch(() => {});
+        n++; console.log(`Prévias: o vídeo ${fid} não existe mais no Bunny (${a.lojaNome || ''}); vai ser enviado de novo`);
+      } catch (e) { console.error('Prévias (revalidar):', e.message); }
+    }
+  }
+  return n;
+}
+
+module.exports = { processar, pendentes, preConverter, revalidar };
