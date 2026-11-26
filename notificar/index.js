@@ -83,6 +83,7 @@ async function rodada() {
   try { await require('./previas').preConverter({ db }); } catch (e) { console.error('Prévias antecipadas:', e.message); }
   try { await require('./youtube').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('YouTube:', e.message); }
   try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
+  try { await require('./agenda').trocarCodigos({ db, usuarios, enviar, ehAdm }); await require('./agenda').sincronizar({ db, hoje }); } catch (e) { console.error('Google Agenda:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
   // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
   const horaChave = agoraIso0.slice(0, 13);
@@ -372,6 +373,10 @@ async function plantao() {
   const unsubTT = db.collection('tiktokAuth').where('status', '==', 'recebido').onSnapshot(
     (sn) => { pedTT = sn.size; },
     (e) => console.error('Plantão (tiktok):', e.message));
+  let pedAG = 0;
+  const unsubAG = db.collection('agendaAuth').where('status', '==', 'recebido').onSnapshot(
+    (sn) => { pedAG = sn.size; },
+    (e) => console.error('Plantão (agenda):', e.message));
   let pedYT = 0;
   const unsubYT = db.collection('youtubeAuth').where('status', '==', 'recebido').onSnapshot(
     (sn) => { pedYT = sn.size; },
@@ -386,6 +391,7 @@ async function plantao() {
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
     if (pedAud.length) { const l = pedAud; pedAud = []; try { await require('./audios').processar({ db, pedidos: l }); } catch (e) { console.error('Músicas:', e.message); } }
+    if (pedAG) { pedAG = 0; try { const us = await carregarUsuarios(); await require('./agenda').trocarCodigos({ db, usuarios: us, enviar, ehAdm }); await require('./agenda').sincronizar({ db, hoje: agoraIso.slice(0, 10) }); } catch (e) { console.error('Google Agenda:', e.message); } }
     if (pedYT) { pedYT = 0; try { await require('./youtube').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('YouTube:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
     if (Date.now() - ultPre > 4 * 60e3 && prontosDocs) { ultPre = Date.now(); try { await require('./previas').preConverter({ db, posts: prontosDocs }); } catch (e) { console.error('Prévias antecipadas:', e.message); } }
@@ -396,7 +402,7 @@ async function plantao() {
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg(); unsubTT(); unsubYT(); unsubAp(); unsubAud(); unsubPr();
+  unsub(); unsubLeg(); unsubTT(); unsubYT(); unsubAG(); unsubAp(); unsubAud(); unsubPr();
 }
 
 (async () => {

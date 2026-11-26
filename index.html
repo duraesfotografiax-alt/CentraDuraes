@@ -789,6 +789,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <div class="seg" id="fEmpA"></div>
           <button class="btn primary" data-new-tar><svg class="i"><use href="#i-plus"/></svg>Trabalho</button>
         </div>
+        <div id="agGoogle"></div>
         <div class="panel tfpanel"><div class="ph"><h3 id="tfLabel">Tarefas</h3><div class="seg" id="tfQuem"></div><button class="btn sm primary" data-tf="nova"><svg class="i"><use href="#i-plus"/></svg>Tarefa</button></div><div id="tfList"></div></div>
         <div class="grid g2">
           <div class="panel">
@@ -1348,7 +1349,14 @@ function card(t,i){
 async function moveTo(id,etapa){const T0=S.tar.find(x=>x.id===id);if(etapa==='entregue'&&T0&&T0.etapa!=='entregue'){if(T0.empresa==='duraes'){formEntregaD(T0);return}if(T0.loja){formEntrega(T0);return}}const up={etapa};if(etapa==='entregue')up.entregueEm=hoje();try{await write(()=>store.update('tar',id,up))}catch(_){}}
 
 /* ---------- agenda ---------- */
+function renderAgGoogle(){const el=document.getElementById('agGoogle');if(!el)return;const c=S.agG||{};
+  const link=new URL('agenda.html?ligar=1',location.href).href;
+  const ult=c.ultima?Math.max(0,Math.round((Date.now()-Date.parse(c.ultima))/6e4)):null;
+  el.innerHTML=c.ligado
+    ?'<div class="panel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span class="chip ok">Google Agenda ligado</span><span class="hint" style="margin:0">'+esc(c.email||'')+' · '+(c.erro?'<b style="color:var(--warn)">'+esc(c.erro)+'</b>':ult==null?'primeira sincronização em até 10 min':'sincronizou há '+(ult<2?'instantes':ult+' min'))+'</span><span class="sp"></span>'+(S.adm?'<button class="btn sm ghost danger" data-agg="off">Desligar</button>':'')+'</div>'
+    :(S.adm?'<div class="panel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span class="hint" style="margin:0;flex:1;min-width:200px">Ligue o Google Agenda: os trabalhos daqui aparecem na sua agenda e avisam no celular.'+(c.erro?' <b style="color:var(--warn)">'+esc(c.erro)+'</b>':'')+'</span><a class="btn sm primary" target="_blank" rel="noopener" href="'+esc(link)+'">Ligar Google Agenda</a></div>':'')}
 function renderAgenda(){
+  renderAgGoogle();
   const ts=S.tar.filter(t=>S.empA==='todas'||t.empresa===S.empA);
   document.getElementById('calLabel').textContent=mesLabel(S.cal);
   const [y,m]=S.cal.split('-').map(Number),first=new Date(y,m-1,1),start=new Date(y,m-1,1-first.getDay());
@@ -1664,6 +1672,7 @@ document.addEventListener('click',async e=>{
   const sg=e.target.closest('[data-seg]');if(sg){S[sg.dataset.seg]=sg.dataset.v;render();return}
   if(e.target.closest('[data-mprev]')){S.mes=addMes(S.mes,-1);render();return}
   if(e.target.closest('[data-mnext]')){S.mes=addMes(S.mes,1);render();return}
+  if(e.target.closest('[data-agg="off"]')){if(!confirm('Desligar o Google Agenda? Os eventos que já estão lá continuam, mas deixam de ser atualizados.'))return;write(()=>db.collection('config').doc('agendaGoogle').set({ligado:false,syncToken:''},{merge:true})).then(()=>toast('Google Agenda desligado')).catch(()=>{});return}
   if(e.target.closest('[data-cprev]')){S.cal=addMes(S.cal,-1);renderAgenda();return}
   if(e.target.closest('[data-cnext]')){S.cal=addMes(S.cal,1);renderAgenda();return}
   if(e.target.closest('[data-today]')){S.dia=hoje();S.cal=S.dia.slice(0,7);renderAgenda();return}
@@ -4265,6 +4274,7 @@ function iniciarApp(adm,finOk,dono){
   store.sub('tar');store.sub('freelas');store.sub('lojas');store.sub('posts');store.sub('metaIG');subs.push(db.collection('metaPaginas').doc('lista').onSnapshot(d=>{S.metaPag=d.exists?d.data():{};if(S.tab==='clientes')renderClientes()},()=>{}));
   store.sub('albuns');store.sub('envios');store.sub('entregas');store.sub('materiais');store.sub('aprovacoes');store.sub('tarefas');try{S.tfTodas=localStorage.getItem('tfTodas')==='1'}catch(_){}
   subs.push(db.collection('config').doc('drive').onSnapshot(d=>{S.driveCfg=d.exists?d.data():{};if(S.tab==='drive')renderDrive()},()=>{}));
+  subs.push(db.collection('config').doc('agendaGoogle').onSnapshot(d=>{S.agG=d.exists?d.data():{};if(S.tab==='agenda')renderAgGoogle()},()=>{}));
   subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{};if(S.tab==='clientes')renderRobo()},()=>{}));
   setInterval(()=>{if(S.tab==='clientes'&&document.visibilityState==='visible')renderRobo()},60e3);
   if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}

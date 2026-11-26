@@ -106,6 +106,18 @@ service cloud.firestore {
         && request.resource.data.code is string && request.resource.data.code.size() < 600;
     }
 
+    // Google Agenda: quem é dono da agenda abre o link, autoriza e a página grava o código; só o robô troca por acesso (fica em agendaContas, bloqueada para o app).
+    match /agendaAuth/{id} {
+      allow get: if true;
+      allow list, delete: if ativo();
+      allow create: if request.resource.data.keys().hasOnly(['status', 'criado'])
+        && request.resource.data.status == 'iniciado';
+      allow update: if resource.data.status == 'iniciado'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['code', 'status'])
+        && request.resource.data.status == 'recebido'
+        && request.resource.data.code is string && request.resource.data.code.size() < 600;
+    }
+
     // Aprovação do cliente: quem tem o link vê e responde (só status/obs dos itens); a equipe cria e apaga
     match /aprovacoes/{id} {
       allow get: if true;
