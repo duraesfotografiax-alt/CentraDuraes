@@ -94,13 +94,14 @@ module.exports = async function autoAgenda({ db, agoraIso, enviar, usuarios, ehA
     const temVideo = fs.some((f) => /^video\//.test(f.mime || ''));
     const fb = !!lj.autoFB && !(tipo === 'carrossel' && temVideo);
     const ig = lj.autoIG !== false;
+    const yt = !!lj.autoYT && !!(lj.youtube && lj.youtube.ligado) && temVideo && tipo === 'reels';
     const tt = !!lj.autoTT && !!(lj.tiktok && lj.tiktok.ligado) && temVideo && (tipo === 'reels' || tipo === 'feed');
     if (!ig && !fb) continue;
     const doc = {
-      tipo, legenda: leg.slice(0, 2200), colab: lerUsers(lj.colab), marcar: lerUsers(lj.marcar), avisoAuto: '', quando: hs[0], pubIG: ig, pubFB: fb, pubTT: tt,
+      tipo, legenda: leg.slice(0, 2200), colab: lerUsers(lj.colab), marcar: lerUsers(lj.marcar), avisoAuto: '', quando: hs[0], pubIG: ig, pubFB: fb, pubTT: tt, pubYT: yt,
       arquivos: fs.map((f) => ({ id: f.id, nome: f.nome || f.name || '', mime: f.mime || '' })), pubStatus: 'aguardando', pubErro: '', pubFeito: {}, status: 'programado',
       programadoPor: 'Automático (aprovado pelo cliente)', programadoEm: agoraIso, autoAprov: true,
-      fila: serie ? hs.map((t, i) => ({ i, quando: t, ig: '', fb: '', tt: '', legenda: '' })) : [], agenda: serie ? hs : [], qtd: serie ? hs.length : 1, quandoIni: hs[0], quandoFim: hs[hs.length - 1],
+      fila: serie ? hs.map((t, i) => ({ i, quando: t, ig: '', fb: '', tt: '', yt: '', legenda: '' })) : [], agenda: serie ? hs : [], qtd: serie ? hs.length : 1, quandoIni: hs[0], quandoFim: hs[hs.length - 1],
     };
     try {
       await db.collection('posts').doc(p.id).update(doc);

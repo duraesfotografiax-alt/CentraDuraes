@@ -81,6 +81,7 @@ async function rodada() {
   try { await require('./audios').processar({ db }); } catch (e) { console.error('Músicas:', e.message); }
   try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); }
   try { await require('./previas').preConverter({ db }); } catch (e) { console.error('Prévias antecipadas:', e.message); }
+  try { await require('./youtube').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('YouTube:', e.message); }
   try { await require('./tiktok').trocarCodigos({ db, usuarios, enviar, ehAdm, agoraIso: agoraIso0 }); } catch (e) { console.error('TikTok:', e.message); }
   try { await require('./autoagenda')({ db, agoraIso: agoraIso0, enviar, usuarios, ehAdm, membroDe }); } catch (e) { console.error('Aprovados:', e.message); }
   // Tráfego pago (Meta) e lista de Páginas/Instagram: uma vez por hora (ou quando rodar manualmente no modo "meta"/"paginas")
@@ -371,6 +372,10 @@ async function plantao() {
   const unsubTT = db.collection('tiktokAuth').where('status', '==', 'recebido').onSnapshot(
     (sn) => { pedTT = sn.size; },
     (e) => console.error('Plantão (tiktok):', e.message));
+  let pedYT = 0;
+  const unsubYT = db.collection('youtubeAuth').where('status', '==', 'recebido').onSnapshot(
+    (sn) => { pedYT = sn.size; },
+    (e) => console.error('Plantão (youtube):', e.message));
   const FIM = INICIO + (Number(process.env.PLANTAO_MIN) || 9) * 60e3;
   let ultTent = 0, ultBat = Date.now();
   console.log('Plantão ligado por ~9 min');
@@ -381,6 +386,7 @@ async function plantao() {
     const agoraIso = agoraIsoFn();
     if (pedLeg.length) { const l = pedLeg; pedLeg = []; try { await require('./legendas').processar({ db, agoraIso, pedidos: l }); } catch (e) { console.error('Legendas:', e.message); } }
     if (pedAud.length) { const l = pedAud; pedAud = []; try { await require('./audios').processar({ db, pedidos: l }); } catch (e) { console.error('Músicas:', e.message); } }
+    if (pedYT) { pedYT = 0; try { await require('./youtube').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('YouTube:', e.message); } }
     if (pedTT) { pedTT = 0; try { await require('./tiktok').trocarCodigos({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, agoraIso }); } catch (e) { console.error('TikTok:', e.message); } }
     if (Date.now() - ultPre > 4 * 60e3 && prontosDocs) { ultPre = Date.now(); try { await require('./previas').preConverter({ db, posts: prontosDocs }); } catch (e) { console.error('Prévias antecipadas:', e.message); } }
     if (Date.now() - ultPrev > 12e3 && require('./previas').pendentes(apDocs)) { ultPrev = Date.now(); try { await require('./previas').processar({ db, baixar: pub.baixar }); } catch (e) { console.error('Prévias:', e.message); } }
@@ -390,7 +396,7 @@ async function plantao() {
     console.log(`Plantão: ${vencidos.length} post(s) na hora, publicando`);
     try { await pub.publicarAgendados({ db, usuarios: await carregarUsuarios(), enviar, ehAdm, membroDe, agoraIso }); } catch (e) { console.error('Plantão:', e.message); }
   }
-  unsub(); unsubLeg(); unsubTT(); unsubAp(); unsubAud(); unsubPr();
+  unsub(); unsubLeg(); unsubTT(); unsubYT(); unsubAp(); unsubAud(); unsubPr();
 }
 
 (async () => {
