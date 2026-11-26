@@ -3497,15 +3497,14 @@ function renderClientes(){
   const body=document.getElementById('lojaBody');
   if(!L.length){body.innerHTML='<div class="panel">'+emptyMsg('Nenhum cliente cadastrado',S.adm?'Cadastre as lojas que a Elite atende. Cada uma vira uma aba aqui.<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap"><button class="btn primary sm" data-sugestoes>Adicionar as lojas do Meta</button><button class="btn sm" data-new-loja>Cadastrar uma por uma</button></div>':'Peça ao Thiago para cadastrar as lojas.')+'</div>';return}
   if(S.loja==='todas'){
-    body.innerHTML='<div class="panel"><div class="ovw h"><span>Cliente</span><span class="c" title="Em produção">Prod.</span><span class="c" title="Para programar">Progr.</span><span class="c" title="Programados">Agend.</span><span class="c" title="Publicados (30 dias)">No ar</span><span class="c" title="Anúncios">Anunc.</span></div>'+
-      L.map(l=>{const c=contaLoja(l.id);return '<div class="ovw" data-loja="'+l.id+'"><b style="overflow-wrap:anywhere">'+esc(l.nome)+(c.conferir?' <span class="chip soon">conferir '+c.conferir+'</span>':'')+'</b><span class="c">'+c.prod+'</span><span class="c'+(c.pronto?' alert':'')+'">'+c.pronto+'</span><span class="c">'+c.prog+'</span><span class="c">'+c.pub+'</span><span class="c">'+c.ann+'</span></div>'}).join('')+
+    body.innerHTML='<div class="panel"><div class="ovw h"><span>Cliente</span><span class="c" title="Em produção">Prod.</span><span class="c" title="Para programar">Progr.</span><span class="c" title="Programados">Agend.</span><span class="c" title="Publicados (30 dias)">No ar</span></div>'+
+      L.map(l=>{const c=contaLoja(l.id);return '<div class="ovw" data-loja="'+l.id+'"><b style="overflow-wrap:anywhere">'+esc(l.nome)+(c.conferir?' <span class="chip soon">conferir '+c.conferir+'</span>':'')+'</b><span class="c">'+c.prod+'</span><span class="c'+(c.pronto?' alert':'')+'">'+c.pronto+'</span><span class="c">'+c.prog+'</span><span class="c">'+c.pub+'</span></div>'}).join('')+
       '<p class="hint" style="margin:12px 0 0">Prod. = em produção · Progr. = editado, esperando programar · Agend. = programado no Meta · No ar = publicado nos últimos 30 dias.</p></div>'+arquivadasHtml();return}
   const l=S.lojas.find(x=>x.id===S.loja),ps=S.posts.filter(p=>p.loja===l.id),ag=agoraLocal(),lim=addDias(hoje(),-30);
   const prod=S.tar.filter(t=>t.loja===l.id&&t.etapa!=='entregue').sort((a,b)=>(a.data||'z').localeCompare(b.data||'z'));
   const pronto=ps.filter(p=>p.status==='pronto').sort((a,b)=>(a.editadoEm||'').localeCompare(b.editadoEm||''));
   const prog=ps.filter(p=>p.status==='programado').sort((a,b)=>((serieInfo(a).prox||a.quando||'')).localeCompare(serieInfo(b).prox||b.quando||''));
   const pub=ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
-  const ann=ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim&&(p.pubFeito.ig||p.pubFeito.fb)).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
   const ig=(l.instagram||'').replace(/^@/,'');
   const col=(tit,cor,n,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+n+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
   const pc=p=>{const atras=p.status==='programado'&&!p.pubStatus&&p.quando&&minDiff(ag,p.quando)>=120;
@@ -3536,8 +3535,7 @@ function renderClientes(){
     col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
     col('Para programar','#E2B24C',pronto.length,((pronto.length&&S.canWrite?'<button class="btn sm primary" data-agmassa="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Agendar em massa'+(l.autoAprov?' · automático ligado':'')+'</button>':'')+(pronto.filter(p=>p.drive).length>1?'<button class="btn sm" data-aprovtodos="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Escolher e mandar para aprovação (1 link)</button>':''))+pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
     col('Programado','#4C8DFF',prog.length,prog.map(pc).join(''),'Nada programado.')+
-    col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+
-    col('Anúncios','#A855F7',ann.length,ann.map(pc).join(''),'Nenhum anúncio nos últimos 30 dias.')+'</div>';
+    col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+'</div>';
 }
 function arquivadasHtml(){const A=S.lojas.filter(l=>l.ativo===false).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));if(!A.length||!S.adm)return '';
   return '<details class="panel" style="margin-top:14px"><summary><b>Lojas arquivadas ('+A.length+')</b><span class="hint">clientes com quem não trabalhamos mais</span></summary>'+
