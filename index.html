@@ -4054,7 +4054,7 @@ function formMassa(l){const pg=pagDaLoja(l);
     const colabL=usersTx(q('#maColab').value),marcL=usersTx(q('#maMarc').value);let modI=modM;
     const b=q('#maOk');b.disabled=true;b.textContent='Agendando…';
     try{
-      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb,autoTT:tt,autoYT:yt,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
+      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb||(!pg||pg.ig),autoTT:tt,autoYT:yt,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
       if(!es.length){closeSheet();toast(auto?'Pronto: a Central agenda sozinha o que o cliente aprovar':'Configuração salva');return}
       const needTok=es.some(x=>!(x.a&&x.a.arquivos&&x.a.arquivos.length));if(needTok)await token();
       const oc=ocInicial(es),hs=lerHorasM(horasTx),d0=desde();let ok=0,pulou=[],ultimo='';
