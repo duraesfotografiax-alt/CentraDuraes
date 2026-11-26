@@ -47,6 +47,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
           BUNNY_LIBRARY_ID: ${{ secrets.BUNNY_LIBRARY_ID }}
       # Das 5h à meia-noite, cada rodada (~10 min, conferindo os posts a cada 20 s) chama a próxima assim que termina.
