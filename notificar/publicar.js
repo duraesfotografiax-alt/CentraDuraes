@@ -421,7 +421,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
     const erros = []; let aviso = '';
     if (Array.isArray(p.fila) && p.fila.length > 1) { await publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehAdm, membroDe, agoraIso }); return; }
     try {
-      if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
+      if (!pag && (p.pubIG || p.pubFB)) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
       const arqs = [];
       for (const a of p.arquivos || []) { const x = await baixar(a); if (!x.video) x.jpg = await paraJpeg(x, p.tipo, a.corte); arqs.push(x); }
       if (!arqs.length) throw new Error('Nenhum arquivo escolhido para publicar.');
@@ -442,7 +442,7 @@ async function publicarAgendados({ db, usuarios, enviar, ehAdm, membroDe, agoraI
           catch (e) { erros.push('TikTok: ' + e.message.replace(/^TikTok:? ?/, '')); }
         }
         if (p.pubYT && !feito.yt) {
-          try { const r = await ytEnviar({ db, lj, tipo: p.tipo, arqs: orig, legenda, titulo: p.titulo }); feito.yt = r.link || '-'; if (r.aviso) aviso = (aviso ? aviso + ' ' : '') + r.aviso; }
+          try { const r = await ytEnviar({ db, lj, tipo: p.tipo, arqs: orig, legenda: String(p.legenda || '').slice(0, 4800), titulo: p.titulo, p }); feito.yt = r.link || '-'; if (r.aviso) aviso = (aviso ? aviso + ' ' : '') + r.aviso; }
           catch (e) { erros.push('YouTube: ' + e.message.replace(/^YouTube:? ?/, '')); }
         }
         // formato de vídeo recusado: converte para H.264/AAC (que todos aceitam) e tenta de novo só o que faltou
@@ -485,11 +485,12 @@ async function ttEnviar({ db, lj, tipo, arqs, legenda }) {
   return require('./tiktok').publicarVideo({ db, lojaId: lj.id, loja: lj, video: v, legenda });
 }
 // YouTube Shorts: só vídeo vertical (usa o original)
-async function ytEnviar({ db, lj, tipo, arqs, legenda, titulo }) {
-  if (tipo === 'stories' || tipo === 'feed') return { link: '-', aviso: 'O YouTube Shorts só recebe vídeo de Reels; este conteúdo não foi para o YouTube.' };
+async function ytEnviar({ db, lj, tipo, arqs, legenda, titulo, p }) {
+  const comum = p && p.ytForm === 'video';
+  if (tipo === 'stories' || tipo === 'carrossel' || (!comum && tipo === 'feed')) return { link: '-', aviso: 'O YouTube Shorts só recebe vídeo de Reels; este conteúdo não foi para o YouTube.' };
   const v = (arqs || []).find((a) => a && a.video);
   if (!v) return { link: '-', aviso: 'O YouTube só recebe vídeo; as fotos não foram para o YouTube.' };
-  return require('./youtube').publicarShort({ db, lojaId: lj.id, loja: lj, video: v, legenda, titulo });
+  return require('./youtube').publicarShort({ db, lojaId: lj.id, loja: lj, video: v, legenda, titulo, formato: p && p.ytForm, privacidade: p && p.ytPriv, tituloYT: p && p.ytTitulo, capaMs: p && p.capaMs != null && p.capaMs > 0 ? p.capaMs : null });
 }
 const ttMarca = (r) => r.link || (r.modo === 'rascunho' ? 'rascunho' : 'ok');
 const nomeItem = (t) => (t === 'reels' ? 'Reels' : t === 'feed' ? 'Post' : 'Story');
@@ -501,7 +502,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
   const erros = [];
   let soltos = 0;
   try {
-    if (!pag) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
+    if (!pag && (p.pubIG || p.pubFB)) throw new Error(`A loja ${lj.nome || ''} não está ligada a uma Página/Instagram liberado para a Central.`);
     for (const it of fila.filter((x) => falta(x) && x.quando <= agoraIso).sort((a, b) => a.quando.localeCompare(b.quando)).slice(0, 5)) {
       const a = (p.arquivos || [])[it.i];
       if (!a) { it.ig = it.ig || '-'; it.fb = it.fb || '-'; it.tt = it.tt || '-'; it.yt = it.yt || '-'; continue; }
@@ -534,7 +535,7 @@ async function publicarSerie({ db, ref, p, lj, pag, feito, usuarios, enviar, ehA
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no TikTok: ${e.message.replace(/^TikTok:? ?/, '')}`); }
       }
       if (p.pubYT && !it.yt) {
-        try { const r = await ytEnviar({ db, lj, tipo, arqs: [xOrig], legenda: leg, titulo: p.titulo }); it.yt = r.link || '-'; feito.yt = feito.yt && feito.yt !== '-' ? feito.yt : it.yt; if (r.aviso && !avisos.includes(r.aviso)) avisos.push(r.aviso); }
+        try { const r = await ytEnviar({ db, lj, tipo, arqs: [xOrig], legenda: leg, titulo: p.titulo, p }); it.yt = r.link || '-'; feito.yt = feito.yt && feito.yt !== '-' ? feito.yt : it.yt; if (r.aviso && !avisos.includes(r.aviso)) avisos.push(r.aviso); }
         catch (e) { erros.push(`${nomeItem(p.tipo)} ${n} no YouTube: ${e.message.replace(/^YouTube:? ?/, '')}`); }
       }
       if (erros.length) break;

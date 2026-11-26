@@ -91,15 +91,40 @@ function titulo(legenda, tit) {
 }
 
 // Envia o vídeo como Short (vertical, até 3 min; o YouTube reconhece pelo formato). Devolve { link }.
-async function publicarShort({ db, lojaId, loja, video, legenda, titulo: tit }) {
+// Tira um quadro do vídeo (capa) com o ffmpeg; devolve um JPEG ou null
+async function quadro(buf, ms) {
+  const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
+  let bin = 'ffmpeg'; try { bin = require('ffmpeg-static') || 'ffmpeg'; } catch (_) {}
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ytc-'));
+  const ent = path.join(dir, 'v.mp4'), sai = path.join(dir, 'c.jpg');
+  try {
+    fs.writeFileSync(ent, buf);
+    await new Promise((ok, no) => {
+      const pr = spawn(bin, ['-y', '-ss', String(Math.max(0, Number(ms) || 0) / 1000), '-i', ent, '-frames:v', '1', '-vf', 'scale=1280:-2', '-q:v', '3', sai], { stdio: 'ignore' });
+      const t = setTimeout(() => { pr.kill('SIGKILL'); no(new Error('tempo esgotado')); }, 60e3);
+      pr.on('error', (e) => { clearTimeout(t); no(e); });
+      pr.on('close', (c) => { clearTimeout(t); c === 0 ? ok() : no(new Error('ffmpeg ' + c)); });
+    });
+    return fs.readFileSync(sai);
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} }
+}
+
+// formato: 'short' (padrão) ou 'video' (vídeo comum no canal: sem #Shorts, título próprio, capa escolhida)
+async function publicarShort({ db, lojaId, loja, video, legenda, titulo: tit, formato, privacidade, tituloYT, capaMs }) {
   if (!temChaves()) throw new Error('YouTube: faltam os segredos YOUTUBE_CLIENT_ID e YOUTUBE_CLIENT_SECRET no GitHub.');
   if (!loja || !loja.youtube || !loja.youtube.ligado) throw new Error('YouTube: o canal desta loja ainda não foi ligado à Central.');
   const c = await acesso(db, lojaId);
   const mime = video.mime || 'video/mp4';
+  if (video.buf.length > 1.8e9) throw new Error('YouTube: o vídeo passa de 1,8 GB e é grande demais para a Central enviar; suba direto pelo YouTube Studio.');
+  const comum = formato === 'video';
+  const priv = ['public', 'unlisted', 'private'].includes(privacidade) ? privacidade : 'public';
   const desc = limpa(legenda).slice(0, 4800);
+  const tituloFinal = comum
+    ? (limpa(tituloYT) || limpa(String(legenda || '').split('\n').find((x) => x.trim()) || '') || limpa(tit) || 'Novo vídeo').slice(0, 100)
+    : (limpa(tituloYT) ? (limpa(tituloYT).slice(0, 91) + ' #Shorts') : titulo(legenda, tit));
   const meta = {
-    snippet: { title: titulo(legenda, tit), description: (desc + (/#shorts/i.test(desc) ? '' : '\n\n#Shorts')).trim(), categoryId: '22' },
-    status: { privacyStatus: 'public', selfDeclaredMadeForKids: false, embeddable: true },
+    snippet: { title: tituloFinal, description: comum ? desc : (desc + (/#shorts/i.test(desc) ? '' : '\n\n#Shorts')).trim(), categoryId: '22' },
+    status: { privacyStatus: priv, selfDeclaredMadeForKids: false, embeddable: true },
   };
   const ini = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
     method: 'POST',
@@ -115,8 +140,17 @@ async function publicarShort({ db, lojaId, loja, video, legenda, titulo: tit }) 
     const txt = await r.text().catch(() => '');
     let j = {}; try { j = JSON.parse(txt); } catch (_) {}
     if (r.ok && j.id) {
-      const priv = j.status && j.status.privacyStatus && j.status.privacyStatus !== 'public';
-      return { link: 'https://www.youtube.com/shorts/' + j.id, aviso: priv ? 'YouTube: o vídeo ficou ' + j.status.privacyStatus + ' (o Google limita publicações de aplicativos ainda não verificados). Abra o YouTube Studio e torne público, ou peça a verificação do app.' : '' };
+      const real = j.status && j.status.privacyStatus;
+      const avisos = [];
+      if (real && real !== priv) avisos.push('YouTube: o vídeo ficou ' + real + ' (o Google limita publicações de aplicativos ainda não verificados). Abra o YouTube Studio e ajuste a visibilidade, ou peça a verificação do app.');
+      if (comum && capaMs != null) {
+        try {
+          const jpg = await quadro(video.buf, capaMs);
+          const tr = await fetch('https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=' + j.id, { method: 'POST', headers: { Authorization: 'Bearer ' + c.access_token, 'Content-Type': 'image/jpeg' }, body: jpg });
+          if (!tr.ok) { const tj = await tr.json().catch(() => ({})); throw new Error((tj.error && tj.error.message) || ('HTTP ' + tr.status)); }
+        } catch (e) { avisos.push('YouTube: o vídeo subiu, mas a capa não foi aplicada (' + String(e.message).slice(0, 100) + '). Capas personalizadas exigem canal verificado por telefone; troque no YouTube Studio.'); }
+      }
+      return { link: (comum ? 'https://www.youtube.com/watch?v=' : 'https://www.youtube.com/shorts/') + j.id, aviso: avisos.join(' ') };
     }
     if (r.status < 500 && r.status !== 429) throw erroYT(r.status, j, txt);
     ultimo = `HTTP ${r.status}`;

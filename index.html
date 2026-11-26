@@ -3821,6 +3821,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     '<div class="fld"><span class="l" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Arquivos do Drive<button type="button" class="btn sm ghost" id="auTodos" hidden>Marcar todos</button></span><div id="auArqs"><div class="spinner"></div></div><span class="hint" id="auDica"></span></div>'+
     '<div id="auCorte"></div>'+
     '<div id="auMus"></div>'+
+    '<div id="auYTP"></div>'+
     '<div id="auCapa"></div>'+
     '<div class="fld" id="auSerieW" hidden><label for="auFim" id="auFimL">Último sai em</label><input id="auFim" type="datetime-local" value="'+esc((pst.fila&&pst.fila.length>1&&pst.quandoFim)||'')+'"><span class="hint" id="auSerieTx"></span><div id="auLegs" class="auLegs"></div></div>'+
     '<div class="err" id="auErr"></div><div class="formacts"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">Agendar</button></div></form>';
@@ -3841,6 +3842,15 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     const solta=()=>{arr_=null};st.addEventListener('pointerup',solta);st.addEventListener('pointercancel',solta);
     q('#auSMarc').oninput=stDesenha;q('#auSL').onchange=stDesenha;q('#auArqs').addEventListener('click',()=>setTimeout(()=>{stDesenha();capaUI()},80));})();
   let capaMs=+pst.capaMs||0,capaImg='',capaUrl='';
+  function ytUI(){const box=q('#auYTP'),c=q('#auYT');if(!box)return;if(!c||!c.checked){box.innerHTML='';return}
+    const f0=(pst.ytForm==='video')?'video':'short',v0=pst.ytPriv||'public';
+    box.innerHTML='<div class="fld"><span class="l">YouTube</span><div class="panel">'+
+      '<label for="auYTF">Formato no YouTube</label><select id="auYTF"><option value="short"'+(f0==='short'?' selected':'')+'>Short (vertical, até 3 min)</option><option value="video"'+(f0==='video'?' selected':'')+'>Vídeo comum no canal (horizontal ou comprido)</option></select>'+
+      '<label for="auYTT" style="margin-top:8px">Título no YouTube <span class="hint" style="display:inline">(vazio = usa a 1ª linha da legenda)</span></label><input id="auYTT" maxlength="95" value="'+esc(pst.ytTitulo||'')+'">'+
+      '<label for="auYTV" style="margin-top:8px">Visibilidade</label><select id="auYTV"><option value="public"'+(v0==='public'?' selected':'')+'>Público</option><option value="unlisted"'+(v0==='unlisted'?' selected':'')+'>Não listado (só quem tem o link)</option><option value="private"'+(v0==='private'?' selected':'')+'>Privado</option></select>'+
+      '<span class="hint" id="auYTD"></span></div></div>';
+    const d=()=>{const t=q('#auYTD');if(t)t.textContent=q('#auYTF').value==='video'?'Vídeo comum: sem #Shorts, título e descrição completos. Para escolher a capa, use o formato Reels e o seletor de capa abaixo (capa personalizada exige canal verificado no YouTube).':'Short: o YouTube reconhece pelo formato vertical e pela hashtag #Shorts.'};
+    q('#auYTF').onchange=d;d()}
   function capaUI(){const box=q('#auCapa');if(!box)return;const vid=escolhidos.length===1&&/^video/.test(((lista||[]).find(x=>x.id===escolhidos[0])||{}).mimeType||'');
     if(q('#auTipo').value!=='reels'||!vid){box.innerHTML='';return}
     const tx=ms=>{const s=ms/1000;return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+','+Math.floor((s%1)*10)};
@@ -3863,7 +3873,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     gerarLegendaIA(l||{},{titulo:pst.titulo,tipo:q('#auTipo').value,nota:q('#auNota').value.trim()},ops=>{b.disabled=false;b.textContent='Gerar de novo';
       q('#auOps').innerHTML=ops.map((o,i)=>'<button type="button" class="btn" data-op="'+i+'" style="text-align:left;white-space:pre-wrap;height:auto;padding:10px 12px;font-weight:500">'+esc(o)+'</button>').join('');
       q('#auOps').onclick=e=>{const x=e.target.closest('[data-op]');if(!x)return;q('#auLeg').value=ops[+x.dataset.op];q('#auOps').innerHTML='';cont()}},er=>{b.disabled=false;b.textContent='Gerar com IA';toast(er)})};
-  q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{const t=q('#auTipo').value;cont();dica();pinta()};cont();dica();
+  q('#auLeg').oninput=cont;q('#auTipo').onchange=()=>{const t=q('#auTipo').value;cont();dica();pinta()};cont();dica();if(q('#auYT'))q('#auYT').onchange=ytUI;ytUI();
   q('#auJa').onchange=()=>{q('#auQ').disabled=q('#auJa').checked;serie()};
   const SER=()=>['stories','reels','feed'].includes(q('#auTipo').value),ehSerie=()=>SER()&&escolhidos.length>1,nomeS=()=>({stories:'stories',reels:'reels',feed:'posts'})[q('#auTipo').value]||'posts';
   const legs={};(pst.fila||[]).forEach(x=>{const a=(pst.arquivos||[])[x.i];if(a&&x.legenda)legs[a.id]=x.legenda});
@@ -3945,7 +3955,9 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     if(!ja&&qd<agoraLocal())return err('Essa data/hora já passou.');
     const sel=escolhidos.map(id=>lista.find(f=>f.id===id)).filter(Boolean),vid=sel.filter(f=>/^video/.test(f.mimeType)).length;
     if(!sel.length)return err('Escolha o arquivo que vai ser publicado.');
-    if(yt&&(tipo!=='reels'||!vid))return err('O YouTube Shorts só recebe vídeo de Reels. Desmarque o YouTube.');
+    const ytF=yt?q('#auYTF').value:'short';
+    if(yt&&ytF==='short'&&(tipo!=='reels'||!vid))return err('O Short do YouTube só recebe vídeo de Reels. Escolha "Vídeo comum" no formato do YouTube ou desmarque o YouTube.');
+    if(yt&&ytF==='video'&&(!['reels','feed'].includes(tipo)||!vid))return err('O YouTube só recebe vídeo (formato Reels ou Feed com vídeo). Desmarque o YouTube.');
     if(tt&&(tipo==='stories'||tipo==='carrossel'||!vid))return err('O TikTok só recebe vídeo (Reels ou post de vídeo). Desmarque o TikTok.');
     if(tipo==='carrossel'&&(sel.length<2||sel.length>10))return err('Carrossel precisa de 2 a 10 arquivos.');
     if(tipo==='carrossel'&&fb&&vid)return err('No Facebook, carrossel só com fotos. Desmarque o Facebook ou tire os vídeos.');
@@ -3965,7 +3977,7 @@ function formAuto(pst){const l=S.lojas.find(x=>x.id===pst.loja),pg=pagDaLoja(l);
     const marcarPos=tipo==='stories'?stUsers().map(u=>({u,x:+(stPos.m[u]||{x:0.5}).x.toFixed(3),y:+(stPos.m[u]||{y:0.5}).y.toFixed(3)})):[];
     const b=q('#fAu button[type=submit]');b.disabled=true;b.textContent='Preparando arquivos…';
     try{for(const f of sel)await deixarPublico(f.id);
-      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar:tipo==='stories'?marcarPos.map(m=>m.u):marcar,marcarPos,storyLink:stL,storyMusica:tipo==='stories'?q('#auSMus').value.trim().slice(0,100):'',storyDe:stDe,storyPos:stL?{x:+stPos.link.x.toFixed(3),y:+stPos.link.y.toFixed(3)}:null,storyUrl:'',storyAvisoEspera:'',avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,pubYT:yt,audio:(ig&&audio&&(tipo==='reels'||(tipo==='feed'&&vid>0)))?audio:null,capaMs:(tipo==='reels'&&!serieOn&&sel.length===1)?capaMs:0,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
+      const doc={tipo,legenda:leg.slice(0,2200),colab,marcar:tipo==='stories'?marcarPos.map(m=>m.u):marcar,marcarPos,storyLink:stL,storyMusica:tipo==='stories'?q('#auSMus').value.trim().slice(0,100):'',storyDe:stDe,storyPos:stL?{x:+stPos.link.x.toFixed(3),y:+stPos.link.y.toFixed(3)}:null,storyUrl:'',storyAvisoEspera:'',avisoAuto:'',quando:serieOn?hs[0]:qd,pubIG:ig,pubFB:fb,pubTT:tt,pubYT:yt,ytForm:yt?ytF:'',ytTitulo:yt?q('#auYTT').value.trim().slice(0,95):'',ytPriv:yt?q('#auYTV').value:'',audio:(ig&&audio&&(tipo==='reels'||(tipo==='feed'&&vid>0)))?audio:null,capaMs:(tipo==='reels'&&!serieOn&&sel.length===1)?capaMs:0,arquivos:sel.map(f=>Object.assign({id:f.id,nome:f.name,mime:f.mimeType},cortes[f.id]!=null&&(tipo==='feed'||tipo==='carrossel')?{corte:cortes[f.id]}:{})),pubStatus:'aguardando',pubErro:'',pubFeito:{},status:'programado',programadoPor:meuMembro()||'',programadoEm:agoraLocal(),
         fila:serieOn?hs.map((t,i)=>({i,quando:t,ig:'',fb:'',tt:'',legenda:tipo==='stories'?'':String(legs[sel[i].id]||'').trim().slice(0,2200)})):[],agenda:serieOn?hs:[],qtd:serieOn?hs.length:1,quandoIni:serieOn?hs[0]:qd,quandoFim:serieOn?hs[hs.length-1]:qd};
       await write(()=>store.update('posts',pst.id,doc));closeSheet();toast(serieOn?hs.length+' '+(({stories:'stories',reels:'reels',feed:'posts'})[tipo])+' agendados até '+fmtQuando(hs[hs.length-1]):ja?'A Central vai publicar nos próximos minutos':'Agendado: '+fmtQuando(qd)+' · '+[ig&&'Instagram',fb&&'Facebook',tt&&'TikTok'].filter(Boolean).join(' + '))}
     catch(er){err(er.message);b.disabled=false;b.textContent='Agendar'}};
@@ -4054,7 +4066,7 @@ function formMassa(l){const pg=pagDaLoja(l);
     const colabL=usersTx(q('#maColab').value),marcL=usersTx(q('#maMarc').value);let modI=modM;
     const b=q('#maOk');b.disabled=true;b.textContent='Agendando…';
     try{
-      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb||(!pg||pg.ig),autoTT:tt,autoYT:yt,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
+      if(S.adm)await write(()=>store.update('lojas',l.id,{autoAprov:auto,autoHoras:horasTx||'09:00, 12:00, 19:00',autoIG:ig||!pg,autoFB:fb,autoTT:tt,autoYT:yt,colab:q('#maColab').value.trim().slice(0,80),marcar:q('#maMarc').value.trim().slice(0,80)}));
       if(!es.length){closeSheet();toast(auto?'Pronto: a Central agenda sozinha o que o cliente aprovar':'Configuração salva');return}
       const needTok=es.some(x=>!(x.a&&x.a.arquivos&&x.a.arquivos.length));if(needTok)await token();
       const oc=ocInicial(es),hs=lerHorasM(horasTx),d0=desde();let ok=0,pulou=[],ultimo='';
