@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a1b22">
+<meta name="robots" content="noindex">
+<title>Assinar contrato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--display:"Sora","Segoe UI",system-ui,sans-serif;--body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif;--ac:#EF6A1B;--ink:#16171d;--muted:#6b6f7e;--line:#dcdde3;--ok:#16a34a;--neg:#dc2626}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:#e9e9ee;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body.elite{--ac:#C59A2E}
+.top{position:sticky;top:0;z-index:5;background:#1a1b22;color:#fff;display:flex;align-items:center;gap:12px;padding:10px 14px}
+.top img{height:34px;border-radius:6px;background:#000}
+.top b{font-family:var(--display);font-size:14px;display:block;line-height:1.2}.top small{color:#b6b9c6;font-size:12px}
+.wrap{max-width:860px;margin:0 auto;padding:12px 8px 120px}
+.msg{background:#fff;border-radius:16px;padding:22px;margin:16px 8px;text-align:center}
+.msg h2{margin:0 0 6px;font-family:var(--display);font-size:20px}.msg p{margin:0;color:var(--muted)}
+.okb{background:#ecfdf3;border:1px solid #b7ebcb;border-radius:14px;padding:14px 16px;margin:8px 8px 12px;color:#14532d}
+.okb b{display:block;font-family:var(--display);margin-bottom:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:800;cursor:pointer;background:var(--ac);color:#fff}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.6}
+.pgbox{margin:0 auto}.pgin{transform-origin:top left;width:794px}
+.pgin .cpage{margin:0 0 12px;box-shadow:0 2px 14px rgba(0,0,0,.25)}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(255,255,255,.96);border-top:1px solid var(--line);padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:center}
+.bar .btn{flex:1;max-width:420px;font-size:17px;padding:15px 18px}
+.shade{position:fixed;inset:0;background:rgba(10,10,14,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:520px;max-height:94vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.shade{align-items:center}.sheet{border-radius:22px}}
+.sheet .lg{display:flex;align-items:center;gap:12px;margin-bottom:10px}.sheet .lg img{height:54px;width:auto;border-radius:10px}
+.sheet h2{margin:0;font-family:var(--display);font-size:19px}
+.fld{margin:10px 0}.fld label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.fld input[type=text],.fld input[type=email],.fld input[type=tel]{width:100%;font:inherit;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafafb}
+.fld input:focus{outline:2px solid var(--ac);outline-offset:1px}
+.pad{position:relative;border:1.5px dashed #b9bbc6;border-radius:14px;background:#fff;touch-action:none}
+.pad canvas{display:block;width:100%;height:170px;border-radius:14px;touch-action:none}
+.pad .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a5a8b5;pointer-events:none;font-size:15px}
+.pad .lnx{position:absolute;left:14px;right:14px;bottom:34px;border-top:1px solid #d4d6de;pointer-events:none}
+.small{font-size:12.5px;color:var(--muted)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:12px 0}.chk input{width:20px;height:20px;margin-top:2px;flex:none}
+.err{color:var(--neg);font-weight:700;font-size:14px;margin:8px 0 0}
+.cpage{--ac:#EF6A1B;width:794px;height:1123px;box-sizing:border-box;background:#fff;color:#1d1d1f;font-family:var(--body);font-size:12.5px;line-height:1.55;padding:52px 64px 0;position:relative;overflow:hidden;text-align:left}
+.cpage.elite{--ac:#C59A2E}
+.cpage .cb{display:flow-root;padding-bottom:12px}
+.chd{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:2px solid var(--ac)}
+.chd img{height:84px;width:auto}
+.chd .lg{width:74px;height:74px;border-radius:14px;background:#000 center/cover no-repeat;flex:none}
+.chd h1{font-family:var(--display);font-size:17px;line-height:1.3;margin:0;color:#111;text-transform:uppercase;letter-spacing:.02em}
+.chd small{display:block;color:#777;font-size:11px;margin-top:5px}
+.csec h3{margin:0 0 6px;font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:#efeff1;padding:5px 10px;border-left:3px solid var(--ac);color:#222}
+.cbox{border:1px solid #d2d2d6;border-radius:4px;padding:9px 12px}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d2d2d6;border-radius:4px;overflow:hidden}
+.cgrid>div{padding:6px 12px;border-bottom:1px solid #e6e6ea;border-right:1px solid #e6e6ea;margin-bottom:-1px}
+.cgrid>div:nth-child(2n){border-right:0}.cgrid>div.full{grid-column:1/-1;border-right:0}
+.cgrid small{display:block;font-size:9.5px;color:#7a7a80;text-transform:uppercase;letter-spacing:.06em}
+.ctot{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.ctot span{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em}.ctot b{font-family:var(--display);font-size:18px}
+.cext{margin:0;color:#666;font-size:11.5px}
+table.ctb{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+table.ctb th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#777;border-bottom:1px solid #d2d2d6;padding:4px 6px}
+table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
+.csub{font-family:var(--display);font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--ac);border-bottom:1px solid #e3e3e7;padding:6px 0 4px}
+.ccl h4{margin:0 0 2px;font-size:12.5px;font-family:var(--display);color:#111}.ccl p{margin:0 0 3px;text-align:justify}
+.csig p{margin:0 0 6px}.csig .cdt{text-align:right;margin:10px 0 0}
+.clns{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px}
+.clns>div{position:relative;padding-top:78px;text-align:center}
+.clns .ln{display:block;border-top:1px solid #333;margin-bottom:5px}
+.clns b{display:block;font-size:12px}.clns small{display:block;color:#777;font-size:10px}
+.cassimg{position:absolute;left:50%;transform:translateX(-50%);bottom:34px;height:92px;width:auto}
+.cfoot{position:absolute;left:64px;right:64px;bottom:26px;display:flex;justify-content:space-between;gap:10px;font-size:9.5px;color:#8a8a90;border-top:1px solid #e6e6ea;padding-top:8px}
+
+</style>
+</head>
+<body>
+<div class="top" id="top" hidden><img id="tlogo" alt=""><div><b id="ttit">Contrato</b><small id="tsub"></small></div></div>
+<div class="wrap">
+  <div class="msg" id="msg"><h2>Carregando o contrato…</h2><p>Só um instante.</p></div>
+  <div id="okb" class="okb" hidden></div>
+  <div id="pgbox" class="pgbox"><div class="pgin" id="pgin"></div></div>
+</div>
+<div class="bar" id="bar" hidden><button class="btn" id="bAssinar">Assinar contrato</button></div>
+<div class="shade" id="shade" hidden><div class="sheet" id="sheet"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=20261014"></script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},P=new URLSearchParams(location.search),tok=P.get('c')||'';
+var META=null,DOC=null,esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+function msg(t,p){$('msg').hidden=false;$('msg').innerHTML='<h2>'+esc(t)+'</h2><p>'+esc(p||'')+'</p>'}
+if(!tok){msg('Link incompleto','Peça para a empresa mandar o link do contrato de novo.');return}
+firebase.initializeApp(self.FIREBASE_CONFIG);var db=firebase.firestore();
+function sha(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return('0'+x.toString(16)).slice(-2)}).join('')})}
+function cod(h){h=String(h||'').toUpperCase();return h.slice(0,4)+'-'+h.slice(4,8)}
+function dh(ts){try{var d=ts&&ts.toDate?ts.toDate():new Date(ts);return d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+function logoDe(e){return e==='elite'?'logos/elite.jpg':'logos/duraes-claro.jpg'}
+function ok11(c){c=String(c).replace(/\D/g,'');if(c.length!==11||/^(\d)\1+$/.test(c))return false;for(var t=9;t<11;t++){var s=0;for(var i=0;i<t;i++)s+=c[i]*(t+1-i);s=(s*10)%11%10;if(+c[t]!==s)return false}return true}
+function ok14(c){c=String(c).replace(/\D/g,'');if(c.length!==14||/^(\d)\1+$/.test(c))return false;function dv(n){var p=n-7,s=0;for(var i=0;i<n;i++){s+=c[i]*p--;if(p<2)p=9}var r=s%11;return r<2?0:11-r}return dv(12)===+c[12]&&dv(13)===+c[13]}
+function fmtDoc(c){c=String(c).replace(/\D/g,'');return c.length===14?c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5'):c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4')}
+function mascara(c){c=String(c).replace(/\D/g,'');return c.length>=11?'***.'+c.slice(3,6)+'.'+c.slice(6,9)+'-**':'***'}
+
+/* páginas: com a assinatura aplicada quando já assinado */
+function paginas(){
+  var pgs=(DOC&&DOC.pgs)||[];if(!META||META.status!=='assinado'||!META.ass)return pgs.slice();
+  var a=META.ass;
+  return pgs.map(function(h){var d=document.createElement('div');d.innerHTML=h;var l=d.querySelector('.clns');
+    if(l&&l.children[1]){var c=l.children[1];var im=document.createElement('img');im.className='cassimg';im.src=a.img;im.alt='';c.insertBefore(im,c.firstChild);
+      var s=document.createElement('small');s.style.cssText='margin-top:3px;color:#333';s.textContent='Assinado eletronicamente em '+dh(META.assEm)+' · cód. '+cod(META.hash);c.appendChild(s)}
+    return d.innerHTML})}
+function certificado(){var a=META.ass,e=META.empresa==='elite';
+  var L=function(k,v){return '<tr><td style="padding:7px 10px;border-bottom:1px solid #e6e6ea;width:34%;color:#777;font-size:11px;text-transform:uppercase;letter-spacing:.05em;vertical-align:top">'+k+'</td><td style="padding:7px 10px;border-bottom:1px solid #e6e6ea;word-break:break-all">'+esc(v)+'</td></tr>'};
+  return '<div class="cpage '+(e?'elite':'duraes')+'"><div class="cb"><div class="chd"><img src="'+logoDe(META.empresa)+'" alt="" style="height:60px;border-radius:8px"><div><h1>Certificado de assinatura eletrônica</h1><small>Contrato nº '+esc(META.numero)+'</small></div></div></div>'+
+   '<div class="cb"><div class="csec"><h3>» Dados da assinatura</h3><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+   L('Documento','Contrato nº '+META.numero)+L('Contratada',(DOC&&DOC.empNome)||'')+L('Signatário',a.nome)+L('CPF/CNPJ',a.cpf)+L('E-mail',a.email)+(a.tel?L('Telefone',a.tel):'')+
+   L('Data e hora',dh(META.assEm)+' (horário de Brasília)')+L('Endereço IP',a.ip||'não identificado')+L('Dispositivo',a.ua||'')+L('Fuso / tela',(a.tz||'')+' · '+(a.tela||''))+
+   L('Código de verificação',cod(META.hash))+L('Hash SHA-256 do contrato',META.hash)+L('Hash da assinatura',a.hash)+'</table></div></div>'+
+   '<div class="cb"><div class="csec"><h3>» Assinatura registrada</h3><div class="cbox" style="text-align:center"><img src="'+a.img+'" alt="" style="max-height:120px;max-width:100%"></div></div></div>'+
+   '<div class="cb"><p style="font-size:11px;color:#666;text-align:justify">O signatário acima declarou ter lido e concordado com o conteúdo deste contrato e confirmou os seus dados antes de assinar. A assinatura eletrônica foi registrada com data e hora do servidor, endereço IP, dispositivo e verificação de integridade por hash SHA-256 do texto do contrato, e vale entre as partes nos termos da Lei nº 14.063/2020 e do art. 10, §2º, da MP nº 2.200-2/2001. Qualquer alteração no texto após a assinatura muda o hash e é detectável.</p></div>'+
+   '<div class="cfoot"><span>'+esc((DOC&&DOC.empNome)||'')+' · Contrato '+esc(META.numero)+'</span><span>Certificado de assinatura</span></div></div>'}
+
+/* tela */
+function fit(){var w=Math.min(794,Math.max(280,window.innerWidth-16)),s=w/794,pin=$('pgin');pin.style.transform='scale('+s+')';$('pgbox').style.width=(794*s)+'px';$('pgbox').style.height=(pin.offsetHeight*s)+'px'}
+function pinta(){
+  var assinado=META.status==='assinado'&&META.ass;
+  $('pgin').innerHTML=paginas().join('')+(assinado?certificado():'');
+  document.body.className=META.empresa==='elite'?'elite':'';
+  $('top').hidden=false;$('tlogo').src=logoDe(META.empresa);$('ttit').textContent='Contrato '+META.numero;$('tsub').textContent=(DOC&&DOC.empNome)||'';
+  var imgs=[].slice.call($('pgin').querySelectorAll('img'));Promise.all(imgs.map(function(i){return i.complete?1:new Promise(function(o){i.onload=i.onerror=o})})).then(fit);fit();
+  $('msg').hidden=true;
+  if(assinado){
+    $('bar').hidden=true;$('okb').hidden=false;
+    $('okb').innerHTML='<b>Contrato assinado</b>Assinado por '+esc(META.ass.nome)+' (CPF '+esc(mascara(META.ass.cpf))+') em '+esc(dh(META.assEm))+' · código de verificação '+esc(cod(META.hash))+
+      '<div class="btns"><button class="btn" id="bPdf">Baixar PDF assinado</button><button class="btn ghost" id="bShare">Compartilhar / enviar pelo WhatsApp</button></div>';
+    $('bPdf').onclick=function(){baixar(false)};$('bShare').onclick=function(){baixar(true)};
+    if(P.get('baixar')==='1'&&!pinta._auto){pinta._auto=1;baixar(false)}
+  }else if(META.status==='cancelado'){$('bar').hidden=true;msg('Este link foi cancelado','Peça à empresa um novo link para assinar.')}
+  else{$('bar').hidden=false}
+}
+function js(src){return new Promise(function(ok,er){if(document.querySelector('script[src="'+src+'"]'))return ok();var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=function(){er(new Error('Não consegui carregar o gerador de PDF. Verifique a internet.'))};document.head.appendChild(s)})}
+function pdf(){
+  return js('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js').then(function(){return js('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')}).then(function(){
+    var box=document.createElement('div');box.style.cssText='position:fixed;left:-10000px;top:0;width:794px';box.innerHTML=paginas().join('')+certificado();document.body.appendChild(box);
+    var imgs=[].slice.call(box.querySelectorAll('img'));
+    return Promise.all(imgs.map(function(i){return i.complete?1:new Promise(function(o){i.onload=i.onerror=o})})).then(function(){
+      var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true}),ps=[].slice.call(box.querySelectorAll('.cpage')),seq=Promise.resolve();
+      ps.forEach(function(p,i){seq=seq.then(function(){return window.html2canvas(p,{scale:2,backgroundColor:'#ffffff',useCORS:true,width:794,height:1123}).then(function(cv){if(i)doc.addPage();doc.addImage(cv.toDataURL('image/jpeg',0.9),'JPEG',0,0,210,297)})})});
+      return seq.then(function(){box.remove();return new File([doc.output('blob')],('Contrato '+META.numero+' assinado - '+(META.ass.nome||'')).replace(/[\\/:*?"<>|]/g,'')+'.pdf',{type:'application/pdf'})},function(e){box.remove();throw e})})})}
+function baixar(compartilhar){var b=$(compartilhar?'bShare':'bPdf'),t=b.textContent;b.disabled=true;b.textContent='Gerando o PDF…';
+  pdf().then(function(f){
+    if(compartilhar&&navigator.canShare&&navigator.canShare({files:[f]})){return navigator.share({files:[f],title:'Contrato '+META.numero+' assinado'}).catch(function(){})}
+    var u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000)
+  }).catch(function(e){alert(e.message||'Não deu certo. Tente de novo.')}).then(function(){b.disabled=false;b.textContent=t})}
+
+/* assinar */
+var pad={c:null,x:null,desenhou:false,tracos:0,ult:null};
+function abrirAssinar(){
+  var e=META.empresa;
+  $('sheet').innerHTML='<div class="lg"><img src="'+logoDe(e)+'" alt=""><div><h2>Assinar contrato</h2><span class="small">Contrato '+esc(META.numero)+'</span></div></div>'+
+   '<div class="fld"><label for="fNome">Nome completo</label><input id="fNome" type="text" autocomplete="name" value="'+esc(META.nome||'')+'"></div>'+
+   '<div class="fld"><label for="fCpf">CPF</label><input id="fCpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00"></div>'+
+   '<div class="fld"><label for="fMail">E-mail</label><input id="fMail" type="email" autocomplete="email" placeholder="voce@email.com"></div>'+
+   '<div class="fld"><label for="fTel">WhatsApp (opcional)</label><input id="fTel" type="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>'+
+   '<div class="fld"><label>Sua assinatura</label><div class="pad"><canvas id="cv"></canvas><div class="ph" id="cvPh">Assine aqui com o dedo</div><div class="lnx"></div></div><div style="margin-top:6px"><button type="button" class="btn ghost" id="bLimpa" style="padding:8px 14px;font-size:14px">Limpar</button></div></div>'+
+   '<label class="chk"><input type="checkbox" id="fOk"><span>Li o contrato inteiro e concordo com os termos. Confirmo que os dados acima são verdadeiros.</span></label>'+
+   '<div class="err" id="fErr"></div>'+
+   '<div class="btns"><button class="btn" id="bConf" style="flex:1">Assinar</button><button class="btn ghost" id="bCanc">Cancelar</button></div>'+
+   '<p class="small" style="margin:10px 0 0">Registramos data, hora, IP e dispositivo da assinatura. Você recebe uma cópia em PDF logo depois.</p>';
+  $('shade').hidden=false;document.body.style.overflow='hidden';
+  var cv=$('cv'),r=cv.getBoundingClientRect(),dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  cv.width=Math.round(r.width*dpr);cv.height=Math.round(170*dpr);var x=cv.getContext('2d');x.scale(dpr,dpr);x.lineWidth=2.6;x.lineCap='round';x.lineJoin='round';x.strokeStyle='#111';
+  pad={c:cv,x:x,desenhou:false,tracos:0,ult:null,dpr:dpr};
+  function pt(ev){var b=cv.getBoundingClientRect();return {x:ev.clientX-b.left,y:ev.clientY-b.top}}
+  cv.addEventListener('pointerdown',function(ev){ev.preventDefault();try{cv.setPointerCapture(ev.pointerId)}catch(_){}pad.ult=pt(ev);pad.x.beginPath();pad.x.moveTo(pad.ult.x,pad.ult.y);pad.x.lineTo(pad.ult.x+.1,pad.ult.y+.1);pad.x.stroke();$('cvPh').hidden=true});
+  cv.addEventListener('pointermove',function(ev){if(!pad.ult)return;ev.preventDefault();var p=pt(ev);pad.x.beginPath();pad.x.moveTo(pad.ult.x,pad.ult.y);pad.x.lineTo(p.x,p.y);pad.x.stroke();pad.tracos+=Math.abs(p.x-pad.ult.x)+Math.abs(p.y-pad.ult.y);pad.ult=p;if(pad.tracos>40)pad.desenhou=true});
+  var fim=function(){pad.ult=null};cv.addEventListener('pointerup',fim);cv.addEventListener('pointercancel',fim);cv.addEventListener('pointerleave',fim);
+  $('bLimpa').onclick=function(){pad.x.clearRect(0,0,cv.width,cv.height);pad.desenhou=false;pad.tracos=0;$('cvPh').hidden=false};
+  $('fCpf').oninput=function(){var v=this.value.replace(/\D/g,'').slice(0,14);this.value=v.length>11?fmtDoc(v):v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
+  $('bCanc').onclick=fechar;$('bConf').onclick=confirmar;
+}
+function fechar(){$('shade').hidden=true;document.body.style.overflow=''}
+function confirmar(){
+  var nome=$('fNome').value.trim(),cpf=$('fCpf').value.replace(/\D/g,''),mail=$('fMail').value.trim(),tel=$('fTel').value.trim(),err=$('fErr');err.textContent='';
+  if(nome.split(/\s+/).length<2){err.textContent='Digite o nome completo.';return}
+  if(!(cpf.length===11?ok11(cpf):cpf.length===14?ok14(cpf):false)){err.textContent='CPF inválido. Confira os números.';return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)){err.textContent='E-mail inválido.';return}
+  if(!pad.desenhou){err.textContent='Faça a sua assinatura no quadro.';return}
+  if(!$('fOk').checked){err.textContent='Marque que leu e concorda com o contrato.';return}
+  var b=$('bConf');b.disabled=true;b.textContent='Assinando…';
+  var ip='';var tmo=new Promise(function(o){setTimeout(function(){o('')},4000)});
+  Promise.race([fetch('https://api.ipify.org?format=json').then(function(r){return r.json()}).then(function(j){return j.ip||''}).catch(function(){return ''}),tmo]).then(function(v){ip=v;
+    var img=pad.c.toDataURL('image/png');
+    return sha(META.hash+'|'+nome+'|'+cpf+'|'+mail+'|'+img).then(function(h){
+      var ass={nome:nome.slice(0,120),cpf:fmtDoc(cpf),email:mail.slice(0,120),img:img,ip:String(ip).slice(0,60),ua:navigator.userAgent.slice(0,290),tz:(Intl.DateTimeFormat().resolvedOptions().timeZone||'').slice(0,60),tela:screen.width+'x'+screen.height,hash:h};
+      if(tel)ass.tel=tel.slice(0,24);
+      if(img.length>140000)throw new Error('A assinatura ficou grande demais. Limpe e assine de novo com um traço mais simples.');
+      return db.collection('assinaturas').doc(tok).update({status:'assinado',ass:ass,assEm:firebase.firestore.FieldValue.serverTimestamp()})})
+  }).then(function(){return db.collection('assinaturas').doc(tok).get()}).then(function(d){META=Object.assign({id:d.id},d.data());fechar();pinta();window.scrollTo(0,0)})
+  .catch(function(e){b.disabled=false;b.textContent='Assinar';err.textContent=(e&&e.code==='permission-denied')?'Este contrato não aceita mais assinatura (já foi assinado ou o link foi cancelado). Recarregue a página.':(e&&e.message)||'Não deu certo. Tente de novo.'})
+}
+
+/* início */
+Promise.all([db.collection('assinaturas').doc(tok).get(),db.collection('assinaturasDoc').doc(tok).get()]).then(function(r){
+  if(!r[0].exists||!r[1].exists){msg('Contrato não encontrado','Confira se o link está completo ou peça um novo à empresa.');return}
+  META=Object.assign({id:tok},r[0].data());DOC=r[1].data();
+  return sha(JSON.stringify(DOC.pgs||[])).then(function(h){
+    if(h!==META.hash){msg('Contrato alterado','O texto deste contrato foi modificado depois do envio. Peça um novo link à empresa.');return}
+    pinta()})
+}).catch(function(){msg('Não consegui abrir','Verifique a internet e tente de novo.')});
+$('bAssinar').onclick=abrirAssinar;
+window.addEventListener('resize',function(){if(META)fit()});
+})();
+</script>
+</body>
+</html>

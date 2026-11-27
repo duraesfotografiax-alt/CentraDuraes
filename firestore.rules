@@ -118,6 +118,33 @@ service cloud.firestore {
         && request.resource.data.code is string && request.resource.data.code.size() < 600;
     }
 
+    // Assinatura de contratos (sistema próprio): o cliente abre o link (id secreto), lê e assina sem login.
+    // "assinaturas" guarda quem assinou (nunca se apaga depois de assinado); "assinaturasDoc" guarda o texto do contrato como foi enviado (a conferência de integridade usa o hash).
+    match /assinaturas/{id} {
+      allow get: if true;
+      allow list: if financeiro();
+      allow create: if financeiro() && request.resource.data.status == 'pendente' && request.resource.data.notificado == false;
+      allow update: if (financeiro() && resource.data.status == 'pendente' && request.resource.data.status in ['pendente', 'cancelado'] && !('ass' in request.resource.data))
+        || (resource.data.status == 'pendente'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ass', 'assEm'])
+          && request.resource.data.status == 'assinado'
+          && request.resource.data.assEm == request.time
+          && request.resource.data.ass.keys().hasOnly(['nome', 'cpf', 'email', 'tel', 'img', 'ip', 'ua', 'tz', 'tela', 'hash'])
+          && 'nome' in request.resource.data.ass && 'cpf' in request.resource.data.ass && 'email' in request.resource.data.ass && 'img' in request.resource.data.ass && 'hash' in request.resource.data.ass
+          && request.resource.data.ass.nome is string && request.resource.data.ass.nome.size() <= 120
+          && request.resource.data.ass.cpf is string && request.resource.data.ass.cpf.size() <= 20
+          && request.resource.data.ass.email is string && request.resource.data.ass.email.size() <= 120
+          && request.resource.data.ass.img is string && request.resource.data.ass.img.size() < 150000
+          && request.resource.data.ass.hash is string && request.resource.data.ass.hash.size() == 64);
+      allow delete: if financeiro() && resource.data.status != 'assinado';
+    }
+    match /assinaturasDoc/{id} {
+      allow get: if true;
+      allow create: if financeiro();
+      allow update: if financeiro() && get(/databases/$(database)/documents/assinaturas/$(id)).data.status == 'pendente';
+      allow delete: if financeiro() && get(/databases/$(database)/documents/assinaturas/$(id)).data.status != 'assinado';
+    }
+
     // Aprovação do cliente: quem tem o link vê e responde (só status/obs dos itens); a equipe cria e apaga
     match /aprovacoes/{id} {
       allow get: if true;
