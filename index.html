@@ -699,7 +699,7 @@ table.ctb td{border-bottom:1px solid #eee;padding:4px 6px}
           <button class="btn" data-rec="emissor">Dados das empresas</button>
           <button class="btn primary" data-ct="novo"><svg class="i"><use href="#i-plus"/></svg>Novo contrato</button>
         </div>
-        <div class="panel"><input class="search" id="ctBusca" placeholder="Buscar cliente, noivos ou número…" aria-label="Buscar contrato" style="width:100%;margin-bottom:8px"><div class="list" id="ctList"></div></div>
+        <div class="panel"><div class="seg" id="fCtS" style="margin-bottom:8px;flex-wrap:wrap"></div><input class="search" id="ctBusca" placeholder="Buscar cliente, noivos ou número…" aria-label="Buscar contrato" style="width:100%;margin-bottom:8px"><div class="list" id="ctList"></div></div>
       </section>
 
       <!-- TRÁFEGO -->
@@ -2205,6 +2205,7 @@ function mkLinhas(c){/* [{obj, cl}] na ordem do catálogo + serviços escritos �
   return out}
 const CT_FREQ={avista:'À vista (1 pagamento)',semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
 const CT_ST={rascunho:['eq','Rascunho'],enviado:['soon','Enviado'],assinado:['rec','Assinado']};
+S.fCtS=S.fCtS||'todos';
 const CT_PADRAO={
   evento:{empresa:'duraes',modelo:'evento',tipoEvt:'casamento',servico:'foto_video',servNome:'',momentos:[],entregas:[],descServ:'',horas:8,prazoFotos:15,prazoVideo:30,duracaoVideo:'10 a 20 minutos',multaDia:2,diasAtraso:10,cancelDias:2,taxaClip:25,freq:'semanal',forma:'Pix'},
   marketing:{empresa:'elite',modelo:'marketing',servs:[],servExtra:[],meses:3,diaVenc:5,forma:'Pix ou Débito',multaDia:2,avisoPrevio:30}
@@ -2303,16 +2304,50 @@ async function ctPaginas(c){
   return pags.map((p,i)=>'<div class="cpage '+c.empresa+'">'+p.map(b=>'<div class="cb">'+b+'</div>').join('')+'<div class="cfoot"><span>'+esc(e.nome)+' · Contrato '+esc(c.numero||'')+'</span>'+(i<n-1?'<span>Rubrica: ____________</span>':'')+'<span>Página '+(i+1)+' de '+n+'</span></div></div>')}
 
 /* ---- lista ---- */
+/* ---- assinatura online (sistema próprio): o cliente abre o link, lê e assina na tela ---- */
+function sha256(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))}
+function ctAss(c){const a=(S.assinaturas||[]).filter(x=>x.contratoId===c.id).sort((x,y)=>(y.criadoEm||'').localeCompare(x.criadoEm||''));return a.find(x=>x.status==='assinado')||a.find(x=>x.status==='pendente')||null}
+function ctAssLink(a){return new URL('assinar.html?c='+encodeURIComponent(a.id),location.href).href}
+function ctAssQuando(a){return a&&a.assEm&&a.assEm.toDate?a.assEm.toDate():null}
+function ctGrupo(c){const a=ctAss(c);if(a&&a.status==='assinado'||c.status==='assinado')return 'assinados';if(a&&a.status==='pendente'||c.status==='enviado')return 'aguardando';return 'rascunho'}
+function ctSt(c){const a=ctAss(c);if(a&&a.status==='assinado'){const d=ctAssQuando(a);return ['rec','Assinado'+(d?' em '+dCurta(iso(d)):'')]}
+  if(a&&a.status==='pendente')return ['soon','Aguardando assinatura'];
+  if(c.status==='assinado')return ['rec','Assinado (manual)'];return CT_ST[c.status]||CT_ST.rascunho}
+async function ctGerarLink(c,forcar){
+  const a=ctAss(c);if(a&&a.status==='assinado')return a;
+  const pgs=await ctPaginas(c),hash=await sha256(JSON.stringify(pgs)),e=emissor(c.empresa),docData={pgs,empNome:e.nome||'',criadoEm:agoraLocal()};
+  if(a&&a.status==='pendente'){
+    if(a.hash===hash&&!forcar)return a;
+    await write(()=>db.collection('assinaturasDoc').doc(a.id).set(docData));
+    await write(()=>db.collection('assinaturas').doc(a.id).update({hash,nome:c.nome||'',numero:c.numero||'',empresa:c.empresa,atualizadoEm:agoraLocal()}));
+    return Object.assign({},a,{hash})}
+  const id=[...crypto.getRandomValues(new Uint8Array(14))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const meta={contratoId:c.id,numero:c.numero||'',empresa:c.empresa,nome:c.nome||'',status:'pendente',notificado:false,hash,criadoEm:agoraLocal(),criadoPor:meuMembro()||''};
+  await write(()=>db.collection('assinaturas').doc(id).set(meta));
+  await write(()=>db.collection('assinaturasDoc').doc(id).set(docData));
+  return Object.assign({id},meta)}
+function ctRenderAss(c){const el=document.getElementById('assBox');if(!el)return;const a=ctAss(c),id=c.id||'';
+  if(!id){el.innerHTML='<span class="hint">Salve o contrato para poder enviar para assinatura.</span>';return}
+  if(!a){el.innerHTML='<b>Assinatura online</b><span class="hint">O cliente abre o link, lê o contrato e assina na tela do celular. Você vê aqui quando ele assinar, e tudo fica guardado.</span><button type="button" class="btn sm primary" data-ct="assinar" data-id="'+id+'" style="align-self:flex-start">Enviar para assinar</button>';return}
+  if(a.status==='assinado'){const x=a.ass||{},d=ctAssQuando(a);
+    el.innerHTML='<b style="color:var(--pos)">Assinado por '+esc(x.nome||'')+'</b><span class="hint">'+(d?esc(d.toLocaleString('pt-BR')):'')+' · CPF '+esc(x.cpf||'')+' · '+esc(x.email||'')+(x.tel?' · '+esc(x.tel):'')+'<br>IP '+esc(x.ip||'não identificado')+' · código '+esc(String(a.hash||'').slice(0,4).toUpperCase()+'-'+String(a.hash||'').slice(4,8).toUpperCase())+'</span>'+
+      '<div class="acts" style="margin-top:6px"><button type="button" class="btn sm primary" data-ct="assver" data-baixar="1" data-id="'+id+'">Baixar PDF assinado</button><button type="button" class="btn sm" data-ct="asswhats" data-id="'+id+'">Mandar cópia pelo WhatsApp</button><button type="button" class="btn sm ghost" data-ct="assver" data-id="'+id+'">Ver certificado</button></div>';return}
+  el.innerHTML='<b>Aguardando assinatura</b><span class="hint">Link do cliente (cada contrato tem o seu):</span><div class="addit"><input id="assLink" readonly value="'+esc(ctAssLink(a))+'"><button type="button" class="btn sm" data-ct="asscopiar" data-id="'+id+'">Copiar</button></div>'+
+    '<div class="acts" style="margin-top:6px"><button type="button" class="btn sm primary" data-ct="asswhats" data-id="'+id+'">Mandar pelo WhatsApp</button><button type="button" class="btn sm" data-ct="assver" data-id="'+id+'">Ver como cliente</button><button type="button" class="btn sm ghost" data-ct="assatualizar" data-id="'+id+'" title="Use depois de editar o contrato">Atualizar o texto do link</button><button type="button" class="btn sm ghost" data-ct="asscancel" data-id="'+id+'" style="color:var(--neg)">Cancelar link</button></div>'}
 function renderContratos(){
   const L=document.getElementById('ctList');if(!L)return;
   segs('fCt','fCt',[['todas','Todos'],['duraes','Durães'],['elite','Elite']]);if(!S.fCt)S.fCt='todas';
   const q=(document.getElementById('ctBusca').value||'').toLowerCase();
-  const cs=(S.contratos||[]).filter(c=>(S.fCt==='todas'||c.empresa===S.fCt)&&(!q||((c.nome||'')+' '+(c.numero||'')+' '+(c.empCli||'')+' '+(c.n1||'')+' '+(c.n2||'')).toLowerCase().includes(q))).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
-  L.innerHTML=cs.length?cs.map(c=>{const st=CT_ST[c.status]||CT_ST.rascunho;
+  const base=(S.contratos||[]).filter(c=>(S.fCt==='todas'||c.empresa===S.fCt)&&(!q||((c.nome||'')+' '+(c.numero||'')+' '+(c.empCli||'')+' '+(c.n1||'')+' '+(c.n2||'')).toLowerCase().includes(q)));
+  const n={todos:base.length,aguardando:0,assinados:0,rascunho:0};base.forEach(c=>n[ctGrupo(c)]++);
+  segs('fCtS','fCtS',[['todos','Todos ('+n.todos+')'],['aguardando','Aguardando assinatura ('+n.aguardando+')'],['assinados','Assinados ('+n.assinados+')'],['rascunho','Rascunhos ('+n.rascunho+')']]);if(!S.fCtS)S.fCtS='todos';
+  const cs=base.filter(c=>S.fCtS==='todos'||ctGrupo(c)===S.fCtS).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  L.innerHTML=cs.length?cs.map(c=>{const st=ctSt(c);
     const sub=c.modelo==='marketing'?(c.empCli?esc(c.empCli)+' · ':'')+c.meses+' '+(c.meses==1?'mês':'meses')+' · '+$(c.mensal)+'/mês':(CT_EVT[c.tipoEvt]||'Evento')+(c.data?' · '+dCurta(c.data):'')+' · '+esc(CT_SERV[c.servico]||'');
-    return '<div class="row">'+dBox(c.modelo==='marketing'?c.ini:c.data,c.empresa)+'<div style="min-width:0"><div class="t">'+esc(c.nome)+'</div><div class="s"><span>'+esc(c.numero)+'</span>'+chipEmp(c.empresa)+'<span class="chip '+st[0]+'">'+st[1]+'</span><span>'+sub+'</span>'+(c.caixa?'<span class="hint">no Caixa</span>':'')+(c.zapLink&&c.status!=='assinado'?'<span class="hint">no ZapSign</span>':'')+'</div></div><div class="v num">'+$(ctTotal(c))+'</div>'+
-      '<div class="acts"><button class="btn sm primary" data-ct="ver" data-id="'+c.id+'">Ver / enviar</button><button class="btn sm ghost" data-ct="editar" data-id="'+c.id+'">Editar</button><button class="btn sm ghost" data-ct="mais" data-id="'+c.id+'">Mais…</button></div></div>'}).join('')
-    :emptyMsg('Nenhum contrato ainda','Toque em "Novo contrato" e escolha Durães (evento) ou Elite (marketing). Antes, confira em "Dados das empresas" o CNPJ, endereço e quem assina.');
+    return '<div class="row">'+dBox(c.modelo==='marketing'?c.ini:c.data,c.empresa)+'<div style="min-width:0"><div class="t">'+esc(c.nome)+'</div><div class="s"><span>'+esc(c.numero)+'</span>'+chipEmp(c.empresa)+'<span class="chip '+st[0]+'">'+st[1]+'</span><span>'+sub+'</span>'+(c.caixa?'<span class="hint">no Caixa</span>':'')+(c.zapLink&&ctGrupo(c)!=='assinados'?'<span class="hint">no ZapSign</span>':'')+'</div></div><div class="v num">'+$(ctTotal(c))+'</div>'+
+      '<div class="acts"><button class="btn sm primary" data-ct="ver" data-id="'+c.id+'">'+(ctGrupo(c)==='assinados'?'Ver assinatura':'Ver / enviar')+'</button><button class="btn sm ghost" data-ct="editar" data-id="'+c.id+'">Editar</button><button class="btn sm ghost" data-ct="mais" data-id="'+c.id+'">Mais…</button></div></div>'}).join('')
+    :emptyMsg(base.length?'Nenhum contrato nesse filtro':'Nenhum contrato ainda',base.length?'Troque o filtro acima para ver os outros.':'Toque em "Novo contrato" e escolha Durães (evento) ou Elite (marketing). Antes, confira em "Dados das empresas" o CNPJ, endereço e quem assina.');
+  if(document.getElementById('assBox')&&S._ctAtual)ctRenderAss(S._ctAtual);
 }
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='ctBusca')renderContratos()});
 
@@ -2464,12 +2499,13 @@ async function agendarContrato(c){
 /* ---- ver / gerar PDF ---- */
 async function verContrato(c){S._ctAtual=c;
   sheet.innerHTML='<form novalidate onsubmit="return false" style="max-width:880px"><div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">Contrato '+esc(c.numero)+'</h2><button type="button" class="btn sm ghost" data-close>Fechar</button></div>'+
+    '<div class="pushbox" id="assBox"></div>'+
     '<div class="recwrap cpwrap" id="ctPrev"><p class="hint" style="padding:20px">Montando o contrato…</p></div>'+
-    '<div class="formacts"><button type="button" class="btn ghost" data-ct="editar" data-id="'+(c.id||'')+'">Editar</button><button type="button" class="btn" data-ct="pdf" data-id="'+(c.id||'')+'">Baixar PDF</button><button type="button" class="btn zap" data-ct="zapsign" data-id="'+(c.id||'')+'">'+ico('i-contract')+'Assinar no ZapSign</button><button type="button" class="btn primary" data-ct="enviar" data-id="'+(c.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p>'+
+    '<div class="formacts"><button type="button" class="btn ghost" data-ct="editar" data-id="'+(c.id||'')+'">Editar</button><button type="button" class="btn" data-ct="pdf" data-id="'+(c.id||'')+'">Baixar PDF</button><button type="button" class="btn" data-ct="enviar" data-id="'+(c.id||'')+'">Enviar (WhatsApp, e-mail…)</button></div><p class="hint" style="margin:0">No celular, "Enviar" abre a lista de apps para mandar o PDF direto no WhatsApp. No PC, ele baixa o PDF para você anexar.</p>'+
     '<div class="pushbox" id="zapBox"'+(c.zapLink?'':' hidden')+'><b>Assinatura eletrônica (ZapSign)</b><span class="hint">Depois de subir o PDF no ZapSign e adicionar o cliente como signatário, copie o link de assinatura dele e cole aqui.</span>'+
     '<div class="addit"><input id="zapLink" type="url" inputmode="url" placeholder="https://app.zapsign.com.br/verificar/..." value="'+esc(c.zapLink||'')+'"><button type="button" class="btn sm" data-ct="zapsalvar" data-id="'+(c.id||'')+'">Salvar</button></div>'+
     '<button type="button" class="btn sm primary" data-ct="zapwhats" data-id="'+(c.id||'')+'" style="align-self:flex-start">Mandar link pelo WhatsApp</button></div></form>';
-  sheet.hidden=false;const pgs=await ctPaginas(c);const el=document.getElementById('ctPrev');if(el)el.innerHTML=pgs.join('')}
+  sheet.hidden=false;ctRenderAss(c);const pgs=await ctPaginas(c);const el=document.getElementById('ctPrev');if(el)el.innerHTML=pgs.join('')}
 async function gerarContratoPdf(c){
   await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   await carregarJs('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
@@ -2492,7 +2528,16 @@ async function contratoAcao(b){const k=b.dataset.ct,id=b.dataset.id;const c=(S.c
     if(k==='novo'){formContrato();return}
     if(!c)return;
     if(k==='ver'){verContrato(c);return}
-    if(k==='editar'){formContrato(c);return}
+    if(k==='editar'){const sa=ctAss(c);if(sa&&sa.status==='assinado'&&!confirm('Este contrato já foi assinado pelo cliente. Editar NÃO muda a cópia assinada (ela fica guardada como foi assinada). Continuar?'))return;formContrato(c);return}
+    if(k==='assinar'||k==='assatualizar'){if(!c.id){toast('Salve o contrato primeiro');return}b.disabled=true;const t=b.textContent;b.textContent='Preparando…';
+      try{const a=await ctGerarLink(c,k==='assatualizar');if(k==='assinar'&&(c.status||'rascunho')==='rascunho'){try{await store.update('contratos',c.id,{status:'enviado'});c.status='enviado'}catch(_){}}
+        ctRenderAss(c);toast(k==='assatualizar'?'Texto do link atualizado':'Link de assinatura pronto: copie ou mande pelo WhatsApp')}
+      finally{b.disabled=false;b.textContent=t}return}
+    if(k==='asscopiar'){const a=ctAss(c);if(!a)return;try{await navigator.clipboard.writeText(ctAssLink(a));toast('Link copiado')}catch(_){prompt('Copie o link:',ctAssLink(a))}return}
+    if(k==='asswhats'){const a=ctAss(c);if(!a)return;const tel=String(c.tel||'').replace(/\D/g,'');
+      abrirWhats(a.status==='assinado'?'Olá, '+(c.nome||'').split(' ')[0]+'! Segue a cópia do contrato '+c.numero+' já assinado. É só abrir o link e baixar o PDF: '+ctAssLink(a):'Olá, '+(c.nome||'').split(' ')[0]+'! Segue o contrato '+c.numero+' para assinatura. É só abrir o link, conferir e assinar pelo celular: '+ctAssLink(a),tel?(tel.length<=11?'55'+tel:tel):'');return}
+    if(k==='assver'){const a=ctAss(c);if(!a)return;window.open(ctAssLink(a)+(b.dataset.baixar?'&baixar=1':''),'_blank');return}
+    if(k==='asscancel'){const a=ctAss(c);if(!a||a.status!=='pendente')return;if(!confirm('Cancelar o link? O cliente não vai mais conseguir assinar por ele (você pode gerar outro).'))return;await write(()=>db.collection('assinaturas').doc(a.id).update({status:'cancelado',canceladoEm:agoraLocal()}));ctRenderAss(c);toast('Link cancelado');return}
     if(k==='mais'){maisContrato(c);return}
     if(k==='duplicar'){const base=JSON.parse(JSON.stringify(c));['id','numero','criadoEm','status','caixa','nome','doc','email','tel','end','n1','n2','data','hora','local','tar','entD','pri','ini','fim','loja','empCli'].forEach(x=>delete base[x]);base.parcelas=[];base.dataAss=hoje();formContrato(null,base);return}
     if(k==='status'){await write(()=>store.update('contratos',c.id,{status:b.dataset.v}));closeSheet();toast(b.dataset.v==='assinado'?'Contrato marcado como assinado':'Pronto');return}
@@ -3292,7 +3337,7 @@ function fmtQuando(q){if(!q)return '—';const [d,h]=q.split('T');return dCurta(
 function contaLoja(id){const ps=S.posts.filter(p=>p.loja===id),ag=agoraLocal(),lim=addDias(hoje(),-30);
   return {prod:S.tar.filter(t=>t.loja===id&&t.etapa!=='entregue').length,pronto:ps.filter(p=>p.status==='pronto').length,
     prog:ps.filter(p=>p.status==='programado').length,conferir:ps.filter(p=>p.status==='programado'&&p.quando&&minDiff(ag,p.quando)>=120).length,
-    pub:ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).length}}
+    pub:ps.filter(p=>p.status==='publicado'&&p.destino!=='anuncio'&&(p.publicadoEm||'')>=lim).length}}
 /* ---------- Pasta Prontos (CapCut → Drive → Central): cada vídeo / foto / pasta de fotos que cair lá vira um card "Para programar" ---------- */
 function prontosBox(l){if(!l)return '';
   if(!l.prontosId)return S.adm?'<div class="prontos"><span>'+ico('i-folder')+'<b>Pasta de exportação</b> · exporte do CapCut para o Drive e o card aparece aqui sozinho</span><button class="btn sm" data-prontos="ativar" data-id="'+l.id+'">Criar pasta Prontos</button><button class="btn sm ghost" data-prontos="pasta" data-id="'+l.id+'">Usar uma pasta que já existe</button></div>':'';
@@ -3513,7 +3558,8 @@ function renderClientes(){
   const prod=S.tar.filter(t=>t.loja===l.id&&t.etapa!=='entregue').sort((a,b)=>(a.data||'z').localeCompare(b.data||'z'));
   const pronto=ps.filter(p=>p.status==='pronto').sort((a,b)=>(a.editadoEm||'').localeCompare(b.editadoEm||''));
   const prog=ps.filter(p=>p.status==='programado').sort((a,b)=>((serieInfo(a).prox||a.quando||'')).localeCompare(serieInfo(b).prox||b.quando||''));
-  const pub=ps.filter(p=>p.status==='publicado'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
+  const ann=ps.filter(p=>p.status==='publicado'&&p.destino==='anuncio'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
+  const pub=ps.filter(p=>p.status==='publicado'&&p.destino!=='anuncio'&&(p.publicadoEm||'')>=lim).sort((a,b)=>(b.publicadoEm||'').localeCompare(a.publicadoEm||''));
   const ig=(l.instagram||'').replace(/^@/,'');
   const col=(tit,cor,n,html,vazio)=>'<div class="col"><h4><span class="st" style="background:'+cor+'"></span>'+tit+'<span class="n num">'+n+'</span></h4>'+(html||'<div class="empty" style="padding:14px 4px">'+vazio+'</div>')+'</div>';
   const pc=p=>{const atras=p.status==='programado'&&!p.pubStatus&&p.quando&&minDiff(ag,p.quando)>=120;
@@ -3523,7 +3569,8 @@ function renderClientes(){
     else if(p.pubStatus==='erro')a='<button class="btn sm primary" data-pact="autoRetry" data-id="'+p.id+'">Tentar de novo</button><button class="btn sm" data-pact="auto" data-id="'+p.id+'">Alterar</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar</button>';
     else if(p.pubStatus==='manual')a='<button class="btn sm primary" data-pact="storyManual" data-id="'+p.id+'">Abrir passo a passo</button><button class="btn sm ghost" data-pact="autoCancel" data-id="'+p.id+'">Cancelar</button>';
     else if(p.pubStatus==='publicando')a='';
-    else if(p.status==='pronto')a='<button class="btn sm" data-pact="aprovar" data-id="'+p.id+'">Mandar p/ aprovação</button><button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>'+((S.tar||[]).some(t=>t.id===p.tar)?'<button class="btn sm ghost" data-pact="devolver" data-id="'+p.id+'" title="Devolve o serviço para Em edição e tira este conteúdo daqui">Devolver à edição</button>':'');
+    else if(p.status==='pronto')a='<button class="btn sm" data-pact="aprovar" data-id="'+p.id+'">Mandar p/ aprovação</button><button class="btn sm primary" data-pact="auto" data-id="'+p.id+'">Agendar na Central</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Programei no Meta</button>'+(S.canWrite?'<button class="btn sm" data-pact="anuncio" data-id="'+p.id+'" title="Não vai para o Instagram/Facebook: foi direto para anúncio">Subiu p/ anúncio</button>':'')+((S.tar||[]).some(t=>t.id===p.tar)?'<button class="btn sm ghost" data-pact="devolver" data-id="'+p.id+'" title="Devolve o serviço para Em edição e tira este conteúdo daqui">Devolver à edição</button>':'');
+    else if(p.status==='publicado'&&p.destino==='anuncio')a=(S.canWrite?'<button class="btn sm ghost" data-pact="anuncioDesfaz" data-id="'+p.id+'">Voltar p/ programar</button>':'');
     else if(p.status==='publicado'&&p.pubFeito&&(p.pubFeito.ig||p.pubFeito.fb||(p.pubFeito.tt&&p.pubFeito.tt!=='-')||(/^http/.test(p.pubFeito.yt||''))))a=(p.pubFeito.ig?'<a class="btn sm" href="'+esc(p.pubFeito.ig)+'" target="_blank" rel="noopener">Ver no Instagram</a>':'')+(p.pubFeito.fb?'<a class="btn sm" href="'+esc(p.pubFeito.fb)+'" target="_blank" rel="noopener">Ver no Facebook</a>':'')+(/^http/.test(p.pubFeito.tt||'')?'<a class="btn sm" href="'+esc(p.pubFeito.tt)+'" target="_blank" rel="noopener">Ver no TikTok</a>':p.pubFeito.tt==='rascunho'?'<span class="chip" style="white-space:normal">TikTok: no rascunho, falta publicar no app</span>':p.pubFeito.tt&&p.pubFeito.tt!=='-'?'<span class="chip">TikTok ok</span>':'')+(/^http/.test(p.pubFeito.yt||'')?'<a class="btn sm" href="'+esc(p.pubFeito.yt)+'" target="_blank" rel="noopener">Ver no YouTube</a>':'');
     else if(p.status==='programado')a='<button class="btn sm" data-pact="auto" data-id="'+p.id+'" title="A Central publica sozinha no Instagram/Facebook">Agendar na Central</button><button class="btn sm primary" data-pact="saiu" data-id="'+p.id+'">'+((p.qtd||1)>1?'Todos saíram ✓':'Saiu ✓')+'</button><button class="btn sm" data-pact="programar" data-id="'+p.id+'">Reprogramar</button>';
     else if(p.status==='publicado'&&p.link)a='<a class="btn sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Ver post</a>';
@@ -3534,16 +3581,17 @@ function renderClientes(){
         (si.prox?'<span>Próximo: '+fmtQuando(si.prox)+'</span><span>Último: '+fmtQuando(si.fim)+'</span>':'<span>'+(atras?'<b style="color:var(--warn)">O último era '+fmtQuando(si.fim)+' · confira se todos saíram</b>':'Último saiu '+fmtQuando(si.fim))+'</span>')})():'')+
       (p.status==='programado'&&!p.pubStatus&&!((p.qtd||1)>1)?'<span>'+(atras?'<b style="color:var(--warn)">Era para '+fmtQuando(p.quando)+' · confira se saiu</b>':'Sai '+fmtQuando(p.quando))+'</span>':'')+
       (p.status==='publicado'&&(p.qtd||1)>1?'<span>'+p.qtd+' '+esc((TPOST[p.tipo]||'posts').toLowerCase())+' · de '+fmtQuando(p.quandoIni||p.publicadoEm)+' até '+fmtQuando(p.quando||p.publicadoEm)+'</span>':'')+
-      (p.status==='publicado'&&!((p.qtd||1)>1)?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
+      (p.status==='publicado'&&p.destino==='anuncio'?'<span>Subiu direto p/ anúncio '+fmtQuando(p.publicadoEm)+'</span>':'')+(p.status==='publicado'&&p.destino!=='anuncio'&&!((p.qtd||1)>1)?'<span>Publicado '+fmtQuando(p.publicadoEm)+(p.pubStatus==='publicado'?' pela Central · '+esc(ondePub(p)):p.verificado?' · conferido no Instagram':'')+'</span>':'')+(p.obs?'<span>'+esc(p.obs)+'</span>':'')+'</div>'+
       (p.tar&&p.status==='pronto'?(()=>{const T=(S.tar||[]).find(t=>t.id===p.tar);return T?'<span class="hint">Serviço: '+esc(T.titulo)+(T.entregueAuto?' · passou para Entregue sozinho':'')+'</span>':''})():'')+
       (p.status!=='publicado'&&semLegenda(p)?'<span class="chip late">Sem legenda</span>':'')+(p.avisoAuto&&p.status==='pronto'?'<span class="chip late" style="white-space:normal">'+esc(p.avisoAuto)+'</span>':'')+(p.pubAviso?'<span class="chip eq" style="white-space:normal">'+esc(p.pubAviso)+'</span>':'')+
       (p.status!=='publicado'?chipAprov(p):'')+
       '<div class="acts">'+(p.drive&&p.status!=='publicado'?'<button class="btn sm" data-pact="ver" data-id="'+p.id+'" title="Ver aqui na Central, sem abrir o Drive">'+(['reels','stories'].includes(p.tipo)?'▶ Ver':'🔍 Ver')+'</button>':'')+(p.drive?'<a class="btn sm" href="'+esc(p.drive)+'" target="_blank" rel="noopener">Abrir no Drive</a>':'')+a+'<button class="btn sm ghost" data-pact="editar" data-id="'+p.id+'">Editar</button></div></div>'};
   body.innerHTML='<div class="lojahead"><span class="ini">'+esc((l.nome||'?').charAt(0).toUpperCase())+'</span><div style="flex:1;min-width:0"><b>'+esc(l.nome)+'</b>'+(ig?'<a href="https://instagram.com/'+encodeURIComponent(ig)+'" target="_blank" rel="noopener">@'+esc(ig)+'</a> · ':'')+'<span class="hint">Postagem: '+esc(l.postagem||'Vanessa')+'</span>'+(S.fin&&adsDaLoja(l.id).length?(()=>{const cs=adsDaLoja(l.id).flatMap(a=>a.campanhas||[]);const at=cs.filter(k=>k.status==='ACTIVE').length,me=cs.reduce((s,k)=>s+(k.gastoMes||0),0);return ' · <a href="#" data-tabm="trafego" style="color:var(--pos)">Tráfego: '+at+' ativa'+(at===1?'':'s')+' · '+$(me)+' no mês</a>'})():'')+'</div>'+(S.adm?'<button class="btn sm ghost" data-edit-loja>Editar cliente</button><button class="btn sm ghost danger" data-loja-rem="'+l.id+'">Remover</button>':'')+'</div>'+prontosBox(l)+blocoIG(l)+
-    '<div class="pipe">'+
+    '<div class="pipe p5">'+
     col('Em produção','#FF6A1F',prod.length,prod.map(t=>'<div class="post" data-open="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.titulo)+'</div><div class="meta"><span>'+(ETAPAS.find(e=>e[0]===(t.etapa||'agendar'))||ETAPAS[0])[1]+' · '+dCurta(t.data)+'</span><span>Edição: '+esc(nomes(t.edicao))+'</span></div>'+(prazoChip(t)||'')+'</div>').join(''),'Nada em produção. Trabalhos da Produção com este cliente aparecem aqui.')+
     col('Para programar','#E2B24C',pronto.length,((pronto.length&&S.canWrite?'<button class="btn sm primary" data-agmassa="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Agendar em massa'+(l.autoAprov?' · automático ligado':'')+'</button>':'')+(pronto.filter(p=>p.drive).length>1?'<button class="btn sm" data-aprovtodos="'+l.id+'" style="width:100%;justify-content:center;margin-bottom:8px">Escolher e mandar para aprovação (1 link)</button>':''))+pronto.map(pc).join(''),'Quando a edição for entregue, o material aparece aqui.')+
     col('Programado','#4C8DFF',prog.length,prog.map(pc).join(''),'Nada programado.')+
+    col('Anúncios','#A855F7',ann.length,ann.map(pc).join(''),'Nenhum conteúdo foi direto para anúncio nos últimos 30 dias.')+
     col('No ar (30 dias)','#34D399',pub.length,pub.map(pc).join(''),'Nada publicado nos últimos 30 dias.')+'</div>';
 }
 function arquivadasHtml(){const A=S.lojas.filter(l=>l.ativo===false).sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));if(!A.length||!S.adm)return '';
@@ -3715,6 +3763,8 @@ async function postAcao(b){const id=b.dataset.id,k=b.dataset.pact,P=S.posts.find
     try{await write(()=>store.update('tar',T.id,{etapa:'edicao',entregueEm:'',entregueAuto:false}));for(const x of irmaos)await write(()=>store.update('posts',x.id,{status:'descartado'}))}catch(_){return}
     toast('Serviço "'+T.titulo+'" voltou para Em edição'+(irmaos.length?' · '+irmaos.length+' conteúdo'+(irmaos.length>1?'s saíram':' saiu')+' de Para programar':''));return}
   if(k==='aprovar'&&P){try{await token()}catch(er){toast(er.message);return}enviarAprovacao([P],S.lojas.find(x=>x.id===P.loja)||{id:P.loja,nome:lojaNome(P.loja)});return}
+  if(k==='anuncio'&&P){try{await write(()=>store.update('posts',P.id,{status:'publicado',destino:'anuncio',publicadoEm:agoraLocal(),link:''}))}catch(_){return}toast('Movido para a coluna Anúncios');return}
+  if(k==='anuncioDesfaz'&&P){try{await write(()=>store.update('posts',P.id,{status:'pronto',destino:'',publicadoEm:''}))}catch(_){return}toast('Voltou para Para programar');return}
   if(k==='auto'&&P){formAuto(P);return}
   if(k==='storyManual'&&P){storyManual(P);return}
   if(k==='ver'&&P){verMidia(()=>arquivosDoLink(P.drive));return}
@@ -4245,7 +4295,7 @@ function showAuth(mode,info){
   const first=af.querySelector('input');if(first)first.focus();
 }
 
-function pararDados(){S.ads=[];S.anuncios=[];S.recibos=[];S.contratos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];S.envios=[];S.entregas=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
+function pararDados(){S.assinaturas=[];S.ads=[];S.anuncios=[];S.recibos=[];S.contratos=[];vistos.posts.clear();vistos.tar.clear();vistos.albuns.clear();S.albuns=[];S.envios=[];S.entregas=[];subs.forEach(u=>{try{u()}catch(_){}});subs=[];S.lanc=[];S.tar=[];S.valores=[];S.freelas=[];S.usuarios=[]}
 async function entrar(u){
   const dono=(u.email||'').toLowerCase()===ADMIN_EMAIL;
   if(dono&&!u.emailVerified){showAuth('verify');return}
@@ -4277,7 +4327,7 @@ function iniciarApp(adm,finOk,dono){
   subs.push(db.collection('config').doc('agendaGoogle').onSnapshot(d=>{S.agG=d.exists?d.data():{};if(S.tab==='agenda')renderAgGoogle()},()=>{}));
   subs.push(db.collection('config').doc('robo').onSnapshot(d=>{S.roboCfg=d.exists?d.data():{};if(S.tab==='clientes')renderRobo()},()=>{}));
   setInterval(()=>{if(S.tab==='clientes'&&document.visibilityState==='visible')renderRobo()},60e3);
-  if(finOk){store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
+  if(finOk){store.sub('assinaturas');store.sub('anuncios');subs.push(db.collection('anunciosMeta').doc('estado').onSnapshot(d=>{S.adsEst=d.exists?d.data():{};if(S.tab==='trafego')renderTrafego()},()=>{}));store.sub('lanc');store.sub('recorrentes');store.sub('valores');store.sub('recibos');store.sub('contratos');subs.push(db.collection('recibosCfg').doc('emissores').onSnapshot(d=>{S.recCfg=d.exists?d.data():{}},()=>{}))}
   if(adm)store.sub('usuarios');
   let t=null;try{t=localStorage.getItem('tab');S.loja=localStorage.getItem('loja')||'todas'}catch(_){}
   abrirStoryDeLink();
