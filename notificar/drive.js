@@ -43,4 +43,13 @@ async function baixar(id) {
   if (!r.ok) throw new Error('Drive ' + r.status + ' ao baixar');
   return Buffer.from(await r.arrayBuffer());
 }
-module.exports = { midiaDoLink, baixar, idDoLink, g, listar, FOLDER, DAPI };
+// baixa direto para um arquivo (sem carregar tudo na memória); serve para vídeos grandes
+async function baixarPara(id, destino, maxBytes) {
+  const fs = require('fs'), { Readable } = require('stream'), { pipeline } = require('stream/promises');
+  const r = await fetch(`${DAPI}/files/${id}?alt=media&supportsAllDrives=true`, { headers: { Authorization: 'Bearer ' + (await token()) } });
+  if (!r.ok || !r.body) throw new Error('Drive ' + r.status + ' ao baixar');
+  const tam = Number(r.headers.get('content-length') || 0);
+  if (maxBytes && tam > maxBytes) { try { await r.body.cancel(); } catch (_) {} throw new Error('Vídeo grande demais para a IA ler (' + Math.round(tam / 1e6) + ' MB).'); }
+  await pipeline(Readable.fromWeb(r.body), fs.createWriteStream(destino));
+}
+module.exports = { midiaDoLink, baixar, baixarPara, idDoLink, g, listar, FOLDER, DAPI };
